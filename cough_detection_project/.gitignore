@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+*.egg-info/
+dist/
+build/
+
+# Data files
+data/raw/**/*.wav
+data/raw/**/*.mp3
+data/raw/**/*.zip
+data/processed/*.npy
+downloads/
+
+# Models
+models/*.h5
+models/*.tflite
+models/checkpoints/*
+!models/checkpoints/.gitkeep
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# ESP32
+.pio/
+.vscode/
+
