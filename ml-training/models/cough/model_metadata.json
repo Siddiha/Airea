@@ -1,0 +1,15 @@
+{
+    "model_name": "cough_detector_v1",
+    "training_date": "2025-12-15 10:19:03",
+    "input_shape": [
+        101,
+        13
+    ],
+    "total_params": 41409,
+    "train_samples": 2191,
+    "val_samples": 469,
+    "final_train_accuracy": 0.9730716347694397,
+    "final_val_accuracy": 0.9701492786407471,
+    "best_val_accuracy": 0.9722814559936523
+}
+

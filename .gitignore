@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+*.egg-info/
+dist/
+build/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg
+
+
+ml-training/data/raw/
+# Data files
+# Ignore all files in data/raw directory (datasets are too large for Git)
+data/raw/
+ml-training/data
+# But keep the directory structure
+!data/raw/.gitkeep
+!data/raw/*/.gitkeep
+# Ignore processed data files (too large)
+data/processed/*.npy
+data/processed/*.npz
+downloads/
+
+# Models
+ml-training/models/**/*.h5
+ml-training/models/**/*.tflite
+ml-training/models/**/checkpoints/*
+!ml-training/models/**/checkpoints/.gitkeep
+# Keep model metadata and evaluation results
+!ml-training/models/**/*.json
+!ml-training/models/**/*.png
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# ESP32
+.pio/
+.vscode/
+
+venv/
+__pycache__/
+*.pyc
+.env
