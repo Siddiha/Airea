@@ -23,6 +23,7 @@ ml-training/data/raw/
 # Ignore all files in data/raw directory (datasets are too large for Git)
 data/raw/
 ml-training/data
+ml-training/cough-training/dataset
 # But keep the directory structure
 !data/raw/.gitkeep
 !data/raw/*/.gitkeep
