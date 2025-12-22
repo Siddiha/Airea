@@ -5,9 +5,11 @@ import tensorflow as tf
 from tensorflow.keras import layers, models
 import sys
 
-# --- CONFIGURATION ---
+# --- CONFIGURATION (1.5 SECONDS - SAFE MODE) ---
 DATASET_PATH = "dataset"
-MODEL_INPUT_LEN = 8000   
+# 1.5 sec * 16000 = 24000 raw.
+# 24000 / 4 (Downsample) = 6000 inputs.
+MODEL_INPUT_LEN = 6000   
 EPOCHS = 60
 BATCH_SIZE = 32
 
@@ -24,10 +26,6 @@ np.random.shuffle(indices)
 files = np.array(files)[indices]
 labels = np.array(labels)[indices]
 
-if len(files) == 0:
-    print("❌ Error: No files found!")
-    sys.exit()
-
 # --- PREPROCESSING ---
 def load_wav_16k_mono(filename):
     file_contents = tf.io.read_file(filename)
@@ -38,8 +36,7 @@ def load_wav_16k_mono(filename):
 def preprocess(file_path, label):
     wav = load_wav_16k_mono(file_path)
     
-    # --- 1. TINNY MIC SIMULATION (The Secret Sauce) ---
-    # Keep this! It makes the AI recognize your ESP32 mic.
+    # Tinny Mic Sim
     wav_expanded = tf.expand_dims(tf.expand_dims(wav, 0), -1)
     kernel_size = 30 
     kernel = tf.ones([kernel_size, 1, 1]) / kernel_size
@@ -47,33 +44,34 @@ def preprocess(file_path, label):
     low_freq = tf.squeeze(low_freq)
     wav = wav - low_freq
     
-    # --- 2. SYNC LOGIC ---
+    # 🔴 1.5 SECOND WINDOW
+    WINDOW_SIZE = 24000 
+    
     abs_wav = tf.math.abs(wav)
     mask = tf.cast(abs_wav > 0.05, tf.int32)
     indices = tf.where(mask)
     if tf.shape(indices)[0] > 0:
         start_index = tf.cast(indices[0][0] - 500, tf.int32)
     else:
-        start_index = tf.cast((tf.shape(wav)[0] // 2) - 8000, tf.int32)
+        start_index = tf.cast((tf.shape(wav)[0] // 2) - (WINDOW_SIZE // 2), tf.int32)
     if start_index < 0: start_index = tf.cast(0, tf.int32)
-    wav_window = wav[start_index : start_index + 16000]
-    required_padding = 16000 - tf.shape(wav_window)[0]
+
+    wav_window = wav[start_index : start_index + WINDOW_SIZE]
+    
+    required_padding = WINDOW_SIZE - tf.shape(wav_window)[0]
     if required_padding > 0:
         zero_padding = tf.zeros([required_padding], dtype=tf.float32)
         wav_window = tf.concat([wav_window, zero_padding], 0)
 
-    # --- 3. DOWNSAMPLE ---
-    wav_downsampled = wav_window[::2]
+    # 🔴 DOWNSAMPLE BY 4 (The Sunglasses Effect)
+    # This blurs the wind noise so the AI ignores it.
+    wav_downsampled = wav_window[::4] 
     
-    # --- 4. ROBUST NOISE ---
     noise_level = tf.random.uniform([], minval=0.01, maxval=0.1)
     noise = tf.random.normal(shape=tf.shape(wav_downsampled), mean=0.0, stddev=noise_level, dtype=tf.float32)
     wav_final = wav_downsampled + noise
-    
-    # --- 5. NORMALIZE ---
     wav_final = wav_final / (tf.math.reduce_max(tf.math.abs(wav_final)) + 0.0001)
     wav_final = tf.reshape(wav_final, [MODEL_INPUT_LEN, 1]) 
-    
     return wav_final, label
 
 ds = tf.data.Dataset.from_tensor_slices((files, labels))
@@ -82,33 +80,24 @@ ds = ds.cache()
 ds = ds.batch(BATCH_SIZE)
 ds = ds.prefetch(tf.data.AUTOTUNE)
 
-# --- MODEL (LIGHTWEIGHT) ---
-print("🏗️ Building 'Lightweight Tinny' Model...")
+# --- MODEL ---
+print("🏗️ Building 'Safe Mode' Model...")
 model = models.Sequential([
     layers.Input(shape=(MODEL_INPUT_LEN, 1)),
-    
-    # RAM OPTIMIZED: We went back to 8 -> 16 -> 32 filters.
-    # But because we have the High-Pass Filter data, it will still work!
     layers.Conv1D(8, 5, strides=2, activation='relu', padding='same'), 
     layers.MaxPooling1D(4),
-    
     layers.Conv1D(16, 3, activation='relu', padding='same'),
     layers.MaxPooling1D(4),
-
-    layers.Conv1D(32, 3, activation='relu', padding='same'),
-    layers.MaxPooling1D(4),
-    
     layers.GlobalAveragePooling1D(),
-    
     layers.Dense(32, activation='relu'),
-    layers.Dropout(0.3),
     layers.Dense(2, activation='softmax')
 ])
 
 model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-# --- TRAIN ---
-print("🚀 Starting Training...")
+# 🔴 REMOVED CLASS WEIGHTS 
+# We want the model to rely on the natural imbalance to reject wind.
+print("🚀 Starting Training (No Weights)...")
 model.fit(ds, epochs=EPOCHS)
 
 # --- CONVERT ---
@@ -133,4 +122,4 @@ with open("model.h", "w") as f:
     f.write("\n};\n")
     f.write(f"const int model_data_len = {len(tflite_model)};")
 
-print(f"✅ SUCCESS! Lightweight Model Size: {len(tflite_model) / 1024:.2f} KB")
+print(f"✅ SUCCESS! Model Size: {len(tflite_model) / 1024:.2f} KB")
