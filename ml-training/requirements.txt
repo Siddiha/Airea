@@ -8,3 +8,4 @@ tqdm>=4.66.1
 soundfile>=0.12.1
 seaborn>=0.13.0
 
+
