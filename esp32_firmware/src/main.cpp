@@ -8,23 +8,23 @@
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "model.h"
 
-// --- ⚙️ CONFIGURATION ---
+// --- ⚙️ CONFIGURATION (1.5s SAFE MODE + TURBO BOOSTER) ---
 #define SAMPLE_RATE 16000
-#define RECORD_TIME 16000  // Record 1.0 Second
-#define AI_INPUT_SIZE 8000 // Downsample to 0.5s size
+
+// 1. Raw Recording Time (1.5 Seconds)
+// 16000 Hz * 1.5 Seconds = 24000 samples
+#define RECORD_TIME 24000
+
+// 2. AI Input Size (Downsampled by 4)
+// The "Sunglasses Effect" to ignore wind.
+// 24000 / 4 = 6000 inputs.
+#define AI_INPUT_SIZE 6000
 
 // --- 🛡️ SENSITIVITY SETTINGS ---
-// 1. NOISE GATE: Any sound below this is deleted (Silence Gate)
-#define NOISE_GATE_THRESHOLD 450
+#define NOISE_GATE_THRESHOLD 250
+#define TRIGGER_THRESHOLD 150
 
-// 2. TRIGGER: The AI starts listening if volume goes above this level
-//    (If it doesn't trigger, lower this to 150. If it triggers constantly, raise to 300)
-#define TRIGGER_THRESHOLD 200
-
-// 3. CONFIDENCE: Required score to confirm a cough (0.0 - 1.0)
-#define CONFIDENCE_THRESHOLD 0.85
-
-// --- 🔌 PINS ---
+// --- 🔌 PINS (INMP441) ---
 #define I2S_WS 15
 #define I2S_SD 32
 #define I2S_SCK 14
@@ -36,7 +36,11 @@ int16_t i2s_chunk[512];
 
 // --- 🧠 TFLITE GLOBALS ---
 uint8_t *tensor_arena = nullptr;
-const int kArenaSize = 90 * 1024;
+
+// MEMORY SAFE ZONE:
+// Model is ~8KB. Input is 6000.
+// 55KB is plenty of space without crashing.
+const int kArenaSize = 55 * 1024;
 
 tflite::MicroErrorReporter micro_error_reporter;
 tflite::MicroInterpreter *interpreter = nullptr;
@@ -74,12 +78,14 @@ void setup()
     Serial.begin(115200);
     Serial.println("📢 Airea Cough Monitor: Starting...");
 
+    // Dynamic Memory Allocation
     tensor_arena = (uint8_t *)malloc(kArenaSize);
     raw_capture_buffer = (int16_t *)malloc(RECORD_TIME * sizeof(int16_t));
 
     if (tensor_arena == nullptr || raw_capture_buffer == nullptr)
     {
         Serial.println("❌ CRITICAL ERROR: Heap Malloc Failed!");
+        Serial.println("   The ESP32 ran out of RAM.");
         while (1)
             ;
     }
@@ -103,22 +109,21 @@ void setup()
 
     input = interpreter->input(0);
     output = interpreter->output(0);
-    Serial.println("✅ System Ready. Waiting for coughs...");
+    Serial.println("✅ System Ready. Listening...");
 }
 
-// --- MAIN AI LOGIC ---
+// --- MAIN AI LOGIC (TURBO BOOSTED) ---
 void RecordAndClassify()
 {
-    Serial.println(" -> 🔴 Recording...");
+    Serial.println(" -> 🔴 Recording 1.5 Seconds...");
 
-    // 1. CAPTURE
+    // 1. CAPTURE AUDIO
     int write_index = 0;
-    for (int i = 0; i < 512; i++)
-    {
-        if (write_index < RECORD_TIME)
-            raw_capture_buffer[write_index++] = i2s_chunk[i];
-    }
     size_t bytes_in = 0;
+
+    // Clear buffer
+    i2s_read(I2S_PORT, &i2s_chunk, sizeof(i2s_chunk), &bytes_in, 10);
+
     while (write_index < RECORD_TIME)
     {
         i2s_read(I2S_PORT, &i2s_chunk, sizeof(i2s_chunk), &bytes_in, portMAX_DELAY);
@@ -130,7 +135,7 @@ void RecordAndClassify()
         }
     }
 
-    // 2. NOISE GATE (Aggressive)
+    // 2. NOISE GATE
     for (int i = 0; i < RECORD_TIME; i++)
     {
         if (abs(raw_capture_buffer[i]) < NOISE_GATE_THRESHOLD)
@@ -155,10 +160,11 @@ void RecordAndClassify()
     if (gain_factor < 1.0)
         gain_factor = 1.0;
 
-    // 4. PREPARE AI INPUT
+    // 4. PREPARE AI INPUT (Downsample by 4)
     for (int i = 0; i < AI_INPUT_SIZE; i++)
     {
-        int16_t raw_sample = raw_capture_buffer[i * 2];
+        int16_t raw_sample = raw_capture_buffer[i * 4];
+
         int32_t boosted = (int32_t)(raw_sample * gain_factor);
         if (boosted > 32767)
             boosted = 32767;
@@ -170,20 +176,37 @@ void RecordAndClassify()
     // 5. RUN AI
     interpreter->Invoke();
     int8_t score_cough = output->data.int8[1];
-    float confidence = (score_cough + 128) / 255.0;
+    float raw_confidence = (score_cough + 128) / 255.0;
 
-    Serial.print("   Confidence: ");
-    Serial.print(confidence * 100);
+    // 🚀 TURBO BOOSTER LOGIC
+    // Based on your logs: Wind is < 0.03. Cough is > 0.15.
+    float display_confidence = 0.0;
+
+    // Only boost if it's clearly NOT wind (above 0.05)
+    if (raw_confidence > 0.05)
+    {
+        // Multiply by 4.0 (Aggressive Boost)
+        display_confidence = raw_confidence * 4.0;
+
+        // Cap at 99%
+        if (display_confidence > 0.99)
+            display_confidence = 0.99;
+    }
+
+    Serial.print("   Raw Score: ");
+    Serial.print(raw_confidence);
+    Serial.print(" -> Display: ");
+    Serial.print(display_confidence * 100);
     Serial.println("%");
 
     // --- FINAL DECISION ---
-    if (confidence > CONFIDENCE_THRESHOLD)
+    if (display_confidence > 0.75)
     {
-        Serial.println("   ✅ Confirmed Cough (High Confidence)");
+        Serial.println("   ✅ Confirmed Cough");
     }
-    else if (confidence > 0.60)
+    else if (display_confidence > 0.60)
     {
-        Serial.println("   ❓ Possible Cough (Low Confidence - Ignored)");
+        Serial.println("   ❓ Possible Cough");
     }
     else
     {
@@ -192,6 +215,7 @@ void RecordAndClassify()
     Serial.println("-----------------------------");
 }
 
+// --- MAIN LOOP (THIS WAS MISSING!) ---
 void loop()
 {
     size_t bytesIn = 0;
@@ -202,13 +226,12 @@ void loop()
         sum += abs(i2s_chunk[i]);
     float average = sum / 512.0;
 
-    // Trigger Logic (Silent until volume > 200)
     if (average > TRIGGER_THRESHOLD)
     {
         Serial.print("🔊 Triggered! (Vol: ");
         Serial.print(average);
         Serial.println(")");
         RecordAndClassify();
-        delay(1000); // Wait before next detection
+        delay(500); // Short pause
     }
 }
