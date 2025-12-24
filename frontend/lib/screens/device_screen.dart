@@ -53,8 +53,8 @@ class _DeviceScreenState extends State<DeviceScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage.isNotEmpty
-          ? _buildErrorView()
-          : _buildDeviceList(),
+              ? _buildErrorView()
+              : _buildDeviceList(),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddDeviceDialog,
         backgroundColor: Colors.cyan.shade600,
@@ -125,9 +125,8 @@ class _DeviceScreenState extends State<DeviceScreen> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: device.isActive
-                ? Colors.green.shade100
-                : Colors.grey.shade100,
+            color:
+                device.isActive ? Colors.green.shade100 : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(

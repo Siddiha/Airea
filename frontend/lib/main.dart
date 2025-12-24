@@ -34,7 +34,8 @@ class AireaApp extends StatelessWidget {
             ),
           ),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
+          // ← FIXED: Changed from CardTheme to CardThemeData
           elevation: 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
