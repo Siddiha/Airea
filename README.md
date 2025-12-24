@@ -63,7 +63,7 @@
 └─────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐
-│   IoT Layer      │──────▶│   Edge Layer     │──────▶│   Cloud Layer    │
+│   IoT Layer      │──────│   Edge Layer     │──────│   Cloud Layer    │
 │                  │      │                  │      │                  │
 │ • ESP32 Devices  │      │ • TFLite Models  │      │ • Spring Boot    │
 │ • Sensors        │      │ • Preprocessing  │      │ • PostgreSQL     │
