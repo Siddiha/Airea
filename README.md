@@ -351,13 +351,6 @@ Contributions are welcome!
 
 ---
 
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file
-
----
-
-
 
 <div align="center">
 
