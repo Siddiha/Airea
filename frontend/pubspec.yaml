@@ -1,0 +1,14 @@
+name: airea_cough_monitor
+description: Simple Airea Cough Monitor
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.1.0
+  intl: ^0.18.1
+
+flutter:
+  uses-material-design: true
