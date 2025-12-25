@@ -1,16 +1,28 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart'; // ← Add this import!
 import '../models/cough_event.dart';
 import '../models/cough_statistics.dart';
 import '../models/device.dart';
 
 class ApiService {
-  // ========================================
-  // 🔧 CHANGE THIS TO YOUR BACKEND IP!
-  // ========================================
-  static const String baseUrl = 'http://192.168.1.100:8080/api';
+  // Use configuration instead of hardcoded URL
+  static const String baseUrl = ApiConfig.baseUrl; // ← Fixed!
 
-  // --- COUGH ENDPOINTS ---
+  /// Health check
+  Future<bool> checkHealth() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/cough/health'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 5));
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Health check failed: $e');
+      return false;
+    }
+  }
 
   /// Get all cough events for a device
   Future<List<CoughEvent>> getCoughEvents(String deviceId) async {
@@ -113,8 +125,6 @@ class ApiService {
     }
   }
 
-  // --- DEVICE ENDPOINTS ---
-
   /// Get all active devices
   Future<List<Device>> getActiveDevices() async {
     try {
@@ -176,23 +186,6 @@ class ApiService {
     } catch (e) {
       print('Error registering device: $e');
       rethrow;
-    }
-  }
-
-  /// Health check
-  Future<bool> checkHealth() async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse('$baseUrl/cough/health'),
-            headers: {'Content-Type': 'application/json'},
-          )
-          .timeout(const Duration(seconds: 5));
-
-      return response.statusCode == 200;
-    } catch (e) {
-      print('Health check failed: $e');
-      return false;
     }
   }
 }

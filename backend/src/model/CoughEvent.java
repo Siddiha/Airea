@@ -1,37 +1,47 @@
-package dto;
+package model;
 
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import model.CoughEvent;
 import java.time.Instant;
 import java.util.UUID;
 
+@Entity
+@Table(name = "cough_events")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CoughEventResponse {
+public class CoughEvent {
     
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+    
+    @Column(nullable = false)
     private String deviceId;
-    private String coughType;
-    private Float confidence;
-    private Float rawScore;
+    
+    @Column(nullable = false)
+    private String coughType; // "dry", "wet", "unknown"
+    
+    @Column(nullable = false)
+    private Float confidence; // 0.0 to 1.0
+    
+    private Float rawScore; // Raw ML model score
+    
+    @Column(nullable = false)
     private Instant timestamp;
+    
     private Float audioVolume;
+    
+    @Column(nullable = false, updatable = false)
     private Instant createdAt;
     
-    // Constructor from entity
-    public static CoughEventResponse fromEntity(CoughEvent event) {
-        return new CoughEventResponse(
-            event.getId(),
-            event.getDeviceId(),
-            event.getCoughType(),
-            event.getConfidence(),
-            event.getRawScore(),
-            event.getTimestamp(),
-            event.getAudioVolume(),
-            event.getCreatedAt()
-        );
+    @PrePersist
+    protected void onCreate() {
+        createdAt = Instant.now();
+        if (timestamp == null) {
+            timestamp = Instant.now();
+        }
     }
 }

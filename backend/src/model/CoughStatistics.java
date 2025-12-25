@@ -16,7 +16,5 @@ public class CoughStatistics {
     private Double averageConfidence;
     private Double coughsPerHour;
     private String mostCommonType;
-    
-    // Time period
     private String period; // "hour", "day", "week"
 }
