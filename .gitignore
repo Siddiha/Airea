@@ -24,6 +24,7 @@ ml-training/data/raw/
 data/raw/
 ml-training/data
 ml-training/cough-training/dataset
+ml-training/fall-training/IMU-Dataset
 # But keep the directory structure
 !data/raw/.gitkeep
 !data/raw/*/.gitkeep
