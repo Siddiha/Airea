@@ -1,237 +1,284 @@
 #include <Arduino.h>
 #include <driver/i2s.h>
-#include <stdint.h>
-#include <TensorFlowLite_ESP32.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include "cough_model.h"
+
+// WI-FI CREDENTIALS (CHANGE THESE!)
+const char *ssid = "Dialog 4G 437";
+const char *password = "20040920";
+
+// SERVER URL (Where to send the alert)
+// Use https://webhook.site for testing if you don't have a backend yet.
+const char *serverUrl = "https://webhook.site/ec1800be-02da-47a5-b046-2efe54d096ee";
+
+// TENSORFLOW LITE INCLUDES
 #include "tensorflow/lite/micro/all_ops_resolver.h"
 #include "tensorflow/lite/micro/micro_error_reporter.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/schema/schema_generated.h"
-#include "model.h"
 
-// --- ⚙️ CONFIGURATION (1.5s SAFE MODE + TURBO BOOSTER) ---
-#define SAMPLE_RATE 16000
-
-// 1. Raw Recording Time (1.5 Seconds)
-// 16000 Hz * 1.5 Seconds = 24000 samples
-#define RECORD_TIME 24000
-
-// 2. AI Input Size (Downsampled by 4)
-// The "Sunglasses Effect" to ignore wind.
-// 24000 / 4 = 6000 inputs.
-#define AI_INPUT_SIZE 6000
-
-// --- 🛡️ SENSITIVITY SETTINGS ---
-#define NOISE_GATE_THRESHOLD 250
-#define TRIGGER_THRESHOLD 150
-
-// --- 🔌 PINS (INMP441) ---
-#define I2S_WS 15
-#define I2S_SD 32
-#define I2S_SCK 14
+// PIN DEFINITIONS (ESP32-S3 N16R8)
+#define I2S_WS 5
+#define I2S_SD 6
+#define I2S_SCK 4
 #define I2S_PORT I2S_NUM_0
 
-// --- 💾 BUFFERS ---
-int16_t *raw_capture_buffer = nullptr;
-int16_t i2s_chunk[512];
+// AUDIO SETTINGS
+#define SAMPLE_RATE 16000
+#define RECORD_TIME 2
+const int kAudioBufferSize = SAMPLE_RATE * RECORD_TIME;
 
-// --- 🧠 TFLITE GLOBALS ---
-uint8_t *tensor_arena = nullptr;
+// AI MEMORY SETTINGS (8MB PSRAM available)
+const int kArenaSize = 200 * 1024;
+uint8_t *tensor_arena;
 
-// MEMORY SAFE ZONE:
-// Model is ~8KB. Input is 6000.
-// 55KB is plenty of space without crashing.
-const int kArenaSize = 55 * 1024;
-
+// GLOBAL VARIABLES
 tflite::MicroErrorReporter micro_error_reporter;
-tflite::MicroInterpreter *interpreter = nullptr;
-TfLiteTensor *input = nullptr;
-TfLiteTensor *output = nullptr;
+tflite::AllOpsResolver resolver;
+const tflite::Model *model;
+tflite::MicroInterpreter *interpreter;
+TfLiteTensor *input;
+TfLiteTensor *output;
 
-// --- HARDWARE SETUP ---
-void i2s_install()
+// Audio Buffer
+int16_t *raw_audio_buffer;
+
+// -------------------------------------------------------------------------
+// WI-FI SETUP FUNCTION
+// -------------------------------------------------------------------------
+void setup_wifi()
+{
+    delay(10);
+    Serial.println();
+    Serial.print("Connecting to ");
+    Serial.println(ssid);
+
+    WiFi.begin(ssid, password);
+
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(500);
+        Serial.print(".");
+        attempts++;
+        if (attempts > 20)
+        {
+            Serial.println("\nWi-Fi Failed! Continuing offline...");
+            return; // Don't hang forever if wifi is bad
+        }
+    }
+
+    Serial.println("");
+    Serial.println("Wi-Fi connected.");
+    Serial.print("IP Address: ");
+    Serial.println(WiFi.localIP());
+}
+
+// -------------------------------------------------------------------------
+// SEND ALERT FUNCTION
+// -------------------------------------------------------------------------
+void send_alert(float confidence)
+{
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        HTTPClient http;
+
+        Serial.println("Sending Alert to Server...");
+
+        // Start connection
+        http.begin(serverUrl);
+        http.addHeader("Content-Type", "application/json");
+
+        // Create JSON payload
+        String jsonPayload = "{\"device\":\"Airea_S3\",\"alert\":\"Cough Detected\",\"confidence\":" + String(confidence * 100) + "}";
+
+        // Send POST request
+        int httpResponseCode = http.POST(jsonPayload);
+
+        if (httpResponseCode > 0)
+        {
+            Serial.print("Data Sent! Server Response: ");
+            Serial.println(httpResponseCode);
+        }
+        else
+        {
+            Serial.print("Error Sending: ");
+            Serial.println(httpResponseCode);
+        }
+
+        http.end(); // Free resources
+    }
+    else
+    {
+        Serial.println("Wi-Fi Disconnected. Cannot send alert.");
+    }
+}
+
+// -------------------------------------------------------------------------
+// SETUP I2S
+// -------------------------------------------------------------------------
+void setup_i2s()
 {
     const i2s_config_t i2s_config = {
-        .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
+        .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),
         .sample_rate = SAMPLE_RATE,
         .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
         .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
-        .communication_format = I2S_COMM_FORMAT_STAND_I2S,
+        .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB),
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-        .dma_buf_count = 8,
-        .dma_buf_len = 512,
-        .use_apll = false};
-    i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL);
-}
+        .dma_buf_count = 4,
+        .dma_buf_len = 1024,
+        .use_apll = false,
+        .tx_desc_auto_clear = false,
+        .fixed_mclk = 0};
 
-void i2s_setpin()
-{
     const i2s_pin_config_t pin_config = {
         .bck_io_num = I2S_SCK,
         .ws_io_num = I2S_WS,
-        .data_out_num = -1,
+        .data_out_num = I2S_PIN_NO_CHANGE,
         .data_in_num = I2S_SD};
+
+    i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL);
     i2s_set_pin(I2S_PORT, &pin_config);
 }
 
+// -------------------------------------------------------------------------
+// SETUP
+// -------------------------------------------------------------------------
 void setup()
 {
     Serial.begin(115200);
-    Serial.println("📢 Airea Cough Monitor: Starting...");
+    delay(3000);
 
-    // Dynamic Memory Allocation
-    tensor_arena = (uint8_t *)malloc(kArenaSize);
-    raw_capture_buffer = (int16_t *)malloc(RECORD_TIME * sizeof(int16_t));
+    Serial.println("Airea (S3): System Online.");
 
-    if (tensor_arena == nullptr || raw_capture_buffer == nullptr)
+    // 1. ALLOCATE MEMORY (PSRAM)
+    tensor_arena = (uint8_t *)ps_malloc(kArenaSize);
+    raw_audio_buffer = (int16_t *)ps_malloc(kAudioBufferSize * sizeof(int16_t));
+
+    if (!tensor_arena || !raw_audio_buffer)
     {
-        Serial.println("❌ CRITICAL ERROR: Heap Malloc Failed!");
-        Serial.println("   The ESP32 ran out of RAM.");
+        Serial.println("PSRAM Allocation Failed!");
         while (1)
             ;
     }
 
-    i2s_install();
-    i2s_setpin();
-    i2s_start(I2S_PORT);
+    // 2. CONNECT WI-FI
+    setup_wifi();
 
-    static tflite::AllOpsResolver resolver;
-    const tflite::Model *model = tflite::GetModel(model_data);
+    // 3. LOAD MODEL
+    model = tflite::GetModel(model_data);
+    if (model->version() != TFLITE_SCHEMA_VERSION)
+    {
+        Serial.println("Schema Mismatch!");
+        while (1)
+            ;
+    }
+
+    // 4. START INTERPRETER
     static tflite::MicroInterpreter static_interpreter(
         model, resolver, tensor_arena, kArenaSize, &micro_error_reporter);
     interpreter = &static_interpreter;
 
     if (interpreter->AllocateTensors() != kTfLiteOk)
     {
-        Serial.println("❌ TFLite Error: Arena too small?");
+        Serial.println("AllocateTensors Failed!");
         while (1)
             ;
     }
 
     input = interpreter->input(0);
     output = interpreter->output(0);
-    Serial.println("✅ System Ready. Listening...");
+
+    // 5. START MIC
+    setup_i2s();
+    Serial.println("AI Active. Waiting for sound...");
 }
 
-// --- MAIN AI LOGIC (TURBO BOOSTED) ---
-void RecordAndClassify()
+// -------------------------------------------------------------------------
+// MAIN LOOP
+// -------------------------------------------------------------------------
+void loop()
 {
-    Serial.println(" -> 🔴 Recording 1.5 Seconds...");
+    size_t bytes_read = 0;
 
-    // 1. CAPTURE AUDIO
-    int write_index = 0;
-    size_t bytes_in = 0;
+    // 1. LISTEN
+    i2s_read(I2S_PORT, raw_audio_buffer, kAudioBufferSize * sizeof(int16_t), &bytes_read, portMAX_DELAY);
 
-    // Clear buffer
-    i2s_read(I2S_PORT, &i2s_chunk, sizeof(i2s_chunk), &bytes_in, 10);
-
-    while (write_index < RECORD_TIME)
+    // 2. AMPLIFY (Gain 8x)
+    int gain_factor = 8;
+    float average_vol = 0;
+    for (int i = 0; i < kAudioBufferSize; i++)
     {
-        i2s_read(I2S_PORT, &i2s_chunk, sizeof(i2s_chunk), &bytes_in, portMAX_DELAY);
-        int samples_read = bytes_in / 2;
-        for (int i = 0; i < samples_read; i++)
+        int32_t amplified = raw_audio_buffer[i] * gain_factor;
+        // Clamp values
+        if (amplified > 32767)
+            amplified = 32767;
+        if (amplified < -32768)
+            amplified = -32768;
+
+        raw_audio_buffer[i] = (int16_t)amplified;
+        average_vol += abs(raw_audio_buffer[i]);
+    }
+    average_vol /= kAudioBufferSize;
+
+    // 3. PREPARE FOR AI
+    if (input->type == kTfLiteInt8)
+    {
+        int8_t *input_data = input->data.int8;
+        for (int i = 0; i < kAudioBufferSize; i++)
         {
-            if (write_index < RECORD_TIME)
-                raw_capture_buffer[write_index++] = i2s_chunk[i];
+            if (i < input->bytes)
+                input_data[i] = (raw_audio_buffer[i] >> 8);
         }
-    }
-
-    // 2. NOISE GATE
-    for (int i = 0; i < RECORD_TIME; i++)
-    {
-        if (abs(raw_capture_buffer[i]) < NOISE_GATE_THRESHOLD)
-        {
-            raw_capture_buffer[i] = 0;
-        }
-    }
-
-    // 3. AUTO-GAIN
-    int16_t max_val = 0;
-    for (int i = 0; i < RECORD_TIME; i++)
-    {
-        if (abs(raw_capture_buffer[i]) > max_val)
-            max_val = abs(raw_capture_buffer[i]);
-    }
-    if (max_val < 100)
-        max_val = 100;
-
-    float gain_factor = 26000.0 / (float)max_val;
-    if (gain_factor > 40.0)
-        gain_factor = 40.0;
-    if (gain_factor < 1.0)
-        gain_factor = 1.0;
-
-    // 4. PREPARE AI INPUT (Downsample by 4)
-    for (int i = 0; i < AI_INPUT_SIZE; i++)
-    {
-        int16_t raw_sample = raw_capture_buffer[i * 4];
-
-        int32_t boosted = (int32_t)(raw_sample * gain_factor);
-        if (boosted > 32767)
-            boosted = 32767;
-        if (boosted < -32768)
-            boosted = -32768;
-        input->data.int8[i] = (int8_t)(boosted >> 8);
-    }
-
-    // 5. RUN AI
-    interpreter->Invoke();
-    int8_t score_cough = output->data.int8[1];
-    float raw_confidence = (score_cough + 128) / 255.0;
-
-    // 🚀 TURBO BOOSTER LOGIC
-    // Based on your logs: Wind is < 0.03. Cough is > 0.15.
-    float display_confidence = 0.0;
-
-    // Only boost if it's clearly NOT wind (above 0.05)
-    if (raw_confidence > 0.05)
-    {
-        // Multiply by 4.0 (Aggressive Boost)
-        display_confidence = raw_confidence * 4.0;
-
-        // Cap at 99%
-        if (display_confidence > 0.99)
-            display_confidence = 0.99;
-    }
-
-    Serial.print("   Raw Score: ");
-    Serial.print(raw_confidence);
-    Serial.print(" -> Display: ");
-    Serial.print(display_confidence * 100);
-    Serial.println("%");
-
-    // --- FINAL DECISION ---
-    if (display_confidence > 0.75)
-    {
-        Serial.println("   ✅ Confirmed Cough");
-    }
-    else if (display_confidence > 0.60)
-    {
-        Serial.println("   ❓ Possible Cough");
     }
     else
     {
-        Serial.println("   ❌ Noise / Ignored");
+        for (int i = 0; i < kAudioBufferSize; i++)
+        {
+            if (i < input->bytes / sizeof(float))
+                input->data.f[i] = raw_audio_buffer[i] / 32768.0f;
+        }
     }
-    Serial.println("-----------------------------");
-}
 
-// --- MAIN LOOP (THIS WAS MISSING!) ---
-void loop()
-{
-    size_t bytesIn = 0;
-    i2s_read(I2S_PORT, &i2s_chunk, sizeof(i2s_chunk), &bytesIn, portMAX_DELAY);
+    // 4. THINK
+    interpreter->Invoke();
 
-    long sum = 0;
-    for (int i = 0; i < 512; i++)
-        sum += abs(i2s_chunk[i]);
-    float average = sum / 512.0;
+    // 5. DECIDE
+    float noise_score = 0;
+    float cough_score = 0;
 
-    if (average > TRIGGER_THRESHOLD)
+    if (output->type == kTfLiteInt8)
     {
-        Serial.print("🔊 Triggered! (Vol: ");
-        Serial.print(average);
-        Serial.println(")");
-        RecordAndClassify();
-        delay(500); // Short pause
+        float scale = output->params.scale;
+        int zero_point = output->params.zero_point;
+        noise_score = (output->data.int8[0] - zero_point) * scale;
+        cough_score = (output->data.int8[1] - zero_point) * scale;
+    }
+    else
+    {
+        noise_score = output->data.f[0];
+        cough_score = output->data.f[1];
+    }
+
+    // 6. REPORT
+    Serial.print("Vol: ");
+    Serial.print((int)average_vol);
+    Serial.print(" | Noise: ");
+    Serial.print(noise_score * 100);
+    Serial.print("% | Cough: ");
+    Serial.print(cough_score * 100);
+    Serial.println("%");
+
+    // 7. ACT (Trigger + Wi-Fi Alert)
+    if (cough_score > 0.90)
+    {
+        Serial.println("COUGH DETECTED!");
+
+        // SEND ALERT VIA WI-FI
+        send_alert(cough_score);
+
+        delay(1000); // Pause to prevent spamming server
     }
 }
