@@ -1,29 +1,39 @@
 #include <Arduino.h>
 #include <driver/i2s.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
 #include "cough_model.h"
 
-// 📦 TENSORFLOW LITE INCLUDES
+// WI-FI CREDENTIALS (CHANGE THESE!)
+const char *ssid = "Dialog 4G 437";
+const char *password = "20040920";
+
+// SERVER URL (Where to send the alert)
+// Use https://webhook.site for testing if you don't have a backend yet.
+const char *serverUrl = "https://webhook.site/ec1800be-02da-47a5-b046-2efe54d096ee";
+
+// TENSORFLOW LITE INCLUDES
 #include "tensorflow/lite/micro/all_ops_resolver.h"
 #include "tensorflow/lite/micro/micro_error_reporter.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 
-// 🔌 PIN DEFINITIONS (ESP32-S3 N16R8)
-#define I2S_WS 5  // Word Select (LRC)
-#define I2S_SD 6  // Serial Data (DIN)
-#define I2S_SCK 4 // Serial Clock (BCLK)
+// PIN DEFINITIONS (ESP32-S3 N16R8)
+#define I2S_WS 5
+#define I2S_SD 6
+#define I2S_SCK 4
 #define I2S_PORT I2S_NUM_0
 
-// 🎤 AUDIO SETTINGS
+// AUDIO SETTINGS
 #define SAMPLE_RATE 16000
 #define RECORD_TIME 2
 const int kAudioBufferSize = SAMPLE_RATE * RECORD_TIME;
 
-// 🧠 AI MEMORY SETTINGS (8MB PSRAM available)
+// AI MEMORY SETTINGS (8MB PSRAM available)
 const int kArenaSize = 200 * 1024;
 uint8_t *tensor_arena;
 
-// 🛠 GLOBAL VARIABLES
+// GLOBAL VARIABLES
 tflite::MicroErrorReporter micro_error_reporter;
 tflite::AllOpsResolver resolver;
 const tflite::Model *model;
@@ -31,11 +41,82 @@ tflite::MicroInterpreter *interpreter;
 TfLiteTensor *input;
 TfLiteTensor *output;
 
-// Audio Buffer (Allocated in PSRAM)
+// Audio Buffer
 int16_t *raw_audio_buffer;
 
 // -------------------------------------------------------------------------
-// 🛠 SETUP I2S MICROPHONE
+// WI-FI SETUP FUNCTION
+// -------------------------------------------------------------------------
+void setup_wifi()
+{
+    delay(10);
+    Serial.println();
+    Serial.print("Connecting to ");
+    Serial.println(ssid);
+
+    WiFi.begin(ssid, password);
+
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(500);
+        Serial.print(".");
+        attempts++;
+        if (attempts > 20)
+        {
+            Serial.println("\nWi-Fi Failed! Continuing offline...");
+            return; // Don't hang forever if wifi is bad
+        }
+    }
+
+    Serial.println("");
+    Serial.println("Wi-Fi connected.");
+    Serial.print("IP Address: ");
+    Serial.println(WiFi.localIP());
+}
+
+// -------------------------------------------------------------------------
+// SEND ALERT FUNCTION
+// -------------------------------------------------------------------------
+void send_alert(float confidence)
+{
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        HTTPClient http;
+
+        Serial.println("Sending Alert to Server...");
+
+        // Start connection
+        http.begin(serverUrl);
+        http.addHeader("Content-Type", "application/json");
+
+        // Create JSON payload
+        String jsonPayload = "{\"device\":\"Airea_S3\",\"alert\":\"Cough Detected\",\"confidence\":" + String(confidence * 100) + "}";
+
+        // Send POST request
+        int httpResponseCode = http.POST(jsonPayload);
+
+        if (httpResponseCode > 0)
+        {
+            Serial.print("Data Sent! Server Response: ");
+            Serial.println(httpResponseCode);
+        }
+        else
+        {
+            Serial.print("Error Sending: ");
+            Serial.println(httpResponseCode);
+        }
+
+        http.end(); // Free resources
+    }
+    else
+    {
+        Serial.println("Wi-Fi Disconnected. Cannot send alert.");
+    }
+}
+
+// -------------------------------------------------------------------------
+// SETUP I2S
 // -------------------------------------------------------------------------
 void setup_i2s()
 {
@@ -63,14 +144,14 @@ void setup_i2s()
 }
 
 // -------------------------------------------------------------------------
-// 🔁 SETUP
+// SETUP
 // -------------------------------------------------------------------------
 void setup()
 {
     Serial.begin(115200);
-    delay(3000); // Wait for Mac USB
+    delay(3000);
 
-    Serial.println("📢 Airea (S3): System Online.");
+    Serial.println("Airea (S3): System Online.");
 
     // 1. ALLOCATE MEMORY (PSRAM)
     tensor_arena = (uint8_t *)ps_malloc(kArenaSize);
@@ -78,28 +159,31 @@ void setup()
 
     if (!tensor_arena || !raw_audio_buffer)
     {
-        Serial.println("❌ PSRAM Allocation Failed!");
+        Serial.println("PSRAM Allocation Failed!");
         while (1)
             ;
     }
 
-    // 2. LOAD MODEL
+    // 2. CONNECT WI-FI
+    setup_wifi();
+
+    // 3. LOAD MODEL
     model = tflite::GetModel(model_data);
     if (model->version() != TFLITE_SCHEMA_VERSION)
     {
-        Serial.println("❌ Schema Mismatch!");
+        Serial.println("Schema Mismatch!");
         while (1)
             ;
     }
 
-    // 3. START INTERPRETER
+    // 4. START INTERPRETER
     static tflite::MicroInterpreter static_interpreter(
         model, resolver, tensor_arena, kArenaSize, &micro_error_reporter);
     interpreter = &static_interpreter;
 
     if (interpreter->AllocateTensors() != kTfLiteOk)
     {
-        Serial.println("❌ AllocateTensors Failed!");
+        Serial.println("AllocateTensors Failed!");
         while (1)
             ;
     }
@@ -107,13 +191,13 @@ void setup()
     input = interpreter->input(0);
     output = interpreter->output(0);
 
-    // 4. START MIC
+    // 5. START MIC
     setup_i2s();
-    Serial.println("✅ AI Active. Waiting for sound...");
+    Serial.println("AI Active. Waiting for sound...");
 }
 
 // -------------------------------------------------------------------------
-// 🔁 MAIN LOOP (With Noise + Cough Output)
+// MAIN LOOP
 // -------------------------------------------------------------------------
 void loop()
 {
@@ -122,7 +206,7 @@ void loop()
     // 1. LISTEN
     i2s_read(I2S_PORT, raw_audio_buffer, kAudioBufferSize * sizeof(int16_t), &bytes_read, portMAX_DELAY);
 
-    // 2. AMPLIFY (Software Gain 8x)
+    // 2. AMPLIFY (Gain 8x)
     int gain_factor = 8;
     float average_vol = 0;
     for (int i = 0; i < kAudioBufferSize; i++)
@@ -178,21 +262,23 @@ void loop()
         cough_score = output->data.f[1];
     }
 
-    // 6. REPORT (Shows Both Scores)
-    Serial.print("🎤 Vol: ");
+    // 6. REPORT
+    Serial.print("Vol: ");
     Serial.print((int)average_vol);
-    Serial.print(" | 🛡️ Noise: ");
+    Serial.print(" | Noise: ");
     Serial.print(noise_score * 100);
-    Serial.print("% | 🧠 Cough: ");
+    Serial.print("% | Cough: ");
     Serial.print(cough_score * 100);
     Serial.println("%");
 
-    // 7. ACT
-    // LOWERED THRESHOLD: 0.70 (70%)
-    // This catches the "hesitant" coughs but still ignores background noise.
+    // 7. ACT (Trigger + Wi-Fi Alert)
     if (cough_score > 0.90)
     {
-        Serial.println("🚨 🚨 🚨 COUGH DETECTED! 🚨 🚨 🚨");
-        delay(1000);
+        Serial.println("COUGH DETECTED!");
+
+        // SEND ALERT VIA WI-FI
+        send_alert(cough_score);
+
+        delay(1000); // Pause to prevent spamming server
     }
 }
