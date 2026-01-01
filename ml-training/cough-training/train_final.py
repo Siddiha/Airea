@@ -13,7 +13,7 @@ DATASET_PATH = "dataset"
 # The ESP32-S3 has 8MB of RAM, so 16000 is easy for it!
 MODEL_INPUT_LEN = 16000   
 EPOCHS = 60
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 
 print(f"🚀 TRAINING MODE: ESP32-S3 N16R8 (High Fidelity - {MODEL_INPUT_LEN} inputs)")
 
