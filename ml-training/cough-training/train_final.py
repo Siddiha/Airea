@@ -16,10 +16,10 @@ MODEL_INPUT_LEN = 16000
 EPOCHS = 60
 BATCH_SIZE = 64
 
-print(f"🚀 TRAINING MODE: ESP32-S3 N16R8 (High Fidelity - {MODEL_INPUT_LEN} inputs)")
+print(f"TRAINING MODE: ESP32-S3 N16R8 (High Fidelity - {MODEL_INPUT_LEN} inputs)")
 
 # --- LOAD DATA ---
-print("📂 Loading Data...")
+print("Loading Data...")
 files_neg = glob.glob(os.path.join(DATASET_PATH, "negative_class", "*.wav"))
 files_pos = glob.glob(os.path.join(DATASET_PATH, "positive_class", "*.wav"))
 
@@ -32,7 +32,7 @@ files = np.array(files)[indices]
 labels = np.array(labels)[indices]
 
 if len(files) == 0:
-    print("❌ Error: No files found!")
+    print("Error: No files found!")
     sys.exit()
 
 # --- PREPROCESSING ---
@@ -121,7 +121,7 @@ weight_for_0 = (1 / total_neg) * (total_files / 2.0)
 weight_for_1 = (1 / total_pos) * (total_files / 2.0)
 class_weight = {0: weight_for_0, 1: weight_for_1}
 
-print("🚀 Starting Training...")
+print("Starting Training...")
 model.fit(ds, epochs=EPOCHS, class_weight=class_weight)
 
 # --- CONVERT ---
