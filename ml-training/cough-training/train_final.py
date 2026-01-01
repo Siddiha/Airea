@@ -11,6 +11,7 @@ DATASET_PATH = "dataset"
 # 2.0 Seconds * 16000 Hz = 32000 Raw Samples
 # Downsample by 2 = 16000 Inputs (High Quality)
 # The ESP32-S3 has 8MB of RAM, so 16000 is easy for it!
+# batch size incresed to 64 !!
 MODEL_INPUT_LEN = 16000   
 EPOCHS = 60
 BATCH_SIZE = 64
