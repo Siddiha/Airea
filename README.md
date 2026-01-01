@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🏥 Airea - AI-Powered Health Monitoring System
+#  Airea - AI-Powered Health Monitoring System
 
 ### Intelligent Real-time Health Monitoring Using Edge AI & IoT
 
