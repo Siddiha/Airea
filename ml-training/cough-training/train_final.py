@@ -5,13 +5,17 @@ import tensorflow as tf
 from tensorflow.keras import layers, models
 import sys
 
-# --- CONFIGURATION (1.5 SECONDS - SAFE MODE) ---
+# --- CONFIGURATION (S3 ULTIMATE EDITION) ---
 DATASET_PATH = "dataset"
-# 1.5 sec * 16000 = 24000 raw.
-# 24000 / 4 (Downsample) = 6000 inputs.
-MODEL_INPUT_LEN = 6000   
+
+# 2.0 Seconds * 16000 Hz = 32000 Raw Samples
+# Downsample by 2 = 16000 Inputs (High Quality)
+# The ESP32-S3 has 8MB of RAM, so 16000 is easy for it!
+MODEL_INPUT_LEN = 16000   
 EPOCHS = 60
 BATCH_SIZE = 32
+
+print(f"🚀 TRAINING MODE: ESP32-S3 N16R8 (High Fidelity - {MODEL_INPUT_LEN} inputs)")
 
 # --- LOAD DATA ---
 print("📂 Loading Data...")
@@ -26,6 +30,10 @@ np.random.shuffle(indices)
 files = np.array(files)[indices]
 labels = np.array(labels)[indices]
 
+if len(files) == 0:
+    print("❌ Error: No files found!")
+    sys.exit()
+
 # --- PREPROCESSING ---
 def load_wav_16k_mono(filename):
     file_contents = tf.io.read_file(filename)
@@ -36,7 +44,7 @@ def load_wav_16k_mono(filename):
 def preprocess(file_path, label):
     wav = load_wav_16k_mono(file_path)
     
-    # Tinny Mic Sim
+    # 1. Tinny Mic Sim (Still good for INMP441)
     wav_expanded = tf.expand_dims(tf.expand_dims(wav, 0), -1)
     kernel_size = 30 
     kernel = tf.ones([kernel_size, 1, 1]) / kernel_size
@@ -44,8 +52,9 @@ def preprocess(file_path, label):
     low_freq = tf.squeeze(low_freq)
     wav = wav - low_freq
     
-    # 🔴 1.5 SECOND WINDOW
-    WINDOW_SIZE = 24000 
+    # 2. 2-SECOND WINDOW (Full Duration)
+    # We grab 32000 samples (2 seconds raw audio)
+    WINDOW_SIZE = 32000 
     
     abs_wav = tf.math.abs(wav)
     mask = tf.cast(abs_wav > 0.05, tf.int32)
@@ -53,7 +62,9 @@ def preprocess(file_path, label):
     if tf.shape(indices)[0] > 0:
         start_index = tf.cast(indices[0][0] - 500, tf.int32)
     else:
+        # If no sound, center the window
         start_index = tf.cast((tf.shape(wav)[0] // 2) - (WINDOW_SIZE // 2), tf.int32)
+
     if start_index < 0: start_index = tf.cast(0, tf.int32)
 
     wav_window = wav[start_index : start_index + WINDOW_SIZE]
@@ -63,10 +74,11 @@ def preprocess(file_path, label):
         zero_padding = tf.zeros([required_padding], dtype=tf.float32)
         wav_window = tf.concat([wav_window, zero_padding], 0)
 
-    # 🔴 DOWNSAMPLE BY 4 (The Sunglasses Effect)
-    # This blurs the wind noise so the AI ignores it.
-    wav_downsampled = wav_window[::4] 
+    # 3. HIGH QUALITY DOWNSAMPLE (Only by 2)
+    # This keeps the "crisp" details of the cough.
+    wav_downsampled = wav_window[::2] 
     
+    # Noise & Norm
     noise_level = tf.random.uniform([], minval=0.01, maxval=0.1)
     noise = tf.random.normal(shape=tf.shape(wav_downsampled), mean=0.0, stddev=noise_level, dtype=tf.float32)
     wav_final = wav_downsampled + noise
@@ -80,28 +92,39 @@ ds = ds.cache()
 ds = ds.batch(BATCH_SIZE)
 ds = ds.prefetch(tf.data.AUTOTUNE)
 
-# --- MODEL ---
-print("🏗️ Building 'Safe Mode' Model...")
+# --- MODEL (S3 POWER) ---
+print("🏗️ Building 'S3 Ultimate' Model...")
 model = models.Sequential([
     layers.Input(shape=(MODEL_INPUT_LEN, 1)),
+    
     layers.Conv1D(8, 5, strides=2, activation='relu', padding='same'), 
     layers.MaxPooling1D(4),
+    
     layers.Conv1D(16, 3, activation='relu', padding='same'),
     layers.MaxPooling1D(4),
+    
     layers.GlobalAveragePooling1D(),
+    
     layers.Dense(32, activation='relu'),
     layers.Dense(2, activation='softmax')
 ])
 
 model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-# 🔴 REMOVED CLASS WEIGHTS 
-# We want the model to rely on the natural imbalance to reject wind.
-print("🚀 Starting Training (No Weights)...")
-model.fit(ds, epochs=EPOCHS)
+# Use standard weights (Wind = 0%, Cough = High)
+# We re-enable weights because with High Quality, the AI can easily tell the difference.
+total_files = len(files)
+total_pos = len(files_pos)
+total_neg = len(files_neg)
+weight_for_0 = (1 / total_neg) * (total_files / 2.0)
+weight_for_1 = (1 / total_pos) * (total_files / 2.0)
+class_weight = {0: weight_for_0, 1: weight_for_1}
+
+print("🚀 Starting Training...")
+model.fit(ds, epochs=EPOCHS, class_weight=class_weight)
 
 # --- CONVERT ---
-print("📦 Converting to TFLite...")
+print("Converting to TFLite...")
 converter = tf.lite.TFLiteConverter.from_keras_model(model)
 converter.optimizations = [tf.lite.Optimize.DEFAULT]
 def representative_dataset_gen():
@@ -122,4 +145,4 @@ with open("model.h", "w") as f:
     f.write("\n};\n")
     f.write(f"const int model_data_len = {len(tflite_model)};")
 
-print(f"✅ SUCCESS! Model Size: {len(tflite_model) / 1024:.2f} KB")
+print(f"SUCCESS! S3 Model Size: {len(tflite_model) / 1024:.2f} KB")
