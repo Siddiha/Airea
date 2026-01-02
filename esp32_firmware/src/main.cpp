@@ -10,7 +10,14 @@ const char *password = "20040920";
 
 // SERVER URL (Backend API endpoint)
 // Change this to your backend server IP/domain
-const char *serverUrl = "http://localhost:8080/api/cough/event";
+const char *serverUrl = "http://192.168.1.100:8080/api/cough/event";
+
+// AUTHENTICATION (Get JWT token from backend)
+// Step 1: Register device via POST /api/device/register
+// Step 2: Generate API key via POST /api/auth/generate-key/ESP32_COUGH_01
+// Step 3: Login via POST /api/auth/login to get JWT token
+// Step 4: Copy the JWT token here
+const char *jwtToken = "YOUR_JWT_TOKEN_HERE";  // Replace with actual token
 
 // TENSORFLOW LITE INCLUDES
 #include "tensorflow/lite/micro/all_ops_resolver.h"
@@ -97,6 +104,10 @@ void send_alert(float confidence, float rawScore, float audioVolume)
         // Start connection
         http.begin(serverUrl);
         http.addHeader("Content-Type", "application/json");
+
+        // Add JWT authentication header
+        String authHeader = "Bearer " + String(jwtToken);
+        http.addHeader("Authorization", authHeader);
 
         // Get current timestamp in milliseconds
         unsigned long timestamp = millis();
