@@ -8,9 +8,9 @@
 const char *ssid = "Dialog 4G 437";
 const char *password = "20040920";
 
-// SERVER URL (Where to send the alert)
-// Use https://webhook.site for testing if you don't have a backend yet.
-const char *serverUrl = "https://webhook.site/ec1800be-02da-47a5-b046-2efe54d096ee";
+// SERVER URL (Backend API endpoint)
+// Change this to your backend server IP/domain
+const char *serverUrl = "http://localhost:8080/api/cough/event";
 
 // TENSORFLOW LITE INCLUDES
 #include "tensorflow/lite/micro/all_ops_resolver.h"
@@ -28,6 +28,14 @@ const char *serverUrl = "https://webhook.site/ec1800be-02da-47a5-b046-2efe54d096
 #define SAMPLE_RATE 16000
 #define RECORD_TIME 2
 const int kAudioBufferSize = SAMPLE_RATE * RECORD_TIME;
+
+// COUGH DETECTION SETTINGS
+#define COUGH_THRESHOLD 0.90  // 90% confidence threshold
+// Note: Current model only detects "cough vs noise" (binary classification)
+// To detect dry/wet coughs, you need to:
+// 1. Train a new model with 3 classes: dry, wet, noise
+// 2. Update the inference code to classify into 3 categories
+// 3. Modify send_alert() to send actual cough type instead of "unknown"
 
 // AI MEMORY SETTINGS (8MB PSRAM available)
 const int kArenaSize = 200 * 1024;
@@ -78,32 +86,47 @@ void setup_wifi()
 // -------------------------------------------------------------------------
 // SEND ALERT FUNCTION
 // -------------------------------------------------------------------------
-void send_alert(float confidence)
+void send_alert(float confidence, float rawScore, float audioVolume)
 {
     if (WiFi.status() == WL_CONNECTED)
     {
         HTTPClient http;
 
-        Serial.println("Sending Alert to Server...");
+        Serial.println("Sending Cough Event to Backend...");
 
         // Start connection
         http.begin(serverUrl);
         http.addHeader("Content-Type", "application/json");
 
-        // Create JSON payload
-        String jsonPayload = "{\"device\":\"Airea_S3\",\"alert\":\"Cough Detected\",\"confidence\":" + String(confidence * 100) + "}";
+        // Get current timestamp in milliseconds
+        unsigned long timestamp = millis();
+
+        // Create JSON payload matching backend CoughEventRequest format
+        // For now, we use "unknown" as we only detect cough vs noise (not dry vs wet)
+        String jsonPayload = "{";
+        jsonPayload += "\"deviceId\":\"ESP32_COUGH_01\",";
+        jsonPayload += "\"coughType\":\"unknown\",";
+        jsonPayload += "\"confidence\":" + String(confidence, 3) + ",";
+        jsonPayload += "\"rawScore\":" + String(rawScore, 3) + ",";
+        jsonPayload += "\"timestamp\":" + String(timestamp) + ",";
+        jsonPayload += "\"audioVolume\":" + String(audioVolume, 2);
+        jsonPayload += "}";
+
+        Serial.println("Payload: " + jsonPayload);
 
         // Send POST request
         int httpResponseCode = http.POST(jsonPayload);
 
         if (httpResponseCode > 0)
         {
-            Serial.print("Data Sent! Server Response: ");
+            Serial.print("Success! HTTP Response: ");
             Serial.println(httpResponseCode);
+            String response = http.getString();
+            Serial.println("Backend Response: " + response);
         }
         else
         {
-            Serial.print("Error Sending: ");
+            Serial.print("HTTP Error: ");
             Serial.println(httpResponseCode);
         }
 
@@ -111,7 +134,7 @@ void send_alert(float confidence)
     }
     else
     {
-        Serial.println("Wi-Fi Disconnected. Cannot send alert.");
+        Serial.println("Wi-Fi Disconnected. Cannot send event.");
     }
 }
 
@@ -272,12 +295,13 @@ void loop()
     Serial.println("%");
 
     // 7. ACT (Trigger + Wi-Fi Alert)
-    if (cough_score > 0.90)
+    if (cough_score > COUGH_THRESHOLD)
     {
         Serial.println("COUGH DETECTED!");
 
-        // SEND ALERT VIA WI-FI
-        send_alert(cough_score);
+        // SEND EVENT TO BACKEND VIA WI-FI
+        // Pass confidence, raw score, and audio volume
+        send_alert(cough_score, cough_score, average_vol);
 
         delay(1000); // Pause to prevent spamming server
     }
