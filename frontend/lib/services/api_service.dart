@@ -7,7 +7,9 @@ import '../models/device.dart';
 
 class ApiService {
   // Use configuration instead of hardcoded URL
-  static const String baseUrl = ApiConfig.baseUrl; // ← Fixed!
+  //static const String baseUrl = ApiConfig.baseUrl; // ← Fixed!
+  // Look for a line similar to this and update it:
+  static const String baseUrl = 'http://10.0.2.2:8080/api';
 
   /// Health check
   Future<bool> checkHealth() async {
