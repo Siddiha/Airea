@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:dummy/styling.dart';
+import 'package:airea_cough_monitor/screens/styling.dart';
 
 class patientHomeScreen extends StatefulWidget {
   const patientHomeScreen({super.key});
