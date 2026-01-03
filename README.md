@@ -11,7 +11,6 @@
 [![TensorFlow](https://img.shields.io/badge/TensorFlow-Lite-FF6F00?logo=tensorflow)](https://www.tensorflow.org/lite)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?logo=postgresql)](https://www.postgresql.org/)
 
-[Features](#-key-features) • [Architecture](#-system-architecture) • [Installation](#-installation) • [Tech Stack](#-tech-stack)
 
 </div>
 

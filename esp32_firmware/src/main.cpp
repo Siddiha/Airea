@@ -9,15 +9,15 @@ const char *ssid = "Dialog 4G 437";
 const char *password = "20040920";
 
 // SERVER URL (Backend API endpoint)
-// Change this to your backend server IP/domain
-const char *serverUrl = "http://192.168.1.100:8080/api/cough/event";
+// Your PC's IP: 192.168.8.107 (found via ipconfig)
+const char *serverUrl = "http://192.168.8.107:8080/api/cough/event";
 
 // AUTHENTICATION (Get JWT token from backend)
 // Step 1: Register device via POST /api/device/register
 // Step 2: Generate API key via POST /api/auth/generate-key/ESP32_COUGH_01
 // Step 3: Login via POST /api/auth/login to get JWT token
 // Step 4: Copy the JWT token here
-const char *jwtToken = "YOUR_JWT_TOKEN_HERE";  // Replace with actual token
+const char *jwtToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJFU1AzMl9DT1VHSF8wMSIsImlhdCI6MTc2NzQyNTg4MCwiZXhwIjoxNzY3NTEyMjgwfQ.J9n6k9xALaEkUsASLIzsqo2SFa-KxroBZ8Y4CfZAbxwuMlbXAfH4IzxP5uM-LtZbAXtV2SAh5WFPhTgpk6QLbQ";  // JWT token from backend login
 
 // TENSORFLOW LITE INCLUDES
 #include "tensorflow/lite/micro/all_ops_resolver.h"
