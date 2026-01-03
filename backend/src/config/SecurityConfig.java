@@ -38,6 +38,7 @@ public class SecurityConfig {
                 // Public endpoints (no authentication required)
                 .requestMatchers(
                     "/api/auth/**",           // Authentication endpoints
+                    "/api/device/register",   // Device registration
                     "/api/cough/health",      // Health check
                     "/ws/**",                 // WebSocket connection
                     "/error"                  // Error page

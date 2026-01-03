@@ -6,7 +6,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"controller", "service", "config"})
+@ComponentScan(basePackages = {"controller", "service", "config", "security", "filter", "dto"})
 @EnableJpaRepositories(basePackages = "repository")
 @EntityScan(basePackages = "model")
 public class AireaApplication {
