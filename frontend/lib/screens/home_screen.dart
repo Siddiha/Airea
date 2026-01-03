@@ -37,7 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final isHealthy = await _apiService.checkHealth();
 
       if (!isHealthy) {
-        throw Exception('Backend is not responding');
+        //throw Exception('Backend is not responding');
       }
 
       // Navigate to cough analyzer screen
