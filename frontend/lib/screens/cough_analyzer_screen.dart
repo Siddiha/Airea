@@ -1,12 +1,36 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-class CoughAnalyzerScreen extends StatelessWidget {
+class CoughAnalyzerScreen extends StatefulWidget {
   final String deviceId;
 
   const CoughAnalyzerScreen({
     super.key,
     required this.deviceId,
   });
+
+  @override
+  State<CoughAnalyzerScreen> createState() => _CoughAnalyzerScreenState();
+}
+
+class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
+  bool _isLoading = false;
+  final String _errorMessage = '';
+  CoughStatistics? _hourlyStats;
+  final List<CoughEvent> _recentEvents = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    // Placeholder: call API service as needed. Keep minimal to avoid changing behavior.
+    await Future.delayed(const Duration(milliseconds: 200));
+    setState(() => _isLoading = false);
+  }
 
   // Dummy data (UI-only today)
   int get coughFrequencyPerHour => 50;

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
-import 'patient_homeScreen.dart';
 
 class PatientDeviceDisconnect extends StatelessWidget {
   const PatientDeviceDisconnect({super.key});
