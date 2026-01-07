@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../models/cough_statistics.dart';
+import '../models/cough_event.dart';
 
 class CoughAnalyzerScreen extends StatefulWidget {
   final String deviceId;
