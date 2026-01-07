@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
-import 'patient_homeScreen.dart';
+import 'patient_homescreen.dart';
 
 class PatientDeviceConnected extends StatelessWidget {
   const PatientDeviceConnected({super.key});
@@ -22,7 +22,8 @@ class PatientDeviceConnected extends StatelessWidget {
                   onPressed: () {
                     Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(builder: (context) => const patientHomeScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => PatientHomeScreen()),
                       (route) => false,
                     );
                   },
