@@ -19,9 +19,9 @@ class CoughAnalyzerScreen extends StatefulWidget {
 
 class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
   bool _isLoading = false;
-  String _errorMessage = '';
+  final String _errorMessage = '';
   CoughStatistics? _hourlyStats;
-  List<CoughEvent> _recentEvents = [];
+  final List<CoughEvent> _recentEvents = [];
 
   @override
   void initState() {
@@ -332,7 +332,7 @@ class WaveformPainter extends CustomPainter {
 
     final path = Path();
     final amplitude = size.height / 3;
-    final frequency = 8;
+    const frequency = 8;
     final step = size.width / 100;
 
     path.moveTo(0, size.height / 2);
