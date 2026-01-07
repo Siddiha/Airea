@@ -139,43 +139,7 @@ logging.level.security=DEBUG
 - `/api/cough/stats/**` - Statistics
 - `/api/device/**` - Device management (except register)
 
----
 
-## 📁 **Files Created**
-
-```
-backend/
-├── pom.xml (updated)
-├── AUTHENTICATION_SETUP.md (new)
-├── resources/
-│   └── application.properties (updated)
-└── src/
-    ├── config/
-    │   ├── SecurityConfig.java (new)
-    │   └── CorsConfig.java (updated)
-    ├── security/
-    │   ├── JwtTokenProvider.java (new)
-    │   └── JwtAuthenticationFilter.java (new)
-    ├── filter/
-    │   └── RateLimitingFilter.java (new)
-    ├── service/
-    │   └── AuthService.java (new)
-    ├── controller/
-    │   └── AuthController.java (new)
-    ├── dto/
-    │   ├── AuthRequest.java (new)
-    │   ├── AuthResponse.java (new)
-    │   └── ApiKeyResponse.java (new)
-    └── model/
-        └── Device.java (updated)
-
-esp32_firmware/
-└── src/
-    └── main.cpp (updated)
-```
-
-**Total Files Created:** 10 new files
-**Total Files Updated:** 4 files
 
 ---
 
