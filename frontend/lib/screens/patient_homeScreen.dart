@@ -1,56 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:airea_cough_monitor/screens/styling.dart';
+
 import 'patient_notifications.dart';
 import 'patient_profile.dart';
 import 'patient_cough_count.dart';
 import 'patient_connect_device_option.dart';
 import 'patient_summary_page.dart';
+import 'cough_analyzer_screen.dart';
 
-class patientHomeScreen extends StatefulWidget {
-  const patientHomeScreen({super.key});
+class PatientHomeScreen extends StatefulWidget {
+  PatientHomeScreen({super.key});
 
   @override
-  State<patientHomeScreen> createState() => _patientHomeScreen();
+  State<PatientHomeScreen> createState() => _PatientHomeScreenState();
 }
 
-class _patientHomeScreen extends State<patientHomeScreen> {
+class _PatientHomeScreenState extends State<PatientHomeScreen> {
   int spo2 = 98;
   String spo2Status = "Normal";
+
   int heartRate = 72;
   String heartRateStatus = "Normal";
+
   double temperature = 34.0;
   String temperatureStatus = "Normal";
+
   int coughCount = 600;
   String coughStatus = "Normal";
+
   int _selectedIndex = 0;
 
   @override
-  Widget build(context) {
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.person, size: 40),
+          icon: const Icon(Icons.person, size: 40),
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const PatientProfile()),
+              MaterialPageRoute(
+                builder: (_) => const PatientProfile(),
+              ),
             );
           },
         ),
-        title: Text("Hello User !"),
+        title: const Text("Hello User!"),
         actions: [
           IconButton(
+            icon: const Icon(Icons.notifications_active_sharp),
+            iconSize: 40,
+            color: Colors.black,
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const PatientNotifications()),
+                MaterialPageRoute(
+                  builder: (_) => const PatientNotifications(),
+                ),
               );
             },
-            icon: Icon(Icons.notifications_active_sharp),
-            iconSize: 40,
-            color: Colors.black,
           ),
-          SizedBox(width: 30),
+          const SizedBox(width: 30),
         ],
       ),
       body: SafeArea(
@@ -61,77 +71,73 @@ class _patientHomeScreen extends State<patientHomeScreen> {
             children: [
               const Text(
                 "Live vitals",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 10),
               Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    flex: 1, 
                     child: Column(
                       children: [
                         VitalCard(
-                          title: "Spo2",
+                          title: "SpO₂",
                           status: spo2Status,
                           value: "$spo2%",
                           icon: Icons.water_drop_outlined,
                           color: Colors.green,
                           Cardheight: 90,
                         ),
-                        const SizedBox(
-                          height: 10,
-                        ), 
+                        const SizedBox(height: 10),
                         VitalCard(
                           title: "Temperature",
-                          Cardheight: 100,
                           status: temperatureStatus,
                           value: "$temperature°C",
                           icon: Icons.thermostat,
                           color: Colors.green,
+                          Cardheight: 100,
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(
-                    width: 10,
-                  ), 
+                  const SizedBox(width: 10),
                   Expanded(
-                    flex: 1, 
                     child: VitalCard(
                       title: "Heart Rate",
-                      Cardheight:190,
-                      value: "$heartRate BPM",
                       status: heartRateStatus,
+                      value: "$heartRate BPM",
                       icon: Icons.show_chart,
                       color: Colors.green,
+                      Cardheight: 190,
                     ),
                   ),
                 ],
               ),
-              Column(
-                children: [
-                  SizedBox(height: 10,),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const PatientCoughCount()),
-                      );
-                    },
-                    child: vitalCardWithButton(
-                      Cardheight: 130,
-                      btnText: "View Cough Trends",
-                      color: Colors.orange,
-                      status: coughStatus,
-                      title: "Cough",
-                      value: coughCount.toString(),
-                      statusColor: Colors.orange,
+              const SizedBox(height: 10),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CoughAnalyzerScreen(
+                        deviceId: 'ESP32_COUGH_01',
+                      ),
                     ),
-                  ),
-                ],
-              )
+                  );
+                },
+                child: vitalCardWithButton(
+                  Cardheight: 130,
+                  btnText: "View Cough Trends",
+                  color: Colors.orange,
+                  status: coughStatus,
+                  title: "Cough",
+                  value: coughCount.toString(),
+                  statusColor: Colors.orange,
+                ),
+              ),
             ],
           ),
         ),
@@ -145,18 +151,21 @@ class _patientHomeScreen extends State<patientHomeScreen> {
 
           switch (index) {
             case 0:
-              // Already on home
               break;
             case 1:
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const PatientConnectDeviceOption()),
+                MaterialPageRoute(
+                  builder: (_) => const PatientConnectDeviceOption(),
+                ),
               );
               break;
             case 2:
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const PatientSummaryPage()),
+                MaterialPageRoute(
+                  builder: (_) => const PatientSummaryPage(),
+                ),
               );
               break;
           }

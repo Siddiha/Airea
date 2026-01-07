@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
-import 'patient_homeScreen.dart';
+import 'patient_homescreen.dart';
 import 'patient_create_account.dart';
 
 class PatientLoginPage extends StatefulWidget {
@@ -77,7 +77,8 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
                     onPressed: () {
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(builder: (context) => const patientHomeScreen()),
+                        MaterialPageRoute(
+                            builder: (context) => PatientHomeScreen()),
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -98,7 +99,8 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const PatientCreateAccount()),
+                      MaterialPageRoute(
+                          builder: (context) => const PatientCreateAccount()),
                     );
                   },
                   child: Text(
