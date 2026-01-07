@@ -1,16 +1,40 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/cough_event.dart';
 import '../models/cough_statistics.dart';
-import '../services/api_service.dart';
+// import '../services/api_service.dart'; // unused for now
 
-class CoughAnalyzerScreen extends StatelessWidget {
+class CoughAnalyzerScreen extends StatefulWidget {
   final String deviceId;
 
   const CoughAnalyzerScreen({
     super.key,
     required this.deviceId,
   });
+
+  @override
+  State<CoughAnalyzerScreen> createState() => _CoughAnalyzerScreenState();
+}
+
+class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
+  bool _isLoading = false;
+  String _errorMessage = '';
+  CoughStatistics? _hourlyStats;
+  List<CoughEvent> _recentEvents = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    // Placeholder: call API service as needed. Keep minimal to avoid changing behavior.
+    await Future.delayed(const Duration(milliseconds: 200));
+    setState(() => _isLoading = false);
+  }
 
   // Dummy data (UI-only today)
   int get coughFrequencyPerHour => 50;
@@ -54,6 +78,7 @@ class CoughAnalyzerScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+      bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 
@@ -326,7 +351,7 @@ class WaveformPainter extends CustomPainter {
       final y = size.height / 2 +
           amplitude *
               heightMultiplier *
-              Math.sin((x / size.width) * frequency * 2 * Math.pi);
+              math.sin((x / size.width) * frequency * 2 * math.pi);
       path.lineTo(x, y);
     }
 
@@ -335,23 +360,6 @@ class WaveformPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-// Math helper
-class Math {
-  static double sin(double x) => x.sin();
-  static double get pi => 3.14159265359;
-}
-
-extension MathExtension on double {
-  double sin() {
-    // Simple sine approximation
-    double x = this;
-    while (x > Math.pi) x -= 2 * Math.pi;
-    while (x < -Math.pi) x += 2 * Math.pi;
-
-    return x - (x * x * x) / 6 + (x * x * x * x * x) / 120;
-  }
 }
 
 class _CoughSpike {

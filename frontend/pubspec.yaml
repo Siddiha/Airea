@@ -16,12 +16,11 @@ dependencies:
 
 flutter:
   uses-material-design: true
-<<<<<<< HEAD
 
   assets:
-    - assets/
-=======
-  
-  assets:
     - assets/images/
->>>>>>> 2ad5e27f9b9d9f06d934308981174dc6bf2ba2b5
+
+dev_dependencies:
+  flutter_lints: ^2.0.0
+  flutter_test:
+    sdk: flutter

@@ -25,3 +25,11 @@ class AireaApp extends StatelessWidget {
     );
   }
 }
+
+// Backwards-compatible alias used by tests and older code
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) => const AireaApp();
+}
