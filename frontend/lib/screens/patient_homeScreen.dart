@@ -4,7 +4,6 @@ import 'patient_notifications.dart';
 import 'patient_profile.dart';
 import 'patient_cough_count.dart';
 import 'patient_connect_device_option.dart';
-import 'patient_connect_doctor_option.dart';
 import 'patient_summary_page.dart';
 
 class patientHomeScreen extends StatefulWidget {
