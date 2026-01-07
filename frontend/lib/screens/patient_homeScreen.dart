@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:airea_cough_monitor/screens/styling.dart';
+import 'patient_notifications.dart';
+import 'patient_profile.dart';
+import 'patient_cough_count.dart';
+import 'patient_connect_device_option.dart';
+import 'patient_connect_doctor_option.dart';
+import 'patient_summary_page.dart';
 
 class patientHomeScreen extends StatefulWidget {
   const patientHomeScreen({super.key});
@@ -17,7 +23,7 @@ class _patientHomeScreen extends State<patientHomeScreen> {
   String temperatureStatus = "Normal";
   int coughCount = 600;
   String coughStatus = "Normal";
-
+  int _selectedIndex = 0;
 
   @override
   Widget build(context) {
@@ -25,12 +31,22 @@ class _patientHomeScreen extends State<patientHomeScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.person, size: 40),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const PatientProfile()),
+            );
+          },
         ),
         title: Text("Hello User !"),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PatientNotifications()),
+              );
+            },
             icon: Icon(Icons.notifications_active_sharp),
             iconSize: 40,
             color: Colors.black,
@@ -98,19 +114,68 @@ class _patientHomeScreen extends State<patientHomeScreen> {
               Column(
                 children: [
                   SizedBox(height: 10,),
-                  vitalCardWithButton(Cardheight: 130,
-                  btnText: "View Cough Trends",
-                  color: Colors.orange,
-                  status: coughStatus,
-                  title: "Cough",
-                  value: coughCount.toString(),
-                  statusColor: Colors.orange,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const PatientCoughCount()),
+                      );
+                    },
+                    child: vitalCardWithButton(
+                      Cardheight: 130,
+                      btnText: "View Cough Trends",
+                      color: Colors.orange,
+                      status: coughStatus,
+                      title: "Cough",
+                      value: coughCount.toString(),
+                      statusColor: Colors.orange,
+                    ),
                   ),
                 ],
               )
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+
+          switch (index) {
+            case 0:
+              // Already on home
+              break;
+            case 1:
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PatientConnectDeviceOption()),
+              );
+              break;
+            case 2:
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PatientSummaryPage()),
+              );
+              break;
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.watch),
+            label: 'Device',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bar_chart),
+            label: 'Trends',
+          ),
+        ],
       ),
     );
   }
