@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../config/app_theme.dart';
 
 class PatientDeviceGuidance extends StatelessWidget {
   const PatientDeviceGuidance({super.key});

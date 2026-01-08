@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../config/app_theme.dart';
 import 'patient_connected_with_doctor.dart';
 
 class PatientPendingMessage extends StatelessWidget {
