@@ -9,16 +9,12 @@ dependencies:
     sdk: flutter
   http: ^1.1.0
   intl: ^0.18.1
-<<<<<<< HEAD
   provider: ^6.1.1
   fl_chart: ^0.66.0
   percent_indicator: ^4.2.3
   file_picker: ^10.3.8
-=======
->>>>>>> 0d3a0a571dab3df59e4cc44fa7d3aaf8aefcba93
 
 flutter:
   uses-material-design: true
   assets:
-    - assets/
-    - assets/images/
+    - assets/images/logo.png

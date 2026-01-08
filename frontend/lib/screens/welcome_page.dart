@@ -14,17 +14,24 @@ class WelcomePage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Spacer(flex: 2),
 
-              // AIREA Logo - Lungs illustration
-              _buildLogo(),
+              // AIREA Logo
+              Image.asset(
+                'assets/images/logo.png',
+                height: 220,
+                width: 220,
+                fit: BoxFit.contain,
+              ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
               // AIREA Text
               const Text(
                 'AIREA',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
@@ -33,50 +40,50 @@ class WelcomePage extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 48),
+              const SizedBox(height: 32),
 
               // Description
               const Text(
-                'Smart Respiratory\nMonitor for Early Lung\nCancer Detection.',
+                'Smart Respiratory Monitor for Early Lung\nCancer Detection.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,
                   color: Colors.black87,
-                  height: 1.6,
+                  height: 1.5,
                   fontWeight: FontWeight.w400,
                 ),
               ),
 
-              const Spacer(flex: 1),
+              //const Spacer(flex: 1),
+              SizedBox(height: 30,),
 
               // Get Started Button
-              SizedBox(
-                width: 200,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const RoleSelectionPage()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.darkBlue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RoleSelectionPage(),
                     ),
-                    elevation: 3,
-                  ),
-                  child: const Text(
-                    'Get started',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.darkBlue,
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-              ),
+                child: const Text(
+                  'Get started',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ), // Fixed: Removed the extra closing parenthesis/comma that caused the error
 
               const Spacer(flex: 2),
             ],
@@ -85,78 +92,4 @@ class WelcomePage extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildLogo() {
-    return Container(
-      width: 200,
-      height: 200,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: CustomPaint(
-          size: const Size(140, 140),
-          painter: LungsPainter(),
-        ),
-      ),
-    );
-  }
 }
-
-// Custom painter for lungs logo
-class LungsPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF2C5F7E)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0;
-
-    final fillPaint = Paint()
-      ..color = const Color(0xFF5EBAA8).withOpacity(0.3)
-      ..style = PaintingStyle.fill;
-
-    // Draw lungs shape (simplified)
-    final leftLungPath = Path()
-      ..moveTo(size.width * 0.5, size.height * 0.1)
-      ..quadraticBezierTo(
-        size.width * 0.2, size.height * 0.2,
-        size.width * 0.15, size.height * 0.5,
-      )
-      ..quadraticBezierTo(
-        size.width * 0.15, size.height * 0.8,
-        size.width * 0.35, size.height * 0.9,
-      )
-      ..lineTo(size.width * 0.45, size.height * 0.5)
-      ..close();
-
-    final rightLungPath = Path()
-      ..moveTo(size.width * 0.5, size.height * 0.1)
-      ..quadraticBezierTo(
-        size.width * 0.8, size.height * 0.2,
-        size.width * 0.85, size.height * 0.5,
-      )
-      ..quadraticBezierTo(
-        size.width * 0.85, size.height * 0.8,
-        size.width * 0.65, size.height * 0.9,
-      )
-      ..lineTo(size.width * 0.55, size.height * 0.5)
-      ..close();
-
-    // Draw trachea
-    final tracheaPath = Path()
-      ..moveTo(size.width * 0.5, 0)
-      ..lineTo(size.width * 0.5, size.height * 0.3);
-
-    canvas.drawPath(leftLungPath, fillPaint);
-    canvas.drawPath(rightLungPath, fillPaint);
-    canvas.drawPath(leftLungPath, paint);
-    canvas.drawPath(rightLungPath, paint);
-    canvas.drawPath(tracheaPath, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-

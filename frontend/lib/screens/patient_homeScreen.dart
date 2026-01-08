@@ -34,44 +34,34 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.person, size: 40),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const PatientProfile(),
-              ),
-            );
-          },
+leading: IconButton(
+  icon: const Icon(Icons.person, size: 40),
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const PatientProfile(),
+      ),
+    );
+  },
+),
+title: const Text("Hello User!"),
+actions: [
+  IconButton(
+    icon: const Icon(Icons.notifications_active_sharp),
+    iconSize: 40,
+    color: Colors.black,
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const PatientNotifications(),
         ),
-<<<<<<< HEAD
-        title: const Text("Hello User !"),
-=======
-        title: const Text("Hello User!"),
->>>>>>> 0d3a0a571dab3df59e4cc44fa7d3aaf8aefcba93
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_active_sharp),
-            iconSize: 40,
-            color: Colors.black,
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PatientNotifications(),
-                ),
-              );
-            },
-<<<<<<< HEAD
-            icon: const Icon(Icons.notifications_active_sharp),
-            iconSize: 40,
-            color: Colors.black,
-=======
->>>>>>> 0d3a0a571dab3df59e4cc44fa7d3aaf8aefcba93
-          ),
-          const SizedBox(width: 30),
-        ],
+      );
+    },
+  ),
+  const SizedBox(width: 30),
+],
       ),
       body: SafeArea(
         child: Padding(
@@ -125,50 +115,29 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     ),
                   ),
                 ],
-              ),
-<<<<<<< HEAD
-              Column(
-                children: [
-                  const SizedBox(height: 10,),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const PatientCoughCount()),
-                      );
-                    },
-                    child: vitalCardWithButton(
-                      Cardheight: 130,
-                      btnText: "View Cough Trends",
-                      color: Colors.orange,
-                      status: coughStatus,
-                      title: "Cough",
-                      value: coughCount.toString(),
-                      statusColor: Colors.orange,
-=======
-              const SizedBox(height: 10),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const CoughAnalyzerScreen(
-                        deviceId: 'ESP32_COUGH_01',
-                      ),
->>>>>>> 0d3a0a571dab3df59e4cc44fa7d3aaf8aefcba93
-                    ),
-                  );
-                },
-                child: vitalCardWithButton(
-                  Cardheight: 130,
-                  btnText: "View Cough Trends",
-                  color: Colors.orange,
-                  status: coughStatus,
-                  title: "Cough",
-                  value: coughCount.toString(),
-                  statusColor: Colors.orange,
-                ),
-              ),
+),
+const SizedBox(height: 10),
+GestureDetector(
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CoughAnalyzerScreen(
+          deviceId: 'ESP32_COUGH_01',
+        ),
+      ),
+    );
+  },
+  child: vitalCardWithButton(
+    Cardheight: 130,
+    btnText: "View Cough Trends",
+    color: Colors.orange,
+    status: coughStatus,
+    title: "Cough",
+    value: coughCount.toString(),
+    statusColor: Colors.orange,
+  ),
+),
             ],
           ),
         ),
