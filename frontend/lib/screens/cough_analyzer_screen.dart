@@ -3,23 +3,57 @@ import 'package:intl/intl.dart';
 import '../models/cough_event.dart';
 import '../models/cough_statistics.dart';
 import '../services/api_service.dart';
+import '../config/api_config.dart';
+import '../config/app_theme.dart';
+import 'dart:math' as math;
 
-class CoughAnalyzerScreen extends StatelessWidget {
+class CoughAnalyzerScreen extends StatefulWidget {
   final String deviceId;
 
   const CoughAnalyzerScreen({
     super.key,
-    required this.deviceId,
+    this.deviceId = ApiConfig.defaultDeviceId,
   });
 
-  // Dummy data (UI-only today)
-  int get coughFrequencyPerHour => 50;
+  @override
+  State<CoughAnalyzerScreen> createState() => _CoughAnalyzerScreenState();
+}
 
-  List<_CoughSpike> get coughSpikes => const [
-        _CoughSpike(type: 'Dry Cough', time: '13:00'),
-        _CoughSpike(type: 'Dry Cough', time: '12:56'),
-        _CoughSpike(type: 'Wet Cough', time: '12:48'),
-      ];
+class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
+  final ApiService _apiService = ApiService();
+  bool _isLoading = true;
+  String _errorMessage = '';
+  CoughStatistics? _hourlyStats;
+  List<CoughEvent> _recentEvents = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      final stats = await _apiService.getHourlyStatistics(widget.deviceId);
+      final events = await _apiService.getCoughEvents(widget.deviceId);
+
+      setState(() {
+        _hourlyStats = stats;
+        _recentEvents = events;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Failed to load data: $e';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +64,12 @@ class CoughAnalyzerScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -72,7 +112,14 @@ class CoughAnalyzerScreen extends StatelessWidget {
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _loadData, child: const Text('Retry')),
+            ElevatedButton(
+              onPressed: _loadData,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryTeal,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Retry'),
+            ),
           ],
         ),
       ),
@@ -84,28 +131,33 @@ class CoughAnalyzerScreen extends StatelessWidget {
       height: 120,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.cyan.shade300, Colors.cyan.shade100],
+          colors: [AppTheme.primaryTeal.withOpacity(0.6), AppTheme.primaryTeal.withOpacity(0.2)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: const Center(
-        child: Icon(Icons.graphic_eq, size: 64, color: Colors.white),
+      child: Center(
+        child: CustomPaint(
+          size: const Size(double.infinity, 80),
+          painter: WaveformPainter(),
+        ),
       ),
     );
   }
 
   Widget _buildCoughFrequencyCard() {
     final coughsPerHour = _hourlyStats?.coughsPerHour.toInt() ?? 0;
+    final color = _getColorForFrequency(coughsPerHour.toDouble());
 
     return Center(
       child: Container(
         width: 200,
         height: 200,
         decoration: BoxDecoration(
-          color: Colors.cyan.shade50,
+          color: color.withOpacity(0.1),
           shape: BoxShape.circle,
+          border: Border.all(color: color, width: 6),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -121,7 +173,7 @@ class CoughAnalyzerScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: Colors.cyan.shade700,
+                color: color,
               ),
             ),
           ],
@@ -130,13 +182,19 @@ class CoughAnalyzerScreen extends StatelessWidget {
     );
   }
 
+  Color _getColorForFrequency(double frequency) {
+    if (frequency > 50) return AppTheme.criticalRed;
+    if (frequency > 20) return AppTheme.highOrange;
+    return AppTheme.normalGreen;
+  }
+
   Widget _buildStatisticsRow() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _buildStatCard('Total', _hourlyStats?.totalCoughs ?? 0, Colors.blue),
-        _buildStatCard('Dry', _hourlyStats?.dryCoughs ?? 0, Colors.orange),
-        _buildStatCard('Wet', _hourlyStats?.wetCoughs ?? 0, Colors.cyan),
+        _buildStatCard('Dry', _hourlyStats?.dryCoughs ?? 0, AppTheme.highOrange),
+        _buildStatCard('Wet', _hourlyStats?.wetCoughs ?? 0, AppTheme.primaryTeal),
       ],
     );
   }
@@ -148,6 +206,7 @@ class CoughAnalyzerScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         children: [
@@ -215,11 +274,11 @@ class CoughAnalyzerScreen extends StatelessWidget {
 
     switch (event.coughType.toLowerCase()) {
       case 'dry':
-        cardColor = Colors.orange.shade100;
+        cardColor = AppTheme.highOrange.withOpacity(0.2);
         icon = Icons.air;
         break;
       case 'wet':
-        cardColor = Colors.cyan.shade100;
+        cardColor = AppTheme.primaryTeal.withOpacity(0.2);
         icon = Icons.water_drop;
         break;
       default:
@@ -272,28 +331,6 @@ class CoughAnalyzerScreen extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildBottomNavBar() {
-    return BottomNavigationBar(
-      currentIndex: 0,
-      selectedItemColor: Colors.black,
-      unselectedItemColor: Colors.grey,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.wifi),
-          label: 'Device',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.article_outlined),
-          label: 'Trends &\nsummary',
-        ),
-      ],
-    );
-  }
 }
 
 // Custom Waveform Painter
@@ -301,7 +338,7 @@ class WaveformPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF00BCD4) // Cyan
+      ..color = AppTheme.primaryTeal
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
 
@@ -313,20 +350,19 @@ class WaveformPainter extends CustomPainter {
     path.moveTo(0, size.height / 2);
 
     for (double x = 0; x <= size.width; x += step) {
-      // Create varying wave heights to simulate waveform
       double heightMultiplier = 1.0;
       if (x > size.width * 0.15 && x < size.width * 0.25) {
-        heightMultiplier = 1.5; // Taller spike
+        heightMultiplier = 1.5;
       } else if (x > size.width * 0.4 && x < size.width * 0.6) {
-        heightMultiplier = 2.0; // Tallest spike
+        heightMultiplier = 2.0;
       } else if (x > size.width * 0.75 && x < size.width * 0.85) {
-        heightMultiplier = 1.3; // Medium spike
+        heightMultiplier = 1.3;
       }
 
       final y = size.height / 2 +
           amplitude *
               heightMultiplier *
-              Math.sin((x / size.width) * frequency * 2 * Math.pi);
+              math.sin((x / size.width) * frequency * 2 * math.pi);
       path.lineTo(x, y);
     }
 
@@ -335,28 +371,4 @@ class WaveformPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-// Math helper
-class Math {
-  static double sin(double x) => x.sin();
-  static double get pi => 3.14159265359;
-}
-
-extension MathExtension on double {
-  double sin() {
-    // Simple sine approximation
-    double x = this;
-    while (x > Math.pi) x -= 2 * Math.pi;
-    while (x < -Math.pi) x += 2 * Math.pi;
-
-    return x - (x * x * x) / 6 + (x * x * x * x * x) / 120;
-  }
-}
-
-class _CoughSpike {
-  final String type;
-  final String time;
-
-  const _CoughSpike({required this.type, required this.time});
 }
