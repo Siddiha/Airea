@@ -1,9 +1,9 @@
-import 'dart:math' as math;
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/cough_event.dart';
 import '../models/cough_statistics.dart';
-// import '../services/api_service.dart'; // unused for now
+import '../services/api_service.dart';
 
 class CoughAnalyzerScreen extends StatefulWidget {
   final String deviceId;
@@ -18,151 +18,377 @@ class CoughAnalyzerScreen extends StatefulWidget {
 }
 
 class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
-  bool _isLoading = false;
-  final String _errorMessage = '';
+  final ApiService _apiService = ApiService();
+
+  bool _isLoading = true;
+  String _errorMessage = '';
+
   CoughStatistics? _hourlyStats;
-  final List<CoughEvent> _recentEvents = [];
+  List<CoughEvent> _recentEvents = [];
+
+  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _startPolling();
   }
 
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  /// Start polling for new data every 5 seconds
+  void _startPolling() {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      _refreshData();
+    });
+  }
+
+  /// Load initial data from backend
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    // Placeholder: call API service as needed. Keep minimal to avoid changing behavior.
-    await Future.delayed(const Duration(milliseconds: 200));
-    setState(() => _isLoading = false);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      // Fetch statistics for the last hour
+      final stats = await _apiService.getHourlyStatistics(widget.deviceId);
+
+      // Fetch recent cough events
+      final events = await _apiService.getCoughEvents(widget.deviceId);
+
+      setState(() {
+        _hourlyStats = stats;
+        _recentEvents = events.take(10).toList();
+        _isLoading = false;
+      });
+
+      print('✅ Data loaded: ${events.length} events');
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Failed to load data: $e';
+      });
+      print('❌ Error loading data: $e');
+    }
   }
 
-  // Dummy data (UI-only today)
-  int get coughFrequencyPerHour => 50;
+  /// Refresh data without showing loading indicator
+  Future<void> _refreshData() async {
+    try {
+      // Fetch new statistics
+      final stats = await _apiService.getHourlyStatistics(widget.deviceId);
 
-  List<_CoughSpike> get coughSpikes => const [
-        _CoughSpike(type: 'Dry Cough', time: '13:00'),
-        _CoughSpike(type: 'Dry Cough', time: '12:56'),
-        _CoughSpike(type: 'Wet Cough', time: '12:48'),
-      ];
+      // Fetch new events
+      final events = await _apiService.getCoughEvents(widget.deviceId);
+
+      if (mounted) {
+        setState(() {
+          _hourlyStats = stats;
+          _recentEvents = events.take(10).toList();
+        });
+      }
+
+      print('🔄 Data refreshed');
+    } catch (e) {
+      print('❌ Error refreshing data: $e');
+      // Don't update error message during background refresh
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text('Cough Count Analyzer'),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          foregroundColor: Colors.black,
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Loading cough data...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_errorMessage.isNotEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text('Cough Count Analyzer'),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          foregroundColor: Colors.black,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(
+                  _errorMessage,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _loadData,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final coughsPerHour = _hourlyStats?.coughsPerHour.toInt() ?? 0;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Cough count analyzer'),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: Colors.black,
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage.isNotEmpty
-              ? _buildErrorView()
-              : RefreshIndicator(
-                  onRefresh: _loadData,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildWaveformSection(),
-                        const SizedBox(height: 32),
-                        _buildCoughFrequencyCard(),
-                        const SizedBox(height: 32),
-                        _buildStatisticsRow(),
-                        const SizedBox(height: 32),
-                        _buildCoughSpikesSection(),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _loadData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Cough count analyzer',
+                        style: TextStyle(
+                          fontSize: 34,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                    // Real-time indicator
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Colors.green,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'LIVE',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Waveform placeholder
+                Center(
+                  child: Image.asset(
+                    'assets/images/waveform.png',
+                    height: 160,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 160,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.cyan.shade300, Colors.cyan.shade100],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.graphic_eq, size: 64, color: Colors.white),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Cough frequency circle
+                Center(
+                  child: Container(
+                    width: 170,
+                    height: 170,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFDFF9FF),
+                      border: Border.all(
+                        color: const Color(0xFF9FE6FF),
+                        width: 4,
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          blurRadius: 10,
+                          offset: Offset(0, 6),
+                          color: Color(0x22000000),
+                        ),
                       ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Cough\nfrequency\n$coughsPerHour/hour',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 26,
+                          height: 1.15,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF2E2E2E),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-      bottomNavigationBar: _buildBottomNavBar(),
-    );
-  }
 
-  Widget _buildErrorView() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(
-              _errorMessage,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16),
+                const SizedBox(height: 22),
+
+                // Statistics Row
+                if (_hourlyStats != null) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildStatCard(
+                        'Total',
+                        _hourlyStats!.totalCoughs,
+                        Colors.blue,
+                      ),
+                      _buildStatCard(
+                        'Dry',
+                        _hourlyStats!.dryCoughs,
+                        Colors.orange,
+                      ),
+                      _buildStatCard(
+                        'Wet',
+                        _hourlyStats!.wetCoughs,
+                        Colors.cyan,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                ],
+
+                // Cough spikes header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Cough spikes',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black,
+                      ),
+                    ),
+                    Text(
+                      'Last ${_recentEvents.length}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                // Cough events list
+                if (_recentEvents.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: Column(
+                        children: [
+                          Icon(Icons.info_outline, size: 48, color: Colors.grey),
+                          SizedBox(height: 8),
+                          Text(
+                            'No cough events detected yet',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Waiting for data from firmware...',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ...(_recentEvents.map((event) {
+                    return _buildCoughEventCard(event);
+                  }).toList()),
+
+                const SizedBox(height: 100),
+              ],
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(onPressed: _loadData, child: const Text('Retry')),
-          ],
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _buildWaveformSection() {
-    return Container(
-      height: 120,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.cyan.shade300, Colors.cyan.shade100],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
+        onTap: (_) {},
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.wifi_tethering),
+            label: 'Device',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.menu_book_outlined),
+            label: 'Trends &\nsummary',
+          ),
+        ],
       ),
-      child: const Center(
-        child: Icon(Icons.graphic_eq, size: 64, color: Colors.white),
-      ),
-    );
-  }
-
-  Widget _buildCoughFrequencyCard() {
-    final coughsPerHour = _hourlyStats?.coughsPerHour.toInt() ?? 0;
-
-    return Center(
-      child: Container(
-        width: 200,
-        height: 200,
-        decoration: BoxDecoration(
-          color: Colors.cyan.shade50,
-          shape: BoxShape.circle,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Cough\nfrequency',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, color: Colors.black54),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '$coughsPerHour/hour',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.cyan.shade700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatisticsRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildStatCard('Total', _hourlyStats?.totalCoughs ?? 0, Colors.blue),
-        _buildStatCard('Dry', _hourlyStats?.dryCoughs ?? 0, Colors.orange),
-        _buildStatCard('Wet', _hourlyStats?.wetCoughs ?? 0, Colors.cyan),
-      ],
     );
   }
 
@@ -171,7 +397,7 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
       width: 100,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -188,7 +414,7 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
           Text(
             '$value',
             style: TextStyle(
-              fontSize: 28,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
               color: color,
             ),
@@ -198,42 +424,9 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
     );
   }
 
-  Widget _buildCoughSpikesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Cough spikes',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Last ${_recentEvents.length} events',
-              style: const TextStyle(fontSize: 14, color: Colors.black54),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (_recentEvents.isEmpty)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(32.0),
-              child: Text('No cough events detected yet'),
-            ),
-          )
-        else
-          ..._recentEvents.take(10).map((event) {
-            return _buildCoughEventCard(event);
-          }).toList(),
-      ],
-    );
-  }
-
   Widget _buildCoughEventCard(CoughEvent event) {
     final timeFormat = DateFormat('HH:mm');
-    final confidence = (event.confidence * 100).toInt();
+    final formattedTime = timeFormat.format(event.timestamp);
 
     Color cardColor;
     IconData icon;
@@ -254,117 +447,55 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      height: 58,
+      padding: const EdgeInsets.symmetric(horizontal: 18),
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            blurRadius: 8,
+            offset: Offset(0, 6),
+            color: Color(0x22000000),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${event.coughType} Cough',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$confidence% confidence',
-                  style: const TextStyle(color: Colors.black54, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
+          Icon(icon, color: const Color(0xFF4A4A4A)),
+          const SizedBox(width: 12),
           Text(
-            timeFormat.format(event.timestamp),
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            event.coughType,
+            style: const TextStyle(
+              fontSize: 18,
+              color: Color(0xFF4A4A4A),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const Spacer(),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                formattedTime,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF7A7A7A),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                '${(event.confidence * 100).toInt()}%',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF7A7A7A),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
-
-  Widget _buildBottomNavBar() {
-    return BottomNavigationBar(
-      currentIndex: 0,
-      selectedItemColor: Colors.black,
-      unselectedItemColor: Colors.grey,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.wifi),
-          label: 'Device',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.article_outlined),
-          label: 'Trends &\nsummary',
-        ),
-      ],
-    );
-  }
-}
-
-// Custom Waveform Painter
-class WaveformPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF00BCD4) // Cyan
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
-
-    final path = Path();
-    final amplitude = size.height / 3;
-    const frequency = 8;
-    final step = size.width / 100;
-
-    path.moveTo(0, size.height / 2);
-
-    for (double x = 0; x <= size.width; x += step) {
-      // Create varying wave heights to simulate waveform
-      double heightMultiplier = 1.0;
-      if (x > size.width * 0.15 && x < size.width * 0.25) {
-        heightMultiplier = 1.5; // Taller spike
-      } else if (x > size.width * 0.4 && x < size.width * 0.6) {
-        heightMultiplier = 2.0; // Tallest spike
-      } else if (x > size.width * 0.75 && x < size.width * 0.85) {
-        heightMultiplier = 1.3; // Medium spike
-      }
-
-      final y = size.height / 2 +
-          amplitude *
-              heightMultiplier *
-              math.sin((x / size.width) * frequency * 2 * math.pi);
-      path.lineTo(x, y);
-    }
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _CoughSpike {
-  final String type;
-  final String time;
-
-  const _CoughSpike({required this.type, required this.time});
 }
