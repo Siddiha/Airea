@@ -46,8 +46,8 @@ class DoctorVerificationCompleted extends StatelessWidget {
             Container(
               width: 120,
               height: 120,
-              decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50), // Green
+              decoration: const BoxDecoration(
+                color: Color(0xFF4CAF50), // Green
                 shape: BoxShape.circle,
               ),
               child: const Icon(

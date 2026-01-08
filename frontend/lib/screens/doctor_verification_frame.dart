@@ -14,13 +14,13 @@ class DoctorVerificationFrame extends StatelessWidget {
       );
     });
 
-    return Scaffold(
+    return const Scaffold(
       backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               'Verification under\nprogression',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -29,9 +29,9 @@ class DoctorVerificationFrame extends StatelessWidget {
                 color: Colors.black87,
               ),
             ),
-            const SizedBox(height: 50),
+            SizedBox(height: 50),
             CircularProgressIndicator(
-              color: const Color(0xFF6DBAA6),
+              color: Color(0xFF6DBAA6),
               strokeWidth: 5,
             ),
           ],

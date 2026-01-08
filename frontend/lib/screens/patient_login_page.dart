@@ -101,7 +101,7 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
                       MaterialPageRoute(builder: (context) => const PatientCreateAccount()),
                     );
                   },
-                  child: Text(
+                  child: const Text(
                     'Don\'t have an account? Create one',
                     style: TextStyle(color: AppTheme.primaryTeal),
                   ),

@@ -41,8 +41,8 @@ class DoctorCoughCount extends StatelessWidget {
               ),
               child: LineChart(
                 LineChartData(
-                  gridData: FlGridData(show: true),
-                  titlesData: FlTitlesData(
+                  gridData: const FlGridData(show: true),
+                  titlesData: const FlTitlesData(
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(showTitles: true, reservedSize: 40),
                     ),
@@ -68,7 +68,7 @@ class DoctorCoughCount extends StatelessWidget {
                       isCurved: true,
                       color: AppTheme.primaryTeal,
                       barWidth: 3,
-                      dotData: FlDotData(show: true),
+                      dotData: const FlDotData(show: true),
                     ),
                   ],
                 ),
@@ -83,17 +83,17 @@ class DoctorCoughCount extends StatelessWidget {
                 color: AppTheme.primaryTeal.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(15),
               ),
-              child: Column(
+              child: const Column(
                 children: [
-                  const Text(
+                  Text(
                     'Frequency',
                     style: TextStyle(
                       fontSize: 16,
                       color: AppTheme.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
+                  SizedBox(height: 8),
+                  Text(
                     '50/hour',
                     style: TextStyle(
                       fontSize: 32,

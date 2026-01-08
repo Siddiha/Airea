@@ -64,9 +64,9 @@ class _PatientUploadReportsState extends State<PatientUploadReports> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.cloud_upload_outlined, size: 64, color: AppTheme.primaryTeal),
+                        const Icon(Icons.cloud_upload_outlined, size: 64, color: AppTheme.primaryTeal),
                         const SizedBox(height: 16),
-                        Text(
+                        const Text(
                           'Tap to upload files',
                           style: TextStyle(fontSize: 16, color: AppTheme.primaryTeal, fontWeight: FontWeight.w600),
                         ),

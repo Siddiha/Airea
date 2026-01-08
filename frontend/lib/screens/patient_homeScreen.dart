@@ -29,7 +29,7 @@ class _patientHomeScreen extends State<patientHomeScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.person, size: 40),
+          icon: const Icon(Icons.person, size: 40),
           onPressed: () {
             Navigator.push(
               context,
@@ -37,7 +37,7 @@ class _patientHomeScreen extends State<patientHomeScreen> {
             );
           },
         ),
-        title: Text("Hello User !"),
+        title: const Text("Hello User !"),
         actions: [
           IconButton(
             onPressed: () {
@@ -46,11 +46,11 @@ class _patientHomeScreen extends State<patientHomeScreen> {
                 MaterialPageRoute(builder: (context) => const PatientNotifications()),
               );
             },
-            icon: Icon(Icons.notifications_active_sharp),
+            icon: const Icon(Icons.notifications_active_sharp),
             iconSize: 40,
             color: Colors.black,
           ),
-          SizedBox(width: 30),
+          const SizedBox(width: 30),
         ],
       ),
       body: SafeArea(
@@ -112,7 +112,7 @@ class _patientHomeScreen extends State<patientHomeScreen> {
               ),
               Column(
                 children: [
-                  SizedBox(height: 10,),
+                  const SizedBox(height: 10,),
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
