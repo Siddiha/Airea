@@ -105,9 +105,9 @@ void send_alert(float confidence, float rawScore, float audioVolume)
         http.begin(serverUrl);
         http.addHeader("Content-Type", "application/json");
 
-        // Add JWT authentication header
-        String authHeader = "Bearer " + String(jwtToken);
-        http.addHeader("Authorization", authHeader);
+        // JWT authentication disabled for testing
+        // String authHeader = "Bearer " + String(jwtToken);
+        // http.addHeader("Authorization", authHeader);
 
         // Get current timestamp in milliseconds
         unsigned long timestamp = millis();

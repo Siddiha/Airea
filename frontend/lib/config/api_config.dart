@@ -4,7 +4,9 @@ class ApiConfig {
   // ========================================
 
   // Your computer's IP address (from ipconfig)
-  static const String backendHost = 'localhost';
+  // NOTE: Use your computer's actual IP when running on physical device/emulator
+  // Use 'localhost' only when running on web (Chrome)
+  static const String backendHost = '192.168.8.107';  // Your computer's IP
   static const String backendPort = '8080';
 
   // API Base URL (automatically constructed)
