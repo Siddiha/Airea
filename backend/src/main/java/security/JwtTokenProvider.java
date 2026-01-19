@@ -1,6 +1,7 @@
 package security;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -8,24 +9,29 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtTokenProvider {
 
-    @Value("${jwt.secret:airea-super-secret-key-change-this-in-production-minimum-256-bits}")
+    @Value("${jwt.secret:airea-super-secret-key-change-in-production-minimum-256-bits}")
     private String jwtSecret;
 
-    @Value("${jwt.expiration:86400000}") // 24 hours in milliseconds
+    @Value("${jwt.expiration:86400000}")
     private long jwtExpirationMs;
 
     private SecretKey getSigningKey() {
-        // Create a secure key from the secret
-        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
+        // Ensure the key is at least 256 bits for HS256
+        String keyString = jwtSecret;
+        if (keyString.length() < 32) {
+            // Pad with a consistent string if too short (not recommended for production)
+            keyString = keyString + "0".repeat(32 - keyString.length());
+        }
+        return Keys.hmacShaKeyFor(keyString.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
-     * Generate JWT token for a device
+     * Generate JWT token for device authentication
      */
     public String generateToken(String deviceId) {
         Date now = new Date();
@@ -40,15 +46,15 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Generate long-lived API key for device (1 year)
+     * Generate API key (longer expiration, used for device registration)
      */
     public String generateApiKey(String deviceId) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + 31536000000L); // 1 year
+        Date expiryDate = new Date(now.getTime() + (365L * 24 * 60 * 60 * 1000)); // 1 year
 
         return Jwts.builder()
                 .subject(deviceId)
-                .claim("type", "API_KEY")
+                .id(UUID.randomUUID().toString())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(getSigningKey())
@@ -56,7 +62,7 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Extract deviceId from token
+     * Get device ID from JWT token
      */
     public String getDeviceIdFromToken(String token) {
         Claims claims = Jwts.parser()
@@ -74,36 +80,12 @@ public class JwtTokenProvider {
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token);
-            return true;
-        } catch (MalformedJwtException ex) {
-            System.err.println("Invalid JWT token: " + ex.getMessage());
-        } catch (ExpiredJwtException ex) {
-            System.err.println("Expired JWT token: " + ex.getMessage());
-        } catch (UnsupportedJwtException ex) {
-            System.err.println("Unsupported JWT token: " + ex.getMessage());
-        } catch (IllegalArgumentException ex) {
-            System.err.println("JWT claims string is empty: " + ex.getMessage());
-        }
-        return false;
-    }
-
-    /**
-     * Check if token is expired
-     */
-    public boolean isTokenExpired(String token) {
-        try {
-            Claims claims = Jwts.parser()
                     .verifyWith(getSigningKey())
                     .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-
-            return claims.getExpiration().before(new Date());
-        } catch (Exception e) {
+                    .parseSignedClaims(token);
             return true;
+        } catch (Exception ex) {
+            return false;
         }
     }
 }

@@ -5,9 +5,33 @@ import 'doctor_daily_summary.dart';
 import 'doctor_weekly_summary.dart';
 import 'doctor_select_report.dart';
 import 'doctor_allergic_conditions.dart';
+import 'doctor_home_page.dart';
 
-class DoctorSummary extends StatelessWidget {
+class DoctorSummary extends StatefulWidget {
   const DoctorSummary({Key? key}) : super(key: key);
+
+  @override
+  State<DoctorSummary> createState() => _DoctorSummaryState();
+}
+
+class _DoctorSummaryState extends State<DoctorSummary> {
+  int _selectedIndex = 1;
+
+  void _onItemTapped(int index) {
+    if (index == _selectedIndex) return;
+
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DoctorHomePage()),
+        );
+        break;
+      case 1:
+        // Already on Summary
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,19 +40,16 @@ class DoctorSummary extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.darkBlue),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
         title: const Text(
           'Summary',
           style: TextStyle(
             color: AppTheme.darkBlue,
-            fontSize: 20,
+            fontSize: 24,
             fontWeight: FontWeight.w600,
           ),
         ),
-        centerTitle: true,
+        centerTitle: false,
       ),
       body: SafeArea(
         child: Padding(
@@ -83,6 +104,22 @@ class DoctorSummary extends StatelessWidget {
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.black,
+        unselectedItemColor: Colors.grey,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.description_outlined),
+            label: 'Trends & summary',
+          ),
+        ],
       ),
     );
   }

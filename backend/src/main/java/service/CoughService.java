@@ -43,6 +43,7 @@ public class CoughService {
         }
         
         CoughEvent saved = coughRepository.save(event);
+        System.out.println("💾 Saved cough event to database - ID: " + saved.getId() + ", Type: " + saved.getCoughType() + ", Device: " + saved.getDeviceId());
         return CoughEventResponse.fromEntity(saved);
     }
     

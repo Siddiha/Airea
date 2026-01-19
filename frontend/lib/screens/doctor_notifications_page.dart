@@ -1,7 +1,34 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
+import 'doctor_home_page.dart';
+import 'doctor_summary.dart';
 
-class DoctorNotificationsPage extends StatelessWidget {
+class DoctorNotificationsPage extends StatefulWidget {
   const DoctorNotificationsPage({super.key});
+
+  @override
+  State<DoctorNotificationsPage> createState() => _DoctorNotificationsPageState();
+}
+
+class _DoctorNotificationsPageState extends State<DoctorNotificationsPage> {
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DoctorHomePage()),
+        );
+        break;
+      case 1:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DoctorSummary()),
+        );
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10,13 +37,14 @@ class DoctorNotificationsPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
         title: const Text(
           'Notifications',
-          style: TextStyle(color: Colors.black87),
+          style: TextStyle(
+            color: AppTheme.darkBlue,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: ListView(
@@ -25,35 +53,38 @@ class DoctorNotificationsPage extends StatelessWidget {
           _buildNotificationCard(
             'Connected with patient',
             '13:00',
-            Colors.white,
           ),
           const SizedBox(height: 12),
           _buildNotificationCard(
-            'Patients detected with high cough',
+            'Patient1 detected with\nhigh cough',
             '12:56',
-            Colors.white,
           ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
+        currentIndex: _selectedIndex,
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.grey,
+        onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.description_outlined),
+            label: 'Trends & summary',
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNotificationCard(String title, String time, Color bgColor) {
+  Widget _buildNotificationCard(String title, String time) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: bgColor,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade300),
       ),
