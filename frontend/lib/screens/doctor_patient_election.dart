@@ -30,10 +30,10 @@ class DoctorPatientElection extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(),
-              Text(
+              const Text(
                 'Do you want to remove this patient from your list',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
                   color: AppTheme.darkBlue,

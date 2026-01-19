@@ -57,7 +57,7 @@ class _PatientWeeklySummaryState extends State<PatientWeeklySummary> {
                     icon: const Icon(Icons.arrow_back_ios, size: 16),
                   ),
                   Text(
-                    '${_getMonthName(_selectedMonth.month)}',
+                    _getMonthName(_selectedMonth.month),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,

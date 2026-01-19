@@ -144,7 +144,7 @@ class _PatientCreateAccountState extends State<PatientCreateAccount> {
                     const Text('Already have an account? '),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: Text(
+                      child: const Text(
                         'Login',
                         style: TextStyle(
                           color: AppTheme.primaryTeal,

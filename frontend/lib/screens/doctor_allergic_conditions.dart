@@ -50,7 +50,7 @@ class DoctorAllergicConditions extends StatelessWidget {
                   width: 2,
                 ),
               ),
-              child: Column(
+              child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
@@ -60,8 +60,8 @@ class DoctorAllergicConditions extends StatelessWidget {
                         color: AppTheme.highOrange,
                         size: 24,
                       ),
-                      const SizedBox(width: 10),
-                      const Text(
+                      SizedBox(width: 10),
+                      Text(
                         'Known Allergies',
                         style: TextStyle(
                           fontSize: 16,
@@ -71,8 +71,8 @@ class DoctorAllergicConditions extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
+                  SizedBox(height: 16),
+                  Text(
                     '• Penicillin - Severe reaction\n'
                     '• Pollen - Seasonal allergies\n'
                     '• Dust mites - Respiratory issues\n'

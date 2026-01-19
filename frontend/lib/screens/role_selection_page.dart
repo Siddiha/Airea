@@ -11,13 +11,13 @@ class RoleSelectionPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
+        child: Center(
+          //padding: const EdgeInsets.all(32.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Spacer(),
+              SizedBox(height: 200,),
 
               // Title
               const Text(
@@ -33,7 +33,7 @@ class RoleSelectionPage extends StatelessWidget {
 
               // Patient Button
               SizedBox(
-                width: double.infinity,
+                //width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.push(
@@ -44,7 +44,7 @@ class RoleSelectionPage extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryTeal,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 100),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
@@ -53,7 +53,7 @@ class RoleSelectionPage extends StatelessWidget {
                   child: const Text(
                     'Patient',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 25,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -76,7 +76,6 @@ class RoleSelectionPage extends StatelessWidget {
 
               // Doctor Button
               SizedBox(
-                width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.push(
@@ -87,7 +86,7 @@ class RoleSelectionPage extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryTeal,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 100),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
@@ -96,7 +95,7 @@ class RoleSelectionPage extends StatelessWidget {
                   child: const Text(
                     'Doctor',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 25,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

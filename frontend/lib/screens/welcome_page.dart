@@ -14,29 +14,33 @@ class WelcomePage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Spacer(flex: 2),
 
-              // AIREA Logo - Lungs illustration
-              _buildLogo(),
+              // AIREA Logo
+              Image.asset(
+                'assets/images/logo.png',
+                height: 220,
+                width: 220,
+                fit: BoxFit.contain,
+              ),
 
-              const SizedBox(height: 16),
-
-              // AIREA Text
+              const SizedBox(height: 24),
 
               // Description
               const Text(
-                'Smart Respiratory\nMonitor for Early Lung\nCancer Detection.',
+                'Smart Respiratory Monitor for Early Lung\nCancer Detection.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,
                   color: Colors.black87,
-                  height: 1.6,
+                  height: 1.5,
                   fontWeight: FontWeight.w400,
                 ),
               ),
 
-              const Spacer(flex: 1),
+              const SizedBox(height: 30),
 
               // Get Started Button
               SizedBox(

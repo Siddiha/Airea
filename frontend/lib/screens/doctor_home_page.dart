@@ -51,17 +51,17 @@ class DoctorHomePage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(color: Colors.grey.shade300),
                 ),
-                child: Column(
+                child: const Column(
                   children: [
-                    const Text(
+                    Text(
                       'Total number of patients',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.black54,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    const Text(
+                    SizedBox(height: 12),
+                    Text(
                       '23',
                       style: TextStyle(
                         fontSize: 48,

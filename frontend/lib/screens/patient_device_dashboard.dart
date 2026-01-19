@@ -54,7 +54,7 @@ class PatientDeviceDashboard extends StatelessWidget {
                                 width: 3,
                               ),
                             ),
-                            child: Center(
+                            child: const Center(
                               child: Text(
                                 '85%',
                                 style: TextStyle(
@@ -145,7 +145,7 @@ class PatientDeviceDashboard extends StatelessWidget {
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppTheme.darkBlue,
-                            side: BorderSide(color: AppTheme.darkBlue, width: 2),
+                            side: const BorderSide(color: AppTheme.darkBlue, width: 2),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(25),

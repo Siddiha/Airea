@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'patient_notifications.dart';
@@ -5,6 +6,8 @@ import 'patient_profile.dart';
 import 'patient_connect_device_option.dart';
 import 'patient_summary_page.dart';
 import 'cough_analyzer_screen.dart';
+import '../services/api_service.dart';
+import '../config/api_config.dart';
 
 class PatientHomeScreen extends StatefulWidget {
   PatientHomeScreen({super.key});
@@ -14,6 +17,9 @@ class PatientHomeScreen extends StatefulWidget {
 }
 
 class _PatientHomeScreenState extends State<PatientHomeScreen> {
+  final ApiService _apiService = ApiService();
+  final String _deviceId = ApiConfig.defaultDeviceId;
+
   int spo2 = 98;
   String spo2Status = "Normal";
 
@@ -23,10 +29,70 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   double temperature = 34.0;
   String temperatureStatus = "Normal";
 
-  int coughCount = 600;
-  String coughStatus = "High";
+  int coughCount = 0;
+  String coughStatus = "Loading...";
 
   int _selectedIndex = 0;
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCoughData();
+    // Refresh every 10 seconds
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      _loadCoughData();
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadCoughData() async {
+    try {
+      final stats = await _apiService.getTodayStatistics(_deviceId);
+      if (mounted) {
+        setState(() {
+          coughCount = stats.totalCoughs;
+          coughStatus = _getCoughStatus(stats.totalCoughs);
+        });
+      }
+    } catch (e) {
+      print('Error loading cough data: $e');
+      if (mounted) {
+        setState(() {
+          coughStatus = "No data";
+        });
+      }
+    }
+  }
+
+  String _getCoughStatus(int count) {
+    if (count == 0) return "No coughs";
+    if (count < 10) return "Low";
+    if (count < 30) return "Normal";
+    if (count < 50) return "Moderate";
+    return "High";
+  }
+
+  Color _getCoughStatusColor(String status) {
+    switch (status) {
+      case "No coughs":
+      case "Low":
+        return Colors.green;
+      case "Normal":
+        return Colors.blue;
+      case "Moderate":
+        return Colors.orange;
+      case "High":
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -276,13 +342,15 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   }
 
   Widget _buildCoughCountCard() {
+    final statusColor = _getCoughStatusColor(coughStatus);
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => const CoughAnalyzerScreen(
-              deviceId: 'ESP32_COUGH_01',
+            builder: (_) => CoughAnalyzerScreen(
+              deviceId: _deviceId,
             ),
           ),
         );
@@ -306,29 +374,42 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "Cough Count",
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 13,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      "Cough Count (Today)",
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 6),
                 Text(
                   coughCount.toString(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Colors.orange,
+                    color: statusColor,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   coughStatus,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.orange,
+                    color: statusColor,
                   ),
                 ),
               ],
@@ -338,8 +419,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const CoughAnalyzerScreen(
-                      deviceId: 'ESP32_COUGH_01',
+                    builder: (_) => CoughAnalyzerScreen(
+                      deviceId: _deviceId,
                     ),
                   ),
                 );

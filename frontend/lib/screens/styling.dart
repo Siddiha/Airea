@@ -37,7 +37,7 @@ class VitalCard extends StatelessWidget {
             //crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(status, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
-              Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               Text(title, style: const TextStyle(color: Colors.grey, fontSize: 12)),
             ],
           )
@@ -75,27 +75,27 @@ class vitalCardWithButton extends StatelessWidget{
   Widget build(BuildContext context) {
     return Container(
       height:Cardheight ,
-      margin: EdgeInsets.only(bottom: 11),
+      margin: const EdgeInsets.only(bottom: 11),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
       ),
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: TextStyle(color: Colors.grey)),
+              Text(title, style: const TextStyle(color: Colors.grey)),
               Text(value, style: TextStyle(fontSize: 18, color: statusColor, fontWeight: FontWeight.bold)),
               Text(status, style: TextStyle(color: statusColor)),
             ],
           ),
           ElevatedButton(
             onPressed: () {},
-            style: ElevatedButton.styleFrom(backgroundColor: Color.fromARGB(255, 194, 255, 248), shape: StadiumBorder()),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 194, 255, 248), shape: const StadiumBorder()),
             child: Text(btnText),
           )
         ],

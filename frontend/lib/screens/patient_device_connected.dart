@@ -37,7 +37,7 @@ class PatientDeviceConnected extends StatelessWidget {
               Container(
                 width: 120,
                 height: 120,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppTheme.normalGreen,
                   shape: BoxShape.circle,
                 ),
