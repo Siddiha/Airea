@@ -6,9 +6,9 @@ class ApiConfig {
   // 🔧 Backend Configuration
   // ========================================
 
-  // IMPORTANT: Set your computer's IP address here
+  // IMPORTANT: This IP is used for Physical Devices on the same Wi-Fi.
   // Find it using: ipconfig (Windows) or ifconfig (Mac/Linux)
-  static const String _computerIP = '192.168.8.106';  // Updated to match current IP
+  static const String _computerIP = '192.168.8.106';
   static const String backendPort = '8080';
 
   // Automatically choose the correct host based on platform
@@ -17,14 +17,13 @@ class ApiConfig {
       // Running in web browser - use localhost
       return 'localhost';
     } else if (Platform.isAndroid) {
-      // Check if running on emulator or physical device
-      // Emulator: use 10.0.2.2 (special alias to host machine)
-      // Physical device: use computer's actual IP
-      // For now, we'll use the computer IP - change to '10.0.2.2' if using emulator
-      return _computerIP;  // Change to '10.0.2.2' for Android Emulator
+      // Android Emulator uses 10.0.2.2 to access the Mac/PC localhost
+      // If using a physical Android device, use _computerIP
+      return '10.0.2.2';
     } else if (Platform.isIOS) {
-      // iOS Simulator can use localhost, physical device needs IP
-      return _computerIP;  // Use 'localhost' for iOS Simulator
+      // iOS Simulator: Use 'localhost' to talk to the Mac it's running on
+      // Physical iPhone: Use _computerIP
+      return 'localhost';
     } else {
       return _computerIP;
     }
@@ -33,22 +32,27 @@ class ApiConfig {
   // API Base URL (automatically constructed)
   static String get baseUrl => 'http://$backendHost:$backendPort/api';
 
-  // Default device ID for testing
+  // Default device ID for testing (matches your ESP32 ID)
   static const String defaultDeviceId = 'ESP32_COUGH_01';
 
-  // API Endpoints
+  // ========================================
+  // 🚀 API Endpoints
+  // ========================================
+
+  // Cough related endpoints
   static const String healthEndpoint = '/cough/health';
   static const String coughEventEndpoint = '/cough/event';
   static const String deviceEndpoint = '/device';
 
-  // Helper methods
+  // Helper methods to get full URLs
   static String get healthCheckUrl => '$baseUrl$healthEndpoint';
   static String get coughEventUrl => '$baseUrl$coughEventEndpoint';
   static String get deviceUrl => '$baseUrl$deviceEndpoint';
 
-  // Get device-specific URLs
+  // Device-specific data and statistics
   static String deviceCoughUrl(String deviceId) =>
       '$baseUrl/cough/device/$deviceId';
+
   static String deviceStatsUrl(String deviceId, String period) =>
       '$baseUrl/cough/stats/$deviceId/$period';
 }
