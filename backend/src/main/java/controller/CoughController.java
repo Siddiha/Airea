@@ -13,7 +13,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+// import java.util.Random;
 
 @RestController
 @RequestMapping("/api/cough")
@@ -25,9 +25,8 @@ public class CoughController {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
-    @Autowired
-    private service.FakeDataService fakeDataService;
-
+    // @Autowired
+    // private service.FakeDataService fakeDataService;
     /**
      * Health check endpoint
      */
@@ -120,41 +119,34 @@ public class CoughController {
         return ResponseEntity.ok(stats);
     }
 
-    /**
-     * Generate dummy cough data for testing POST
-     * /api/cough/generate-dummy/{deviceId}?count=20
-     */
-    @PostMapping("/generate-dummy/{deviceId}")
-    public ResponseEntity<Map<String, Object>> generateDummyData(
-            @PathVariable String deviceId,
-            @RequestParam(defaultValue = "20") int count) {
-
-        int created = fakeDataService.generateBatchFakeData(deviceId, count);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Dummy data generated successfully");
-        response.put("deviceId", deviceId);
-        response.put("eventsCreated", created);
-        response.put("timestamp", Instant.now().toString());
-
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Toggle automatic fake data generation POST
-     * /api/cough/toggle-fake-data?enabled=true
-     */
-    @PostMapping("/toggle-fake-data")
-    public ResponseEntity<Map<String, Object>> toggleFakeData(
-            @RequestParam(defaultValue = "true") boolean enabled) {
-
-        fakeDataService.setEnabled(enabled);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Fake data generation " + (enabled ? "enabled" : "disabled"));
-        response.put("enabled", enabled);
-        response.put("timestamp", Instant.now().toString());
-
-        return ResponseEntity.ok(response);
-    }
+    // /**
+    //  * Generate dummy cough data for testing POST
+    //  * /api/cough/generate-dummy/{deviceId}?count=20
+    //  */
+    // @PostMapping("/generate-dummy/{deviceId}")
+    // public ResponseEntity<Map<String, Object>> generateDummyData(
+    //         @PathVariable String deviceId,
+    //         @RequestParam(defaultValue = "20") int count) {
+    //     int created = fakeDataService.generateBatchFakeData(deviceId, count);
+    //     Map<String, Object> response = new HashMap<>();
+    //     response.put("message", "Dummy data generated successfully");
+    //     response.put("deviceId", deviceId);
+    //     response.put("eventsCreated", created);
+    //     response.put("timestamp", Instant.now().toString());
+    //     return ResponseEntity.ok(response);
+    // }
+    // /**
+    //  * Toggle automatic fake data generation POST
+    //  * /api/cough/toggle-fake-data?enabled=true
+    //  */
+    // @PostMapping("/toggle-fake-data")
+    // public ResponseEntity<Map<String, Object>> toggleFakeData(
+    //         @RequestParam(defaultValue = "true") boolean enabled) {
+    //     fakeDataService.setEnabled(enabled);
+    //     Map<String, Object> response = new HashMap<>();
+    //     response.put("message", "Fake data generation " + (enabled ? "enabled" : "disabled"));
+    //     response.put("enabled", enabled);
+    //     response.put("timestamp", Instant.now().toString());
+    //     return ResponseEntity.ok(response);
+    // }
 }
