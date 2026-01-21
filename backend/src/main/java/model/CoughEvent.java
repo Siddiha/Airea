@@ -33,13 +33,9 @@ public class CoughEvent {
     private Instant timestamp;
     
     private Float audioVolume;
-    
-    @Column(nullable = false, updatable = false)
-    private Instant createdAt;
-    
+
     @PrePersist
     protected void onCreate() {
-        createdAt = Instant.now();
         if (timestamp == null) {
             timestamp = Instant.now();
         }

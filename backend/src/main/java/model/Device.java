@@ -24,12 +24,6 @@ public class Device {
     private String deviceName;
     private String location;
 
-    @Column(nullable = true, length = 500)
-    private String apiKey;  // Hashed API key for device authentication
-
-    @Column(nullable = true)
-    private Instant apiKeyCreatedAt;
-
     @Column(nullable = false)
     private Boolean isActive = true;
     

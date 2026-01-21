@@ -115,25 +115,25 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
     }
   }
 
-  /// Generate fake data for testing
+  /// Generate fake data for testing (single event)
   Future<void> _generateFakeData() async {
     setState(() {
       _isGeneratingData = true;
     });
 
     try {
-      final result = await _apiService.generateDummyData(widget.deviceId, count: 20);
-      print('✅ Generated ${result['eventsCreated']} fake cough events');
-      
+      final result = await _apiService.generateDummyData(widget.deviceId, count: 1);
+      print('✅ Generated ${result['eventsCreated']} fake cough event');
+
       // Refresh data after generation
       await _loadData();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Generated ${result['eventsCreated']} fake cough events!'),
+          const SnackBar(
+            content: Text('Generated 1 cough event!'),
             backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
           ),
         );
       }

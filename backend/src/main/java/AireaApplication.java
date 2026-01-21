@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import io.github.cdimascio.dotenv.Dotenv;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"controller", "service", "config", "security", "filter", "dto"})
+@ComponentScan(basePackages = {"controller", "service", "config", "dto"})
 @EnableJpaRepositories(basePackages = "repository")
 @EntityScan(basePackages = "model")
 @EnableScheduling

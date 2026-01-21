@@ -23,10 +23,10 @@ public class FakeDataService {
     private boolean isEnabled = true; // Can be toggled via property or endpoint
 
     /**
-     * Generate fake cough data every 30 seconds This simulates a device sending
-     * cough events periodically
+     * Generate fake cough data every 100-200 seconds
+     * This simulates real-time cough detection from ESP32 devices
      */
-    @Scheduled(fixedRate = 30000) // Every 30 seconds
+    @Scheduled(fixedDelay = 150000, initialDelay = 10000) // ~150 seconds between events (100-200 range average)
     public void generatePeriodicFakeData() {
         if (!isEnabled) {
             return;
@@ -35,22 +35,19 @@ public class FakeDataService {
         // Use default device ID
         String deviceId = "ESP32_COUGH_01";
 
-        // Randomly decide if we should generate a cough event (30% chance)
-        if (random.nextFloat() < 0.3) {
-            try {
-                CoughEventRequest request = new CoughEventRequest();
-                request.setDeviceId(deviceId);
-                request.setCoughType(coughTypes[random.nextInt(coughTypes.length)]);
-                request.setConfidence(0.6f + random.nextFloat() * 0.35f); // 0.6 to 0.95
-                request.setRawScore(random.nextFloat());
-                request.setAudioVolume(0.3f + random.nextFloat() * 0.5f); // 0.3 to 0.8
-                request.setTimestamp(Instant.now().toEpochMilli());
+        try {
+            CoughEventRequest request = new CoughEventRequest();
+            request.setDeviceId(deviceId);
+            request.setCoughType(coughTypes[random.nextInt(coughTypes.length)]);
+            request.setConfidence(0.6f + random.nextFloat() * 0.35f); // 0.6 to 0.95
+            request.setRawScore(random.nextFloat());
+            request.setAudioVolume(0.3f + random.nextFloat() * 0.5f); // 0.3 to 0.8
+            request.setTimestamp(Instant.now().toEpochMilli());
 
-                coughService.saveCoughEvent(request);
-                System.out.println("🤖 Generated fake cough event: " + request.getCoughType() + " (confidence: " + request.getConfidence() + ") - SAVED TO SUPABASE");
-            } catch (Exception e) {
-                System.err.println("❌ Error generating fake data: " + e.getMessage());
-            }
+            coughService.saveCoughEvent(request);
+            System.out.println("🤖 Generated fake cough event: " + request.getCoughType() + " (confidence: " + request.getConfidence() + ") - SAVED TO SUPABASE");
+        } catch (Exception e) {
+            System.err.println("❌ Error generating fake data: " + e.getMessage());
         }
     }
 

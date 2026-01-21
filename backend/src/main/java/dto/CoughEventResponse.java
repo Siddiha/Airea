@@ -19,8 +19,7 @@ public class CoughEventResponse {
     private Float rawScore;
     private Instant timestamp;
     private Float audioVolume;
-    private Instant createdAt;
-    
+
     public static CoughEventResponse fromEntity(CoughEvent event) {
         return new CoughEventResponse(
             event.getId(),
@@ -29,8 +28,7 @@ public class CoughEventResponse {
             event.getConfidence(),
             event.getRawScore(),
             event.getTimestamp(),
-            event.getAudioVolume(),
-            event.getCreatedAt()
+            event.getAudioVolume()
         );
     }
 }
