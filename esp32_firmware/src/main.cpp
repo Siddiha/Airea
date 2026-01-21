@@ -10,7 +10,8 @@ const char *password = "20040920";
 
 // SERVER URL (Backend API endpoint)
 // Your PC's IP: 192.168.8.192 (found via ipconfig)
-const char *serverUrl = "http://192.168.8.192:8080/api/cough/event";
+// ipconfig getifaddr en0
+const char *serverUrl = "http://192.168.8.102:8080/api/cough/event";
 
 // AUTHENTICATION (Get JWT token from backend)
 // Step 1: Register device via POST /api/device/register
@@ -104,6 +105,8 @@ void send_alert(float confidence, float rawScore, float audioVolume)
         // Start connection
         http.begin(serverUrl);
         http.addHeader("Content-Type", "application/json");
+        http.setConnectTimeout(3000); // 3 seconds to connect
+        http.setTimeout(5000);        // 5 seconds for response
 
         // JWT authentication disabled for testing
         // String authHeader = "Bearer " + String(jwtToken);

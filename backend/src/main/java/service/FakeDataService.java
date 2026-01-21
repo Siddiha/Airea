@@ -8,8 +8,7 @@ import java.time.Instant;
 import java.util.Random;
 
 /**
- * Service to automatically generate fake cough data fo
- *r testing/demo purposes
+ * Service to automatically generate fake cough data for testing/demo purposes
  * This simulates real-time cough detection from ESP32 devices
  */
 @Service
@@ -26,7 +25,7 @@ public class FakeDataService {
      * Generate fake cough data every 100-200 seconds
      * This simulates real-time cough detection from ESP32 devices
      */
-    @Scheduled(fixedDelay = 150000, initialDelay = 10000) // ~150 seconds between events (100-200 range average)
+    @Scheduled(fixedDelay = 150000, initialDelay = 10000) // ~150 seconds between events
     public void generatePeriodicFakeData() {
         if (!isEnabled) {
             return;

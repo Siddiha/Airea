@@ -15,4 +15,52 @@ public class CoughEventRequest {
     private Float rawScore;         // Raw ML score
     private Long timestamp;         // Unix timestamp (milliseconds)
     private Float audioVolume;      // Optional
+
+    public String getDeviceId() {
+        return deviceId;
+    }
+
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
+    }
+
+    public String getCoughType() {
+        return coughType;
+    }
+
+    public void setCoughType(String coughType) {
+        this.coughType = coughType;
+    }
+
+    public Float getConfidence() {
+        return confidence;
+    }
+
+    public void setConfidence(Float confidence) {
+        this.confidence = confidence;
+    }
+
+    public Float getRawScore() {
+        return rawScore;
+    }
+
+    public void setRawScore(Float rawScore) {
+        this.rawScore = rawScore;
+    }
+
+    public Long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public Float getAudioVolume() {
+        return audioVolume;
+    }
+
+    public void setAudioVolume(Float audioVolume) {
+        this.audioVolume = audioVolume;
+    }
 }
