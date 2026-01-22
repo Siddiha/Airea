@@ -1,7 +1,7 @@
 class CoughEvent {
   final String id;
   final String deviceId;
-  final String coughType;
+  // final String coughType;
   final double confidence;
   final double? rawScore;
   final DateTime timestamp;
@@ -10,7 +10,7 @@ class CoughEvent {
   CoughEvent({
     required this.id,
     required this.deviceId,
-    required this.coughType,
+    // required this.coughType,
     required this.confidence,
     this.rawScore,
     required this.timestamp,
@@ -21,7 +21,7 @@ class CoughEvent {
     return CoughEvent(
       id: json['id'] as String,
       deviceId: json['deviceId'] as String,
-      coughType: json['coughType'] as String,
+      // coughType: json['coughType'] as String,
       confidence: (json['confidence'] as num).toDouble(),
       rawScore: json['rawScore'] != null
           ? (json['rawScore'] as num).toDouble()
@@ -37,7 +37,7 @@ class CoughEvent {
     return {
       'id': id,
       'deviceId': deviceId,
-      'coughType': coughType,
+      // 'coughType': coughType,
       'confidence': confidence,
       'rawScore': rawScore,
       'timestamp': timestamp.toIso8601String(),

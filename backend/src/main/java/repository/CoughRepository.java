@@ -20,9 +20,8 @@ public interface CoughRepository extends JpaRepository<CoughEvent, UUID> {
     @Query("SELECT COUNT(c) FROM CoughEvent c WHERE c.deviceId = :deviceId AND c.timestamp BETWEEN :start AND :end")
     Long countCoughsByDeviceAndTimeRange(@Param("deviceId") String deviceId, @Param("start") Instant start, @Param("end") Instant end);
 
-    @Query("SELECT c.coughType, COUNT(c) FROM CoughEvent c WHERE c.deviceId = :deviceId AND c.timestamp BETWEEN :start AND :end GROUP BY c.coughType")
-    List<Object[]> countCoughsByType(@Param("deviceId") String deviceId, @Param("start") Instant start, @Param("end") Instant end);
-
+    // @Query("SELECT c.coughType, COUNT(c) FROM CoughEvent c WHERE c.deviceId = :deviceId AND c.timestamp BETWEEN :start AND :end GROUP BY c.coughType")
+    // List<Object[]> countCoughsByType(@Param("deviceId") String deviceId, @Param("start") Instant start, @Param("end") Instant end);
     @Query("SELECT AVG(c.confidence) FROM CoughEvent c WHERE c.deviceId = :deviceId AND c.timestamp BETWEEN :start AND :end")
     Double getAverageConfidence(@Param("deviceId") String deviceId, @Param("start") Instant start, @Param("end") Instant end);
 

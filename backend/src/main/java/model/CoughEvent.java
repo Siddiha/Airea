@@ -13,25 +13,24 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CoughEvent {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    
+
     @Column(nullable = false)
     private String deviceId;
-    
-    @Column(nullable = false)
-    private String coughType; // "dry", "wet", "unknown"
-    
+
+    // @Column(nullable = false)
+    // private String coughType; // "dry", "wet", "unknown"
     @Column(nullable = false)
     private Float confidence; // 0.0 to 1.0
-    
+
     private Float rawScore; // Raw ML model score
-    
+
     @Column(nullable = false)
     private Instant timestamp;
-    
+
     private Float audioVolume;
 
     @PrePersist

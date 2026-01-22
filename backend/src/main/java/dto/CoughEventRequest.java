@@ -8,9 +8,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CoughEventRequest {
-    
+
     private String deviceId;
-    private String coughType;      // "dry", "wet", "unknown"
+    // private String coughType;      // "dry", "wet", "unknown"
     private Float confidence;       // 0.0 to 1.0
     private Float rawScore;         // Raw ML score
     private Long timestamp;         // Unix timestamp (milliseconds)
@@ -24,14 +24,12 @@ public class CoughEventRequest {
         this.deviceId = deviceId;
     }
 
-    public String getCoughType() {
-        return coughType;
-    }
-
-    public void setCoughType(String coughType) {
-        this.coughType = coughType;
-    }
-
+    // public String getCoughType() {
+    //     return coughType;
+    // }
+    // public void setCoughType(String coughType) {
+    //     this.coughType = coughType;
+    // }
     public Float getConfidence() {
         return confidence;
     }

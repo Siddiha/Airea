@@ -8,13 +8,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CoughStatistics {
-    
+
     private Long totalCoughs;
-    private Long dryCoughs;
-    private Long wetCoughs;
+    // private Long dryCoughs;
+    // private Long wetCoughs;
     private Long unknownCoughs;
     private Double averageConfidence;
     private Double coughsPerHour;
-    private String mostCommonType;
+    // private String mostCommonType;
     private String period; // "hour", "day", "week"
 }

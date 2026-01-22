@@ -11,10 +11,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CoughEventResponse {
-    
+
     private UUID id;
     private String deviceId;
-    private String coughType;
+    // private String coughType;
     private Float confidence;
     private Float rawScore;
     private Instant timestamp;
@@ -22,13 +22,13 @@ public class CoughEventResponse {
 
     public static CoughEventResponse fromEntity(CoughEvent event) {
         return new CoughEventResponse(
-            event.getId(),
-            event.getDeviceId(),
-            event.getCoughType(),
-            event.getConfidence(),
-            event.getRawScore(),
-            event.getTimestamp(),
-            event.getAudioVolume()
+                event.getId(),
+                event.getDeviceId(),
+                // event.getCoughType(),
+                event.getConfidence(),
+                event.getRawScore(),
+                event.getTimestamp(),
+                event.getAudioVolume()
         );
     }
 }
