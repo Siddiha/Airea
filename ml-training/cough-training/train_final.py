@@ -21,7 +21,7 @@ print(f"TRAINING MODE: ESP32-S3 N16R8 (High Fidelity - {MODEL_INPUT_LEN} inputs)
 # --- LOAD DATA ---
 print("Loading Data...")
 files_neg = glob.glob(os.path.join(DATASET_PATH, "negative_class", "*.wav"))
-files_pos = glob.glob(os.path.join(DATASET_PATH, "positive_class", "*.wav"))
+files_pos = glob.glob(os.path.join(DATASET_PATH, "cough_dataset", "*.wav"))
 
 files = files_neg + files_pos
 labels = [0] * len(files_neg) + [1] * len(files_pos)
