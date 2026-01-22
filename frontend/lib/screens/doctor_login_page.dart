@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../config/app_theme.dart';
 import 'doctor_create_account_page.dart';
 import 'doctor_home_page.dart';
 
@@ -43,20 +42,24 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                   ),
                 ),
 
-                const SizedBox(height: 50),
+                const SizedBox(height: 60),
 
                 // Username Field
                 TextField(
                   controller: _usernameController,
                   decoration: InputDecoration(
                     hintText: 'User name',
+                    hintStyle: const TextStyle(
+                      color: Colors.black54,
+                      fontSize: 15,
+                    ),
                     filled: true,
-                    fillColor: const Color(0xFFE8E8E8),
+                    fillColor: const Color(0xFFD8E3E7),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(25),
+                      borderRadius: BorderRadius.circular(30),
                       borderSide: BorderSide.none,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                   ),
                 ),
 
@@ -68,17 +71,21 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                   obscureText: true,
                   decoration: InputDecoration(
                     hintText: 'Password',
+                    hintStyle: const TextStyle(
+                      color: Colors.black54,
+                      fontSize: 15,
+                    ),
                     filled: true,
-                    fillColor: const Color(0xFFE8E8E8),
+                    fillColor: const Color(0xFFD8E3E7),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(25),
+                      borderRadius: BorderRadius.circular(30),
                       borderSide: BorderSide.none,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                   ),
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
 
                 // Forgot Password
                 Align(
@@ -89,17 +96,17 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                       'Forgot password',
                       style: TextStyle(
                         color: Colors.black54,
-                        fontSize: 12,
+                        fontSize: 13,
                       ),
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 30),
+                const SizedBox(height: 100),
 
                 // Login Button
                 SizedBox(
-                  width: 180,
+                  width: 200,
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pushReplacement(
@@ -108,7 +115,7 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.darkBlue,
+                      backgroundColor: const Color(0xFF1B3A5F),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -119,7 +126,7 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                     child: const Text(
                       'Login',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -134,7 +141,10 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                   children: [
                     const Text(
                       "Don't have an account ? ",
-                      style: TextStyle(color: Colors.black54, fontSize: 12),
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 13,
+                      ),
                     ),
                     GestureDetector(
                       onTap: () {
@@ -147,7 +157,7 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                         'Sign up',
                         style: TextStyle(
                           color: Colors.black87,
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

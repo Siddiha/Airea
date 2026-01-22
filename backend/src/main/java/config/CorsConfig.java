@@ -18,18 +18,19 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
-                        .allowedOriginPatterns(allowedOrigins.split(","))  // Configurable via application.properties
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("Authorization", "Content-Type", "Accept")
-                        .exposedHeaders("Authorization")
-                        .allowCredentials(true)
+                        .allowedOriginPatterns("*")  // Allow all origins for development (Flutter app needs this)
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+                        .allowedHeaders("*")  // Allow all headers
+                        .exposedHeaders("Authorization", "Content-Type")
+                        .allowCredentials(false)  // Set to false when using "*" origin pattern
                         .maxAge(3600);
 
                 // WebSocket CORS
                 registry.addMapping("/ws/**")
-                        .allowedOriginPatterns(allowedOrigins.split(","))
-                        .allowedMethods("GET", "POST")
-                        .allowCredentials(true);
+                        .allowedOriginPatterns("*")
+                        .allowedMethods("GET", "POST", "OPTIONS")
+                        .allowedHeaders("*")
+                        .allowCredentials(false);
             }
         };
     }

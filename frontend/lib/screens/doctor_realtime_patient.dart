@@ -2,9 +2,37 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../widgets/custom_button.dart';
 import 'doctor_cough_count.dart';
+import 'doctor_home_page.dart';
+import 'doctor_summary.dart';
 
-class DoctorRealtimePatient extends StatelessWidget {
+class DoctorRealtimePatient extends StatefulWidget {
   const DoctorRealtimePatient({Key? key}) : super(key: key);
+
+  @override
+  State<DoctorRealtimePatient> createState() => _DoctorRealtimePatientState();
+}
+
+class _DoctorRealtimePatientState extends State<DoctorRealtimePatient> {
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    if (index == _selectedIndex) return;
+
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DoctorHomePage()),
+        );
+        break;
+      case 1:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DoctorSummary()),
+        );
+        break;
+    }
+  }
 
   Widget _buildVitalCard({
     required String title,
@@ -152,6 +180,22 @@ class DoctorRealtimePatient extends StatelessWidget {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.black,
+        unselectedItemColor: Colors.grey,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.description_outlined),
+            label: 'Trends & summary',
+          ),
+        ],
       ),
     );
   }

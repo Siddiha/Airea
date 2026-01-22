@@ -6,7 +6,6 @@ class CoughEvent {
   final double? rawScore;
   final DateTime timestamp;
   final double? audioVolume;
-  final DateTime createdAt;
 
   CoughEvent({
     required this.id,
@@ -16,7 +15,6 @@ class CoughEvent {
     this.rawScore,
     required this.timestamp,
     this.audioVolume,
-    required this.createdAt,
   });
 
   factory CoughEvent.fromJson(Map<String, dynamic> json) {
@@ -32,7 +30,6 @@ class CoughEvent {
       audioVolume: json['audioVolume'] != null
           ? (json['audioVolume'] as num).toDouble()
           : null,
-      createdAt: DateTime.parse(json['createdAt'] as String),
     );
   }
 
@@ -45,7 +42,6 @@ class CoughEvent {
       'rawScore': rawScore,
       'timestamp': timestamp.toIso8601String(),
       'audioVolume': audioVolume,
-      'createdAt': createdAt.toIso8601String(),
     };
   }
 

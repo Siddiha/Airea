@@ -7,7 +7,7 @@ import '../models/device.dart';
 
 class ApiService {
   // Use configuration instead of hardcoded URL
-  static const String baseUrl = ApiConfig.baseUrl; // ← Fixed!
+  static String get baseUrl => ApiConfig.baseUrl;
   // Look for a line similar to this and update it:
   //static const String baseUrl = 'http://10.0.2.2:8080/api';
 
@@ -187,6 +187,25 @@ class ApiService {
       }
     } catch (e) {
       print('Error registering device: $e');
+      rethrow;
+    }
+  }
+
+  /// Generate dummy cough data for testing
+  Future<Map<String, dynamic>> generateDummyData(String deviceId, {int count = 20}) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/cough/generate-dummy/$deviceId?count=$count'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to generate dummy data: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error generating dummy data: $e');
       rethrow;
     }
   }

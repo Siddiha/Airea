@@ -9,15 +9,16 @@ const char *ssid = "Dialog 4G 437";
 const char *password = "20040920";
 
 // SERVER URL (Backend API endpoint)
-// Your PC's IP: 192.168.8.107 (found via ipconfig)
-const char *serverUrl = "http://192.168.8.107:8080/api/cough/event";
+// Your PC's IP: 192.168.8.192 (found via ipconfig)
+// ipconfig getifaddr en0
+const char *serverUrl = "http://192.168.8.102:8080/api/cough/event";
 
 // AUTHENTICATION (Get JWT token from backend)
 // Step 1: Register device via POST /api/device/register
 // Step 2: Generate API key via POST /api/auth/generate-key/ESP32_COUGH_01
 // Step 3: Login via POST /api/auth/login to get JWT token
 // Step 4: Copy the JWT token here
-const char *jwtToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJFU1AzMl9DT1VHSF8wMSIsImlhdCI6MTc2NzQyNTg4MCwiZXhwIjoxNzY3NTEyMjgwfQ.J9n6k9xALaEkUsASLIzsqo2SFa-KxroBZ8Y4CfZAbxwuMlbXAfH4IzxP5uM-LtZbAXtV2SAh5WFPhTgpk6QLbQ";  // JWT token from backend login
+const char *jwtToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJFU1AzMl9DT1VHSF8wMSIsImlhdCI6MTc2ODI1NTIzNSwiZXhwIjoxNzY4MzQxNjM1fQ.kO63o7Zd1QS-KriP8Cyf_dbT8L0Uf5XFiIQCQvCD8IUdD7G6D2fP8C9Zrf9HqtYf4_6ZstJ0Qmrh8tfDbjoeow"; // JWT token from backend login
 
 // TENSORFLOW LITE INCLUDES
 #include "tensorflow/lite/micro/all_ops_resolver.h"
@@ -37,7 +38,7 @@ const char *jwtToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJFU1AzMl9DT1VHSF8wMSIsIml
 const int kAudioBufferSize = SAMPLE_RATE * RECORD_TIME;
 
 // COUGH DETECTION SETTINGS
-#define COUGH_THRESHOLD 0.90  // 90% confidence threshold
+#define COUGH_THRESHOLD 0.90 // 90% confidence threshold
 // Note: Current model only detects "cough vs noise" (binary classification)
 // To detect dry/wet coughs, you need to:
 // 1. Train a new model with 3 classes: dry, wet, noise
@@ -104,10 +105,12 @@ void send_alert(float confidence, float rawScore, float audioVolume)
         // Start connection
         http.begin(serverUrl);
         http.addHeader("Content-Type", "application/json");
+        http.setConnectTimeout(3000); // 3 seconds to connect
+        http.setTimeout(5000);        // 5 seconds for response
 
-        // Add JWT authentication header
-        String authHeader = "Bearer " + String(jwtToken);
-        http.addHeader("Authorization", authHeader);
+        // JWT authentication disabled for testing
+        // String authHeader = "Bearer " + String(jwtToken);
+        // http.addHeader("Authorization", authHeader);
 
         // Get current timestamp in milliseconds
         unsigned long timestamp = millis();
