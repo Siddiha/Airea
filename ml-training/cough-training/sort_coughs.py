@@ -6,9 +6,9 @@ import glob
 # --- CONFIGURATION ---
 # We point to the folder containing the thousands of mixed json/wav files
 SOURCE_FOLDER = './public_dataset'   
-TARGET_FOLDER = './positive_class'   
+TARGET_FOLDER = './dataset/cough_dataset'   
 MIN_CONFIDENCE = 0.85                # Strict filter: Only keep if > 85% sure it's a cough
-MAX_FILES_NEEDED = 3000              # Stop after we have enough
+MAX_FILES_NEEDED = 10000              # Stop after we have enough
 
 def run_sorting_flow():
     # 1. Create destination if missing
