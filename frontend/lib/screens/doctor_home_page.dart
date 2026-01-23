@@ -1,19 +1,49 @@
 import 'package:flutter/material.dart';
 import 'doctor_notifications_page.dart';
 import 'doctor_profile_page.dart';
+import 'doctor_patient_info_list.dart';
+import 'doctor_summary.dart';
 
-class DoctorHomePage extends StatelessWidget {
+class DoctorHomePage extends StatefulWidget {
   const DoctorHomePage({super.key});
+
+  @override
+  State<DoctorHomePage> createState() => _DoctorHomePageState();
+}
+
+class _DoctorHomePageState extends State<DoctorHomePage> {
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    if (index == _selectedIndex) return;
+
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        // Already on Home
+        break;
+      case 1:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DoctorSummary()),
+        );
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF0F8F7),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF0F8F7),
         elevation: 0,
+        automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: const Icon(Icons.person, color: Colors.black, size: 32),
+          icon: const Icon(Icons.account_circle_outlined, color: Colors.black, size: 32),
           onPressed: () {
             Navigator.push(
               context,
@@ -45,6 +75,7 @@ class DoctorHomePage extends StatelessWidget {
             children: [
               // Total Patients Card
               Container(
+                width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -66,7 +97,7 @@ class DoctorHomePage extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF4CAF50), // Green
+                        color: Color(0xFF4CAF50),
                       ),
                     ),
                   ],
@@ -76,34 +107,38 @@ class DoctorHomePage extends StatelessWidget {
               const SizedBox(height: 40),
 
               // Connect to Patient Button
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Connect to a patient',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.black87,
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const DoctorPatientInfoList()),
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: const Column(
+                    children: [
+                      Text(
+                        'Connect to a patient',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    IconButton(
-                      icon: const Icon(
+                      SizedBox(height: 16),
+                      Icon(
                         Icons.add_circle_outline,
                         size: 40,
-                        color: Color(0xFF4CAF50), // Green
+                        color: Color(0xFF4CAF50),
                       ),
-                      onPressed: () {
-                        // Navigate to patient connection page
-                      },
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -111,9 +146,10 @@ class DoctorHomePage extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
+        currentIndex: _selectedIndex,
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.grey,
+        onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -124,6 +160,12 @@ class DoctorHomePage extends StatelessWidget {
              icon: Icon(Icons.person),
              label: 'Profile',
     ),
+
+          BottomNavigationBarItem(
+            icon: Icon(Icons.description_outlined),
+            label: 'Trends & summary',
+          ),
+
         ],
       ),
     );

@@ -28,20 +28,6 @@ class WelcomePage extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // AIREA Text
-              const Text(
-                'AIREA',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2C5F7E),
-                  letterSpacing: 12,
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
               // Description
               const Text(
                 'Smart Respiratory Monitor for Early Lung\nCancer Detection.',
@@ -54,41 +40,53 @@ class WelcomePage extends StatelessWidget {
                 ),
               ),
 
-              //const Spacer(flex: 1),
-              SizedBox(height: 30,),
+              const SizedBox(height: 30),
 
               // Get Started Button
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const RoleSelectionPage(),
+              SizedBox(
+                width: 200,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const RoleSelectionPage()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.darkBlue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.darkBlue,
-                  foregroundColor: Colors.white,
-                  elevation: 2,
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+                    elevation: 3,
+                  ),
+                  child: const Text(
+                    'Get started',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-                child: const Text(
-                  'Get started',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ), // Fixed: Removed the extra closing parenthesis/comma that caused the error
+              ),
 
               const Spacer(flex: 2),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLogo() {
+    return Container(
+      width: 200,
+      height: 200,
+      child: Image.asset(
+        'assets/images/Airea Logo.png',
+        fit: BoxFit.contain,
       ),
     );
   }

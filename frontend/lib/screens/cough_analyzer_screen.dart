@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:intl/intl.dart';
 import '../models/cough_event.dart';
 import '../models/cough_statistics.dart';
 import '../services/api_service.dart';
+import 'device_screen.dart';
+import 'patient_summary_page.dart';
 
 class CoughAnalyzerScreen extends StatefulWidget {
   final String deviceId;
@@ -22,11 +25,23 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
 
   bool _isLoading = true;
   String _errorMessage = '';
+  bool _isGeneratingData = false;
 
   CoughStatistics? _hourlyStats;
   List<CoughEvent> _recentEvents = [];
 
   Timer? _pollingTimer;
+
+  List<CoughEvent> _cleanRecentEvents(List<CoughEvent> events) {
+    // 1. Convert to a mutable list so we can sort it
+    final allEvents = events.toList();
+
+    // 2. Sort so the NEWEST (2026 dates) are at the TOP
+    allEvents.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+    // 3. Take the top 3 (or 5) to show on screen
+    return allEvents.take(5).toList();
+  }
 
   @override
   void initState() {
@@ -64,7 +79,7 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
 
       setState(() {
         _hourlyStats = stats;
-        _recentEvents = events.take(10).toList();
+        _recentEvents = _cleanRecentEvents(events);
         _isLoading = false;
       });
 
@@ -90,7 +105,7 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
       if (mounted) {
         setState(() {
           _hourlyStats = stats;
-          _recentEvents = events.take(10).toList();
+          _recentEvents = _cleanRecentEvents(events);
         });
       }
 
@@ -98,6 +113,49 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
     } catch (e) {
       print('❌ Error refreshing data: $e');
       // Don't update error message during background refresh
+    }
+  }
+
+  /// Generate fake data for testing (single event)
+  Future<void> _generateFakeData() async {
+    setState(() {
+      _isGeneratingData = true;
+    });
+
+    try {
+      final result =
+          await _apiService.generateDummyData(widget.deviceId, count: 1);
+      print('✅ Generated ${result['eventsCreated']} fake cough event');
+
+      // Refresh data after generation
+      await _loadData();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Generated 1 cough event!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error generating fake data: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to generate data: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeneratingData = false;
+        });
+      }
     }
   }
 
@@ -163,6 +221,14 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.maybePop(context),
+        ),
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadData,
@@ -173,49 +239,51 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 18),
-                Row(
+                Stack(
+                  alignment: Alignment.center,
                   children: [
-                    const Expanded(
-                      child: Text(
-                        'Cough count analyzer',
-                        style: TextStyle(
-                          fontSize: 34,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black,
-                        ),
+                    const Text(
+                      'Cough Count Analyzer',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
                       ),
                     ),
-                    // Real-time indicator
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Colors.green,
-                              shape: BoxShape.circle,
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Colors.green,
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Text(
-                            'LIVE',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
+                            const SizedBox(width: 4),
+                            const Text(
+                              'LIVE',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -233,14 +301,18 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
                         height: 160,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.cyan.shade300, Colors.cyan.shade100],
+                            colors: [
+                              Colors.cyan.shade300,
+                              Colors.cyan.shade100
+                            ],
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
                           ),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Center(
-                          child: Icon(Icons.graphic_eq, size: 64, color: Colors.white),
+                          child: Icon(Icons.graphic_eq,
+                              size: 64, color: Colors.white),
                         ),
                       );
                     },
@@ -286,31 +358,6 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
 
                 const SizedBox(height: 22),
 
-                // Statistics Row
-                if (_hourlyStats != null) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildStatCard(
-                        'Total',
-                        _hourlyStats!.totalCoughs,
-                        Colors.blue,
-                      ),
-                      _buildStatCard(
-                        'Dry',
-                        _hourlyStats!.dryCoughs,
-                        Colors.orange,
-                      ),
-                      _buildStatCard(
-                        'Wet',
-                        _hourlyStats!.wetCoughs,
-                        Colors.cyan,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 22),
-                ],
-
                 // Cough spikes header
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -323,26 +370,28 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
                         color: Colors.black,
                       ),
                     ),
-                    Text(
-                      'Last ${_recentEvents.length}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black54,
+                    if (kDebugMode)
+                      Text(
+                        'Last ${_recentEvents.length}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
                       ),
-                    ),
                   ],
                 ),
 
                 const SizedBox(height: 10),
 
-                // Cough events list
+                // Cough events list (clean + short, like the mock)
                 if (_recentEvents.isEmpty)
                   const Center(
                     child: Padding(
                       padding: EdgeInsets.all(32.0),
                       child: Column(
                         children: [
-                          Icon(Icons.info_outline, size: 48, color: Colors.grey),
+                          Icon(Icons.info_outline,
+                              size: 48, color: Colors.grey),
                           SizedBox(height: 8),
                           Text(
                             'No cough events detected yet',
@@ -365,7 +414,27 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
                     return _buildCoughEventCard(event);
                   }).toList()),
 
-                const SizedBox(height: 100),
+                if (kDebugMode) ...[
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton.icon(
+                      onPressed: _isGeneratingData ? null : _generateFakeData,
+                      icon: _isGeneratingData
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.add_chart),
+                      label: Text(_isGeneratingData
+                          ? 'Generating...'
+                          : 'Generate Test Data'),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 60),
               ],
             ),
           ),
@@ -373,7 +442,33 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
-        onTap: (_) {},
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              // Already on Cough Analyzer (Home)
+              break;
+            case 1:
+              // Navigate to Device Screen
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DeviceScreen(),
+                ),
+              );
+              break;
+            case 2:
+              // Navigate to Trends & Summary
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PatientSummaryPage(),
+                ),
+              );
+              break;
+          }
+        },
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -392,58 +487,31 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, int value, Color color) {
-    return Container(
-      width: 100,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '$value',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildCoughEventCard(CoughEvent event) {
     final timeFormat = DateFormat('HH:mm');
-    final formattedTime = timeFormat.format(event.timestamp);
+    final formattedTime = timeFormat.format(event.timestamp.toLocal());
 
-    Color cardColor;
-    IconData icon;
+    // Color cardColor;
+    // String label;
 
-    switch (event.coughType.toLowerCase()) {
-      case 'dry':
-        cardColor = Colors.orange.shade100;
-        icon = Icons.air;
-        break;
-      case 'wet':
-        cardColor = Colors.cyan.shade100;
-        icon = Icons.water_drop;
-        break;
-      default:
-        cardColor = Colors.grey.shade100;
-        icon = Icons.help_outline;
-    }
+    // switch (event.coughType.toLowerCase()) {
+    //   case 'dry':
+    //     cardColor = Colors.orange.shade100;
+    //     label = 'Dry Cough';
+    //     break;
+    //   case 'wet':
+    //     cardColor = Colors.cyan.shade100;
+    //     label = 'Wet Cough';
+    //     break;
+    //   // ADD THIS CASE!
+    //   case 'unknown':
+    //   default:
+    //     cardColor = Colors.red.shade50; // Light Red for Alert
+    //     label = 'Cough Alert'; // Professional Label
+    // }
+
+    final Color cardColor = Colors.red.shade50;
+    final String label = "Cough Alert";
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -462,10 +530,8 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
       ),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF4A4A4A)),
-          const SizedBox(width: 12),
           Text(
-            event.coughType,
+            label,
             style: const TextStyle(
               fontSize: 18,
               color: Color(0xFF4A4A4A),
@@ -473,26 +539,13 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
             ),
           ),
           const Spacer(),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                formattedTime,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF7A7A7A),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Text(
-                '${(event.confidence * 100).toInt()}%',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF7A7A7A),
-                ),
-              ),
-            ],
+          Text(
+            formattedTime,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF7A7A7A),
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),

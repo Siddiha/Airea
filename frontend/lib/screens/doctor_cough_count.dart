@@ -1,9 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../config/app_theme.dart';
+import 'doctor_home_page.dart';
+import 'doctor_summary.dart';
 
-class DoctorCoughCount extends StatelessWidget {
+class DoctorCoughCount extends StatefulWidget {
   const DoctorCoughCount({Key? key}) : super(key: key);
+
+  @override
+  State<DoctorCoughCount> createState() => _DoctorCoughCountState();
+}
+
+class _DoctorCoughCountState extends State<DoctorCoughCount> {
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    if (index == _selectedIndex) return;
+
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DoctorHomePage()),
+        );
+        break;
+      case 1:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DoctorSummary()),
+        );
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,14 +45,14 @@ class DoctorCoughCount extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Cough Count Analyzer',
+          'Cough count analyzer',
           style: TextStyle(
-            color: AppTheme.darkBlue,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+            color: AppTheme.primaryTeal,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        centerTitle: true,
+        centerTitle: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -161,6 +189,22 @@ class DoctorCoughCount extends StatelessWidget {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.black,
+        unselectedItemColor: Colors.grey,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.description_outlined),
+            label: 'Trends & summary',
+          ),
+        ],
       ),
     );
   }

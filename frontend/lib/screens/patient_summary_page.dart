@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'patient_daily_summary.dart';
 import 'patient_weekly_summary.dart';
+import 'cough_analyzer_screen.dart';
+import '../config/api_config.dart';
+import 'device_screen.dart';
 
 class PatientSummaryPage extends StatelessWidget {
   const PatientSummaryPage({super.key});
@@ -105,17 +108,44 @@ class PatientSummaryPage extends StatelessWidget {
         selectedItemColor: AppTheme.primaryTeal,
         unselectedItemColor: Colors.grey,
         currentIndex: 2,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              // Navigate to Cough Analyzer (Home)
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CoughAnalyzerScreen(
+                    deviceId: ApiConfig.defaultDeviceId,
+                  ),
+                ),
+              );
+              break;
+            case 1:
+              // Navigate to Device Screen
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DeviceScreen(),
+                ),
+              );
+              break;
+            case 2:
+              // Already on Trends & Summary
+              break;
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.watch),
+            icon: Icon(Icons.wifi_tethering),
             label: 'Device',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
+            icon: Icon(Icons.menu_book_outlined),
             label: 'Trends &\nsummary',
           ),
         ],

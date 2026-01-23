@@ -13,7 +13,7 @@ google-auth-oauthlib==1.2.3
 google-pasta==0.2.0
 grpcio==1.76.0
 h5py==3.15.1
-idna==3.11
+idna==3.11ag
 joblib==1.5.3
 keras==2.15.0
 lazy_loader==0.4
@@ -24,7 +24,7 @@ Markdown==3.10
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
 mdurl==0.1.2
-ml-dtypes==0.2.0
+ml-dtypes==0.2.0-
 msgpack==1.1.2
 namex==0.1.0
 numba==0.63.1
