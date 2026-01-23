@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "cough_events")
@@ -29,14 +30,15 @@ public class CoughEvent {
     private Float rawScore; // Raw ML model score
 
     @Column(nullable = false)
-    private Instant timestamp;
+    private LocalDateTime timestamp;
 
     private Float audioVolume;
 
     @PrePersist
     protected void onCreate() {
         if (timestamp == null) {
-            timestamp = Instant.now();
+            // FIX: Use LocalDateTime with our specific TimeZone
+            timestamp = java.time.LocalDateTime.now(java.time.ZoneId.of("Asia/Colombo"));
         }
     }
 }

@@ -8,7 +8,8 @@ import repository.CoughRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.Instant;
+import java.time.LocalDateTime; // <--- NEW IMPORT
+import java.time.ZoneId;      // <--- NEW IMPORT
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,25 +24,25 @@ public class CoughService {
     @Autowired
     private DeviceService deviceService;
 
+    // Helper to get SL Time
+    private LocalDateTime nowSL() {
+        return LocalDateTime.now(ZoneId.of("Asia/Colombo"));
+    }
+
     public CoughEventResponse saveCoughEvent(CoughEventRequest request) {
-        // Auto-register device if it doesn't exist
         deviceService.registerDevice(request.getDeviceId(), null, null);
 
-        // Create cough event
         CoughEvent event = new CoughEvent();
         event.setDeviceId(request.getDeviceId());
-        // event.setCoughType(request.getCoughType());
         event.setConfidence(request.getConfidence());
         event.setRawScore(request.getRawScore());
         event.setAudioVolume(request.getAudioVolume());
 
-//FORCE SERVER TIME (Delete the old if/else block)
-        // This ensures the cough appears NOW, not in 1970.
-        event.setTimestamp(Instant.now());
+        // Save with Sri Lanka Time
+        event.setTimestamp(nowSL());
 
         CoughEvent saved = coughRepository.save(event);
-
-        System.out.println("💾 Saved cough event to database - ID: " + saved.getId() + ", Device: " + saved.getDeviceId());
+        System.out.println("💾 Saved cough event - ID: " + saved.getId());
         return CoughEventResponse.fromEntity(saved);
     }
 
@@ -52,8 +53,9 @@ public class CoughService {
                 .collect(Collectors.toList());
     }
 
+    // Updated to use LocalDateTime
     public List<CoughEventResponse> getCoughEventsByDeviceAndTimeRange(
-            String deviceId, Instant start, Instant end) {
+            String deviceId, LocalDateTime start, LocalDateTime end) {
         return coughRepository.findByDeviceIdAndTimestampBetween(deviceId, start, end)
                 .stream()
                 .map(CoughEventResponse::fromEntity)
@@ -61,68 +63,48 @@ public class CoughService {
     }
 
     public CoughStatistics getStatisticsForLastHour(String deviceId) {
-        Instant end = Instant.now();
-        Instant start = end.minus(1, ChronoUnit.HOURS);
+        LocalDateTime end = nowSL();
+        LocalDateTime start = end.minusHours(1);
         return calculateStatistics(deviceId, start, end, "hour");
     }
 
     public CoughStatistics getStatisticsForToday(String deviceId) {
-        Instant end = Instant.now();
-        Instant start = end.truncatedTo(ChronoUnit.DAYS);
+        LocalDateTime end = nowSL();
+        LocalDateTime start = end.toLocalDate().atStartOfDay(); // 00:00 today
         return calculateStatistics(deviceId, start, end, "day");
     }
 
     public CoughStatistics getStatisticsForLastWeek(String deviceId) {
-        Instant end = Instant.now();
-        Instant start = end.minus(7, ChronoUnit.DAYS);
+        LocalDateTime end = nowSL();
+        LocalDateTime start = end.minusDays(7);
         return calculateStatistics(deviceId, start, end, "week");
     }
 
+    // Updated private method signature to accept LocalDateTime
     private CoughStatistics calculateStatistics(
-            String deviceId, Instant start, Instant end, String period) {
+            String deviceId, LocalDateTime start, LocalDateTime end, String period) {
 
         CoughStatistics stats = new CoughStatistics();
         stats.setPeriod(period);
 
-        // Total coughs
         Long total = coughRepository.countCoughsByDeviceAndTimeRange(deviceId, start, end);
         stats.setTotalCoughs(total != null ? total : 0L);
 
-        // // Coughs by type
-        // List<Object[]> coughsByType = coughRepository.countCoughsByType(deviceId, start, end);
-        // long dry = 0, wet = 0, unknown = 0;
-        // String mostCommon = "none";
-        // long maxCount = 0;
-        // for (Object[] row : coughsByType) {
-        //     String type = (String) row[0];
-        //     Long count = (Long) row[1];
-        //     if ("dry".equalsIgnoreCase(type)) {
-        //         dry = count;
-        //     } else if ("wet".equalsIgnoreCase(type)) {
-        //         wet = count;
-        //     } else {
-        //         unknown = count;
-        //     }
-        //     if (count > maxCount) {
-        //         maxCount = count;
-        //         mostCommon = type;
-        //     }
-        // }
-        // stats.setDryCoughs(dry);
-        // stats.setWetCoughs(wet);
-        // stats.setUnknownCoughs(unknown);
-        // stats.setMostCommonType(mostCommon);
-        // Average confidence
         Double avgConfidence = coughRepository.getAverageConfidence(deviceId, start, end);
         stats.setAverageConfidence(avgConfidence != null ? avgConfidence : 0.0);
 
-        // Coughs per hour
+        // Calculate hours difference safely for LocalDateTime
         long durationHours = ChronoUnit.HOURS.between(start, end);
         if (durationHours == 0) {
             durationHours = 1;
         }
         stats.setCoughsPerHour((double) stats.getTotalCoughs() / durationHours);
 
+        // // No more dry/wet logic
+        // stats.setDryCoughs(0L);
+        // stats.setWetCoughs(0L);
+        // stats.setUnknownCoughs(stats.getTotalCoughs());
+        // stats.setMostCommonType("unknown");
         return stats;
     }
 }
