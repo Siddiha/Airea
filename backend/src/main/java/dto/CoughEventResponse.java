@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import model.CoughEvent;
 import java.time.Instant;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -17,7 +18,7 @@ public class CoughEventResponse {
     // private String coughType;
     private Float confidence;
     private Float rawScore;
-    private Instant timestamp;
+    private LocalDateTime timestamp;
     private Float audioVolume;
 
     public static CoughEventResponse fromEntity(CoughEvent event) {
