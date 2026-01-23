@@ -33,13 +33,14 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
   Timer? _pollingTimer;
 
   List<CoughEvent> _cleanRecentEvents(List<CoughEvent> events) {
-    final cleaned = events
-        .where((e) => e.coughType.trim().toLowerCase() != 'unknown')
-        .toList()
-      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    // 1. Convert to a mutable list so we can sort it
+    final allEvents = events.toList();
 
-    // Match the mock: show only a few recent spikes
-    return cleaned.take(3).toList();
+    // 2. Sort so the NEWEST (2026 dates) are at the TOP
+    allEvents.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+    // 3. Take the top 3 (or 5) to show on screen
+    return allEvents.take(5).toList();
   }
 
   @override
@@ -122,7 +123,8 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
     });
 
     try {
-      final result = await _apiService.generateDummyData(widget.deviceId, count: 1);
+      final result =
+          await _apiService.generateDummyData(widget.deviceId, count: 1);
       print('✅ Generated ${result['eventsCreated']} fake cough event');
 
       // Refresh data after generation
@@ -299,14 +301,18 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
                         height: 160,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.cyan.shade300, Colors.cyan.shade100],
+                            colors: [
+                              Colors.cyan.shade300,
+                              Colors.cyan.shade100
+                            ],
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
                           ),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Center(
-                          child: Icon(Icons.graphic_eq, size: 64, color: Colors.white),
+                          child: Icon(Icons.graphic_eq,
+                              size: 64, color: Colors.white),
                         ),
                       );
                     },
@@ -384,7 +390,8 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
                       padding: EdgeInsets.all(32.0),
                       child: Column(
                         children: [
-                          Icon(Icons.info_outline, size: 48, color: Colors.grey),
+                          Icon(Icons.info_outline,
+                              size: 48, color: Colors.grey),
                           SizedBox(height: 8),
                           Text(
                             'No cough events detected yet',
@@ -420,7 +427,9 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.add_chart),
-                      label: Text(_isGeneratingData ? 'Generating...' : 'Generate Test Data'),
+                      label: Text(_isGeneratingData
+                          ? 'Generating...'
+                          : 'Generate Test Data'),
                     ),
                   ),
                 ],
@@ -480,24 +489,29 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
 
   Widget _buildCoughEventCard(CoughEvent event) {
     final timeFormat = DateFormat('HH:mm');
-    final formattedTime = timeFormat.format(event.timestamp);
+    final formattedTime = timeFormat.format(event.timestamp.toLocal());
 
-    Color cardColor;
-    String label;
+    // Color cardColor;
+    // String label;
 
-    switch (event.coughType.toLowerCase()) {
-      case 'dry':
-        cardColor = Colors.orange.shade100;
-        label = 'Dry Cough';
-        break;
-      case 'wet':
-        cardColor = Colors.cyan.shade100;
-        label = 'Wet Cough';
-        break;
-      default:
-        cardColor = Colors.grey.shade100;
-        label = 'Cough';
-    }
+    // switch (event.coughType.toLowerCase()) {
+    //   case 'dry':
+    //     cardColor = Colors.orange.shade100;
+    //     label = 'Dry Cough';
+    //     break;
+    //   case 'wet':
+    //     cardColor = Colors.cyan.shade100;
+    //     label = 'Wet Cough';
+    //     break;
+    //   // ADD THIS CASE!
+    //   case 'unknown':
+    //   default:
+    //     cardColor = Colors.red.shade50; // Light Red for Alert
+    //     label = 'Cough Alert'; // Professional Label
+    // }
+
+    final Color cardColor = Colors.red.shade50;
+    final String label = "Cough Alert";
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

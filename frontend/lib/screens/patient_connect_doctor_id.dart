@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'patient_doctor_guidance.dart';
 import 'patient_pending_message.dart';
+import 'patient_homeScreen.dart';
+import 'patient_connect_device_option.dart';
+import 'patient_summary_page.dart';
 
 class PatientConnectDoctorId extends StatefulWidget {
   const PatientConnectDoctorId({super.key});
@@ -130,6 +133,29 @@ class _PatientConnectDoctorIdState extends State<PatientConnectDoctorId> {
     );
   }
 
+  void _onNavTapped(int index) {
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => PatientHomeScreen()),
+        );
+        break;
+      case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const PatientConnectDeviceOption()),
+        );
+        break;
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const PatientSummaryPage()),
+        );
+        break;
+    }
+  }
+
   Widget _buildBottomNav(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
@@ -147,6 +173,8 @@ class _PatientConnectDoctorIdState extends State<PatientConnectDoctorId> {
         selectedItemColor: AppTheme.primaryTeal,
         unselectedItemColor: Colors.grey,
         currentIndex: 0,
+        type: BottomNavigationBarType.fixed,
+        onTap: _onNavTapped,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),

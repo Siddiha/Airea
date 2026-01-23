@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'patient_notifications.dart';
 import 'patient_profile.dart';
 import 'patient_connect_device_option.dart';
+import 'patient_connect_doctor_option.dart';
 import 'patient_summary_page.dart';
 import 'cough_analyzer_screen.dart';
 import '../services/api_service.dart';
@@ -218,7 +219,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 _buildConnectionCard(
                   title: "Connect with a doctor",
                   onTap: () {
-                    // Add doctor connection navigation here
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PatientConnectDoctorOption(),
+                      ),
+                    );
                   },
                 ),
                 const SizedBox(height: 20),
@@ -288,7 +294,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     bool isLarge = false,
   }) {
     return Container(
-      height: isLarge ? 244 : 116,
+      height: isLarge ? 292 : 140,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -305,7 +311,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(icon, size: 32, color: Colors.black54),
+          Icon(icon, size: 28, color: Colors.black54),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -314,14 +320,14 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 style: TextStyle(
                   color: statusColor,
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 14,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 value,
                 style: const TextStyle(
-                  fontSize: 22,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -331,7 +337,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 label,
                 style: TextStyle(
                   color: Colors.grey.shade600,
-                  fontSize: 12,
+                  fontSize: 11,
                 ),
               ),
             ],

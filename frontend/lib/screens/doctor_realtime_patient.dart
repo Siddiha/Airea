@@ -4,6 +4,7 @@ import '../widgets/custom_button.dart';
 import 'doctor_cough_count.dart';
 import 'doctor_home_page.dart';
 import 'doctor_summary.dart';
+import 'patient_connect_device_option.dart';
 
 class DoctorRealtimePatient extends StatefulWidget {
   const DoctorRealtimePatient({Key? key}) : super(key: key);
@@ -26,6 +27,12 @@ class _DoctorRealtimePatientState extends State<DoctorRealtimePatient> {
         );
         break;
       case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const PatientConnectDeviceOption()),
+        );
+        break;
+      case 2:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const DoctorSummary()),
@@ -185,11 +192,16 @@ class _DoctorRealtimePatientState extends State<DoctorRealtimePatient> {
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
         onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.watch),
+            label: 'Device',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.description_outlined),

@@ -5,6 +5,7 @@ import 'doctor_home_page.dart';
 import 'doctor_summary.dart';
 import 'doctor_edit_details.dart';
 import 'doctor_patient_info_list.dart';
+import 'patient_connect_device_option.dart';
 
 class DoctorProfilePage extends StatefulWidget {
   const DoctorProfilePage({super.key});
@@ -25,6 +26,12 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
         );
         break;
       case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const PatientConnectDeviceOption()),
+        );
+        break;
+      case 2:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const DoctorSummary()),
@@ -129,11 +136,16 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
         onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.watch),
+            label: 'Device',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.description_outlined),

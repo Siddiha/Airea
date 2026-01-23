@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../config/app_theme.dart';
 import 'doctor_home_page.dart';
 import 'doctor_summary.dart';
+import 'patient_connect_device_option.dart';
 
 class DoctorCoughCount extends StatefulWidget {
   const DoctorCoughCount({Key? key}) : super(key: key);
@@ -25,6 +26,12 @@ class _DoctorCoughCountState extends State<DoctorCoughCount> {
         );
         break;
       case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const PatientConnectDeviceOption()),
+        );
+        break;
+      case 2:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const DoctorSummary()),
@@ -194,11 +201,16 @@ class _DoctorCoughCountState extends State<DoctorCoughCount> {
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
         onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.watch),
+            label: 'Device',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.description_outlined),
