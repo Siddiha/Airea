@@ -1,9 +1,9 @@
 [build]
-builder = "dockerfile"
+builder = "DOCKERFILE"
 dockerfilePath = "backend/Dockerfile"
-watchPatterns = ["backend/**"]
 
 [deploy]
-healthcheckPath = "/"
-restartPolicyType = "on_failure"
+healthcheckPath = "/api/cough/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
