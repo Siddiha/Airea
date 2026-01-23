@@ -6,6 +6,7 @@ import 'doctor_weekly_summary.dart';
 import 'doctor_select_report.dart';
 import 'doctor_allergic_conditions.dart';
 import 'doctor_home_page.dart';
+import 'patient_connect_device_option.dart';
 
 class DoctorSummary extends StatefulWidget {
   const DoctorSummary({Key? key}) : super(key: key);
@@ -15,7 +16,7 @@ class DoctorSummary extends StatefulWidget {
 }
 
 class _DoctorSummaryState extends State<DoctorSummary> {
-  int _selectedIndex = 1;
+  int _selectedIndex = 2;
 
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;
@@ -28,6 +29,12 @@ class _DoctorSummaryState extends State<DoctorSummary> {
         );
         break;
       case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const PatientConnectDeviceOption()),
+        );
+        break;
+      case 2:
         // Already on Summary
         break;
     }
@@ -109,11 +116,16 @@ class _DoctorSummaryState extends State<DoctorSummary> {
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
         onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.watch),
+            label: 'Device',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.description_outlined),
