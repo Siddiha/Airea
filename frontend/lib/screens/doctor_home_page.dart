@@ -119,7 +119,7 @@ class DoctorHomePage extends StatelessWidget {
             icon: Icon(Icons.home),
             label: 'Home',
           ),
-          // ADD THIS SECOND ITEM TO FIX THE ERROR
+          // Add this second item to fix error
           BottomNavigationBarItem(
              icon: Icon(Icons.person),
              label: 'Profile',
