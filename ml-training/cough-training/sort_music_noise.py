@@ -1,6 +1,8 @@
 import os
 from pydub import AudioSegment
 
+#source!!!
+# https://github.com/mdeff/fma?tab=readme-ov-file
 # --- CONFIGURATION ---
 FMA_SMALL_PATH = './dataset/fma_small'       # Path to the unzipped fma_small folder
 TARGET_NOISE_DIR = './dataset/negative_class'
