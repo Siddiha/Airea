@@ -16,15 +16,25 @@ import io.github.cdimascio.dotenv.Dotenv;
 public class AireaApplication {
 
     public static void main(String[] args) {
-        // Load .env file
+        // Load .env file for local development
         Dotenv dotenv = Dotenv.configure()
                 .ignoreIfMissing() // Don't fail if .env is missing (for production)
                 .load();
 
-        // Set environment variables from .env
+        // Set environment variables from .env file
         dotenv.entries().forEach(entry -> {
             System.setProperty(entry.getKey(), entry.getValue());
         });
+
+        // For production (Railway/Docker): Also check OS environment variables
+        // This ensures Railway's env vars are available to Spring
+        String[] envVars = {"SUPABASE_URL", "SUPABASE_USERNAME", "SUPABASE_PASSWORD", "PORT", "CORS_ALLOWED_ORIGINS"};
+        for (String envVar : envVars) {
+            String value = System.getenv(envVar);
+            if (value != null && System.getProperty(envVar) == null) {
+                System.setProperty(envVar, value);
+            }
+        }
 
         // Start Spring Boot application
         SpringApplication.run(AireaApplication.class, args);
