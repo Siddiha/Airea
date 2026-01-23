@@ -163,6 +163,12 @@ class _DoctorHomePageState extends State<DoctorHomePage> {
             icon: Icon(Icons.home),
             label: 'Home',
           ),
+          // ADD THIS SECOND ITEM TO FIX THE ERROR
+          BottomNavigationBarItem(
+             icon: Icon(Icons.person),
+             label: 'Profile',
+    ),
+
           BottomNavigationBarItem(
             icon: Icon(Icons.watch),
             label: 'Device',
@@ -171,6 +177,7 @@ class _DoctorHomePageState extends State<DoctorHomePage> {
             icon: Icon(Icons.description_outlined),
             label: 'Trends & summary',
           ),
+
         ],
       ),
     );
