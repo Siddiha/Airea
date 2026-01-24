@@ -1,36 +1,41 @@
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode;
 
 class ApiConfig {
   // ========================================
   // 🔧 Backend Configuration
   // ========================================
 
-  // IMPORTANT: This IP is used for Physical Devices on the same Wi-Fi.
-  // Find it using: ipconfig (Windows) or ifconfig (Mac/Linux)
+  // Production URL (Railway deployment)
+  static const String _productionUrl = 'https://airea-production.up.railway.app/api';
+
+  // Set to true to use production backend, false for local development
+  static const bool useProduction = true;
+
+  // Local development settings
   static const String _computerIP = '192.168.8.106';
   static const String backendPort = '8080';
 
-  // Automatically choose the correct host based on platform
-  static String get backendHost {
+  // Automatically choose the correct host based on platform (for local dev)
+  static String get _localBackendHost {
     if (kIsWeb) {
-      // Running in web browser - use localhost
       return 'localhost';
     } else if (Platform.isAndroid) {
-      // Android Emulator uses 10.0.2.2 to access the Mac/PC localhost
-      // If using a physical Android device, use _computerIP
       return '10.0.2.2';
     } else if (Platform.isIOS) {
-      // iOS Simulator: Use 'localhost' to talk to the Mac it's running on
-      // Physical iPhone: Use _computerIP
       return 'localhost';
     } else {
       return _computerIP;
     }
   }
 
-  // API Base URL (automatically constructed)
-  static String get baseUrl => 'http://$backendHost:$backendPort/api';
+  // API Base URL - uses production or local based on config
+  static String get baseUrl {
+    if (useProduction || kReleaseMode) {
+      return _productionUrl;
+    }
+    return 'http://$_localBackendHost:$backendPort/api';
+  }
 
   // Default device ID for testing (matches your ESP32 ID)
   static const String defaultDeviceId = 'ESP32_COUGH_01';
