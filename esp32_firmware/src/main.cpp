@@ -2,6 +2,7 @@
 #include <driver/i2s.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h> // Required for Railway HTTPS
 #include "cough_model.h"
 
 // --- FREERTOS INCLUDES ---
@@ -14,7 +15,7 @@ const char *ssid = "Dialog 4G 437";
 const char *password = "20040920";
 
 // --- SERVER URL ---
-const char *serverUrl = "http://192.168.8.102:8080/api/cough/event";
+const char *serverUrl = "https://airea-production.up.railway.app/api/cough/event";
 
 // --- TENSORFLOW INCLUDES ---
 #include "tensorflow/lite/micro/all_ops_resolver.h"
@@ -55,7 +56,7 @@ TfLiteTensor *input = nullptr;
 TfLiteTensor *output = nullptr;
 
 // -------------------------------------------------------------------------
-// TASK 1: NETWORK SENDER (Clean Output)
+// TASK 1: NETWORK SENDER (Fixed for Railway HTTPS)
 // -------------------------------------------------------------------------
 void network_sender_task(void *parameter)
 {
@@ -66,7 +67,7 @@ void network_sender_task(void *parameter)
         if (xQueueReceive(coughQueue, &receivedEvent, portMAX_DELAY) == pdTRUE)
         {
 
-            Serial.println(); // New line to separate from dots
+            Serial.println();
             Serial.print("☁️  [Cloud] Uploading Event... ");
 
             if (WiFi.status() != WL_CONNECTED)
@@ -83,27 +84,41 @@ void network_sender_task(void *parameter)
 
             if (WiFi.status() == WL_CONNECTED)
             {
+                // --- HTTPS FIX START ---
+                WiFiClientSecure client;
+                client.setInsecure(); // Trust Railway Certificate
+                client.setTimeout(10000);
+
                 HTTPClient http;
-                http.begin(serverUrl);
-                http.addHeader("Content-Type", "application/json");
 
-                String jsonPayload = "{";
-                jsonPayload += "\"deviceId\":\"ESP32_COUGH_01\",";
-                jsonPayload += "\"confidence\":" + String(receivedEvent.confidence, 3) + ",";
-                jsonPayload += "\"rawScore\":" + String(receivedEvent.confidence, 3) + ",";
-                jsonPayload += "\"audioVolume\":" + String(receivedEvent.volume, 2);
-                jsonPayload += "}";
-
-                int httpResponseCode = http.POST(jsonPayload);
-                if (httpResponseCode > 0)
+                // Use the secure client!
+                if (http.begin(client, serverUrl))
                 {
-                    Serial.printf("Done! (Status: %d)\n", httpResponseCode);
+                    http.addHeader("Content-Type", "application/json");
+
+                    String jsonPayload = "{";
+                    jsonPayload += "\"deviceId\":\"ESP32_COUGH_01\",";
+                    jsonPayload += "\"confidence\":" + String(receivedEvent.confidence, 3) + ",";
+                    jsonPayload += "\"rawScore\":" + String(receivedEvent.confidence, 3) + ",";
+                    jsonPayload += "\"audioVolume\":" + String(receivedEvent.volume, 2);
+                    jsonPayload += "}";
+
+                    int httpResponseCode = http.POST(jsonPayload);
+                    if (httpResponseCode > 0)
+                    {
+                        Serial.printf("Done! (Status: %d)\n", httpResponseCode);
+                    }
+                    else
+                    {
+                        Serial.printf("Failed. (Error: %s)\n", http.errorToString(httpResponseCode).c_str());
+                    }
+                    http.end();
                 }
                 else
                 {
-                    Serial.printf("Failed. (Error: %s)\n", http.errorToString(httpResponseCode).c_str());
+                    Serial.println("Connection Failed.");
                 }
-                http.end();
+                // --- HTTPS FIX END ---
             }
             else
             {
@@ -115,7 +130,7 @@ void network_sender_task(void *parameter)
 }
 
 // -------------------------------------------------------------------------
-// TASK 2: AI LISTENER (Clean Output)
+// TASK 2: AI LISTENER (Fixed for 0% on Silence)
 // -------------------------------------------------------------------------
 void audio_inference_task(void *parameter)
 {
@@ -128,9 +143,8 @@ void audio_inference_task(void *parameter)
 
     size_t bytes_read = 0;
     static unsigned long last_alert_time = 0;
-    static unsigned long last_dot_time = 0; // For heartbeat
+    static unsigned long last_dot_time = 0;
 
-    // I2S Setup
     const i2s_config_t i2s_config = {
         .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),
         .sample_rate = SAMPLE_RATE,
@@ -191,24 +205,26 @@ void audio_inference_task(void *parameter)
             cough_score = output->data.f[1];
         }
 
-        // --- CLEAN LOGIC START ---
-
-        // 1. If it's silent, just print a dot every 2 seconds (Heartbeat)
+        // --- 🛠️ 0% FIX START ---
+        // If volume is low, force score to 0.0
         if (avg_vol < 300)
         {
+            cough_score = 0.0;
+
+            // Heartbeat
             if (millis() - last_dot_time > 2000)
             {
                 Serial.print(".");
                 last_dot_time = millis();
             }
         }
-        // 2. If sound is loud enough to matter
+        // --- 0% FIX END ---
+
         else
         {
-            // 3. Is it a COUGH?
             if (cough_score > COUGH_THRESHOLD && (millis() - last_alert_time > 5000))
             {
-                Serial.println("\n"); // Clear the dots
+                Serial.println("\n");
                 Serial.println("🚨  COUGH DETECTED!");
                 Serial.printf("    Confidence: %.1f%%  |  Volume: %d\n", cough_score * 100, (int)avg_vol);
 
@@ -219,7 +235,6 @@ void audio_inference_task(void *parameter)
                 xQueueSend(coughQueue, &event, 0);
                 last_alert_time = millis();
             }
-            // 4. Just a loud noise (not a cough)
             else if (avg_vol > 500)
             {
                 Serial.println();
