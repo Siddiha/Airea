@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'cough_analyzer_screen.dart';
 import 'doctor_home_page.dart';
-import '../config/api_config.dart';
+import 'doctor_patient_profile.dart';
 
 class DoctorPatientInfoList extends StatelessWidget {
   const DoctorPatientInfoList({super.key});
@@ -47,8 +46,8 @@ class DoctorPatientInfoList extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => CoughAnalyzerScreen(
-                                deviceId: ApiConfig.defaultDeviceId,
+                              builder: (context) => DoctorPatientProfile(
+                                patientName: patients[index],
                               ),
                             ),
                           );
