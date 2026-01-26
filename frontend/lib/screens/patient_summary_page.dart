@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'patient_daily_summary.dart';
 import 'patient_weekly_summary.dart';
-import 'cough_analyzer_screen.dart';
-import '../config/api_config.dart';
-import 'device_screen.dart';
+import 'patient_homeScreen.dart';
+import 'patient_connect_device_option.dart';
 
 class PatientSummaryPage extends StatelessWidget {
   const PatientSummaryPage({super.key});
@@ -111,13 +110,11 @@ class PatientSummaryPage extends StatelessWidget {
         onTap: (index) {
           switch (index) {
             case 0:
-              // Navigate to Cough Analyzer (Home)
+              // Navigate to Home
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CoughAnalyzerScreen(
-                    deviceId: ApiConfig.defaultDeviceId,
-                  ),
+                  builder: (context) => const PatientHomeScreen(),
                 ),
               );
               break;
@@ -126,7 +123,7 @@ class PatientSummaryPage extends StatelessWidget {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const DeviceScreen(),
+                  builder: (context) => const PatientConnectDeviceOption(),
                 ),
               );
               break;
@@ -141,7 +138,7 @@ class PatientSummaryPage extends StatelessWidget {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.wifi_tethering),
+            icon: Icon(Icons.sensors),
             label: 'Device',
           ),
           BottomNavigationBarItem(

@@ -11,7 +11,7 @@ import '../services/api_service.dart';
 import '../config/api_config.dart';
 
 class PatientHomeScreen extends StatefulWidget {
-  PatientHomeScreen({super.key});
+  const PatientHomeScreen({super.key});
 
   @override
   State<PatientHomeScreen> createState() => _PatientHomeScreenState();
@@ -30,8 +30,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   double temperature = 34.0;
   String temperatureStatus = "Normal";
 
-  int coughCount = 0;
-  String coughStatus = "Loading...";
+  int coughCount = 600;
+  String coughStatus = "High";
 
   int _selectedIndex = 0;
   Timer? _refreshTimer;
@@ -40,7 +40,6 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   void initState() {
     super.initState();
     _loadCoughData();
-    // Refresh every 10 seconds
     _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       _loadCoughData();
     });
@@ -83,13 +82,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     switch (status) {
       case "No coughs":
       case "Low":
-        return Colors.green;
       case "Normal":
-        return Colors.blue;
+        return const Color(0xFF4CAF50);
       case "Moderate":
         return Colors.orange;
       case "High":
-        return Colors.red;
+        return const Color(0xFFE53935);
       default:
         return Colors.grey;
     }
@@ -99,113 +97,58 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.black87, width: 2),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.person_outline, color: Colors.black87),
-              iconSize: 24,
-              padding: EdgeInsets.zero,
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const PatientProfile(),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-        title: const Text(
-          "Hello user !",
-          style: TextStyle(
-            color: Colors.black87,
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            color: Colors.black87,
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PatientNotifications(),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Header
+                _buildHeader(),
+                const SizedBox(height: 20),
+
+                // Live vitals title
                 const Text(
                   "Live vitals",
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
                     color: Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+
+                // Vitals Grid - exactly like the design
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Left column - SpO2 and Temperature
                     Expanded(
                       child: Column(
                         children: [
-                          _buildVitalCard(
-                            icon: Icons.water_drop_outlined,
-                            label: "SpO2",
-                            status: spo2Status,
-                            value: "$spo2%",
-                            statusColor: Colors.green,
-                          ),
-                          const SizedBox(height: 12),
-                          _buildVitalCard(
-                            icon: Icons.thermostat_outlined,
-                            label: "Temperature",
-                            status: temperatureStatus,
-                            value: "$temperature°C",
-                            statusColor: Colors.green,
-                          ),
+                          _buildSpO2Card(),
+                          const SizedBox(height: 10),
+                          _buildTemperatureCard(),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
+                    // Right column - Heart Rate (taller)
                     Expanded(
-                      child: _buildVitalCard(
-                        icon: Icons.favorite_border,
-                        label: "Heart Rate",
-                        status: heartRateStatus,
-                        value: "$heartRate BPM",
-                        statusColor: Colors.green,
-                        isLarge: true,
-                      ),
+                      child: _buildHeartRateCard(),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+
+                // Cough Count Card
                 _buildCoughCountCard(),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+
+                // Connect with device
                 _buildConnectionCard(
-                  title: "Connect with a device",
+                  title: "Connect with a\ndevice",
                   onTap: () {
                     Navigator.push(
                       context,
@@ -215,9 +158,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     );
                   },
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
+
+                // Connect with doctor
                 _buildConnectionCard(
-                  title: "Connect with a doctor",
+                  title: "Connect with a\ndoctor",
                   onTap: () {
                     Navigator.push(
                       context,
@@ -227,81 +172,95 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     );
                   },
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
               ],
             ),
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white,
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.black87,
-        unselectedItemColor: Colors.grey,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-
-          switch (index) {
-            case 0:
-              break;
-            case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PatientConnectDeviceOption(),
-                ),
-              );
-              break;
-            case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PatientSummaryPage(),
-                ),
-              );
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.wifi),
-            label: 'Device',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.description_outlined),
-            label: 'Trends &\nsummary',
-          ),
-        ],
-      ),
+      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
-  Widget _buildVitalCard({
-    required IconData icon,
-    required String label,
-    required String status,
-    required String value,
-    required Color statusColor,
-    bool isLarge = false,
-  }) {
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        // Profile icon
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PatientProfile()),
+            );
+          },
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.black87, width: 2),
+            ),
+            child: const Icon(
+              Icons.person_outline,
+              color: Colors.black87,
+              size: 26,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Greeting
+        const Text(
+          "Hello user !",
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const Spacer(),
+        // Notification bell with red dot
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PatientNotifications()),
+            );
+          },
+          child: Stack(
+            children: [
+              const Icon(
+                Icons.notifications_outlined,
+                color: Colors.black87,
+                size: 26,
+              ),
+              Positioned(
+                right: 2,
+                top: 2,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSpO2Card() {
     return Container(
-      height: isLarge ? 292 : 140,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.grey.withValues(alpha: 0.15),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -309,38 +268,186 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(icon, size: 28, color: Colors.black54),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          // O2 Icon with bubble
+          Row(
             children: [
-              Text(
-                status,
-                style: TextStyle(
-                  color: statusColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 11,
-                ),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Text(
+                    "O",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black54,
+                    ),
+                  ),
+                  const Positioned(
+                    right: -8,
+                    bottom: 0,
+                    child: Text(
+                      "2",
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 18,
+                    top: -4,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.blue.shade300,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          // Status and Value
+          Text(
+            spo2Status,
+            style: const TextStyle(
+              color: Color(0xFF4CAF50),
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+          ),
+          Text(
+            "$spo2%",
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF4CAF50),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "SpO2",
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTemperatureCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Thermometer Icon
+          Icon(
+            Icons.thermostat_outlined,
+            size: 28,
+            color: Colors.grey.shade600,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            temperatureStatus,
+            style: const TextStyle(
+              color: Color(0xFF4CAF50),
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+          ),
+          Text(
+            "${temperature.toStringAsFixed(0)}°C",
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF4CAF50),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Temperature",
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeartRateCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // ECG Line Drawing
+          SizedBox(
+            height: 80,
+            width: double.infinity,
+            child: CustomPaint(
+              painter: ECGLinePainter(),
+              size: const Size(double.infinity, 80),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Heart Rate",
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "$heartRate BPM",
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF4CAF50),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            heartRateStatus,
+            style: const TextStyle(
+              color: Color(0xFF4CAF50),
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
           ),
         ],
       ),
@@ -350,105 +457,78 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   Widget _buildCoughCountCard() {
     final statusColor = _getCoughStatusColor(coughStatus);
 
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => CoughAnalyzerScreen(
-              deviceId: _deviceId,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Cough Count",
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                coughCount.toString(),
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: statusColor,
+                ),
+              ),
+              Text(
+                coughStatus,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: statusColor,
+                ),
+              ),
+            ],
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CoughAnalyzerScreen(deviceId: _deviceId),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4DB6AC),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              elevation: 0,
+            ),
+            child: const Text(
+              "View Cough Trends",
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      "Cough Count (Today)",
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  coughCount.toString(),
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  coughStatus,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: statusColor,
-                  ),
-                ),
-              ],
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CoughAnalyzerScreen(
-                      deviceId: _deviceId,
-                    ),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4DB6AC),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              ),
-              child: const Text(
-                "View Cough Trends",
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -461,10 +541,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.grey.withValues(alpha: 0.15),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -476,9 +556,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           Text(
             title,
             style: const TextStyle(
-              color: Colors.green,
-              fontSize: 16,
+              color: Color(0xFF4CAF50),
+              fontSize: 15,
               fontWeight: FontWeight.w600,
+              height: 1.3,
             ),
           ),
           ElevatedButton(
@@ -489,13 +570,14 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              elevation: 0,
             ),
             child: const Text(
               "Connect",
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -503,4 +585,150 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       ),
     );
   }
+
+  Widget _buildBottomNav() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(
+                icon: Icons.home,
+                label: "Home",
+                isSelected: _selectedIndex == 0,
+                onTap: () {
+                  setState(() => _selectedIndex = 0);
+                },
+              ),
+              _buildNavItem(
+                icon: Icons.sensors,
+                label: "Device",
+                isSelected: _selectedIndex == 1,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PatientConnectDeviceOption(),
+                    ),
+                  );
+                },
+              ),
+              _buildNavItem(
+                icon: Icons.menu_book_outlined,
+                label: "Trends &\nsummary",
+                isSelected: _selectedIndex == 2,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PatientSummaryPage(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.black87 : Colors.grey,
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 10,
+                color: isSelected ? Colors.black87 : Colors.grey,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Static ECG Line Painter - matches the design exactly
+class ECGLinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.grey.shade400
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final path = Path();
+    final width = size.width;
+    final height = size.height;
+    final centerY = height / 2;
+
+    // Start from left
+    path.moveTo(0, centerY);
+
+    // Flat line
+    path.lineTo(width * 0.15, centerY);
+
+    // Small P wave
+    path.lineTo(width * 0.18, centerY - 5);
+    path.lineTo(width * 0.22, centerY);
+
+    // Flat
+    path.lineTo(width * 0.28, centerY);
+
+    // QRS Complex - the main spike
+    path.lineTo(width * 0.30, centerY + 5); // Q dip
+    path.lineTo(width * 0.35, centerY - 35); // R spike up
+    path.lineTo(width * 0.40, centerY + 10); // S dip
+    path.lineTo(width * 0.45, centerY); // back to baseline
+
+    // Flat
+    path.lineTo(width * 0.55, centerY);
+
+    // T wave
+    path.lineTo(width * 0.60, centerY - 10);
+    path.lineTo(width * 0.68, centerY);
+
+    // Flat to end
+    path.lineTo(width, centerY);
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
