@@ -1,11 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-
-import 'patient_notifications.dart';
-import 'patient_profile.dart';
-import 'patient_connect_device_option.dart';
-import 'patient_connect_doctor_option.dart';
-import 'patient_summary_page.dart';
 import 'cough_analyzer_screen.dart';
 import '../services/api_service.dart';
 import '../config/api_config.dart';
@@ -52,6 +46,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     super.dispose();
   }
 
+  void _showComingSoon(String featureName) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("$featureName will be rebuilt soon")),
+    );
+  }
+
   Future<void> _loadCoughData() async {
     try {
       final stats = await _apiService.getTodayStatistics(_deviceId);
@@ -62,6 +62,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         });
       }
     } catch (e) {
+      // ignore: avoid_print
       print('Error loading cough data: $e');
       if (mounted) {
         setState(() {
@@ -114,12 +115,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               iconSize: 24,
               padding: EdgeInsets.zero,
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const PatientProfile(),
-                  ),
-                );
+                // Profile screen deleted during screens reset.
+                _showComingSoon("Profile");
               },
             ),
           ),
@@ -137,12 +134,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
             icon: const Icon(Icons.notifications_outlined),
             color: Colors.black87,
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PatientNotifications(),
-                ),
-              );
+              // Notifications screen deleted during screens reset.
+              _showComingSoon("Notifications");
             },
           ),
           const SizedBox(width: 8),
@@ -207,24 +200,16 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 _buildConnectionCard(
                   title: "Connect with a device",
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const PatientConnectDeviceOption(),
-                      ),
-                    );
+                    // Deleted during reset
+                    _showComingSoon("Connect with a device");
                   },
                 ),
                 const SizedBox(height: 12),
                 _buildConnectionCard(
                   title: "Connect with a doctor",
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const PatientConnectDoctorOption(),
-                      ),
-                    );
+                    // Deleted during reset
+                    _showComingSoon("Connect with a doctor");
                   },
                 ),
                 const SizedBox(height: 20),
@@ -248,22 +233,15 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
           switch (index) {
             case 0:
+              // Home (stay here)
               break;
             case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PatientConnectDeviceOption(),
-                ),
-              );
+              // Deleted during reset
+              _showComingSoon("Device");
               break;
             case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PatientSummaryPage(),
-                ),
-              );
+              // Deleted during reset
+              _showComingSoon("Trends & summary");
               break;
           }
         },
@@ -437,7 +415,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
               child: const Text(
                 "View Cough Trends",

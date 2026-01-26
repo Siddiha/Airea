@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'config/app_theme.dart';
-import 'screens/welcome_page.dart';
+
+// ✅ Import the screen you are KEEPING
+import 'screens/patient_homeScreen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +25,9 @@ class AireaApp extends StatelessWidget {
       title: 'AIREA - Smart Respiratory Monitor',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme(),
-      home: const WelcomePage(),
+
+      // ✅ Entry point changed from WelcomePage → PatientHomeScreen
+      home: PatientHomeScreen(),
     );
   }
 }

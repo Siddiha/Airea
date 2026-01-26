@@ -4,9 +4,8 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:intl/intl.dart';
 import '../models/cough_event.dart';
 import '../models/cough_statistics.dart';
+
 import '../services/api_service.dart';
-import 'device_screen.dart';
-import 'patient_summary_page.dart';
 
 class CoughAnalyzerScreen extends StatefulWidget {
   final String deviceId;
@@ -36,11 +35,17 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
     // 1. Convert to a mutable list so we can sort it
     final allEvents = events.toList();
 
-    // 2. Sort so the NEWEST (2026 dates) are at the TOP
+    // 2. Sort so the NEWEST are at the TOP
     allEvents.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-    // 3. Take the top 3 (or 5) to show on screen
+    // 3. Take the top 5 to show on screen
     return allEvents.take(5).toList();
+  }
+
+  void _showComingSoon(String featureName) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("$featureName will be rebuilt soon")),
+    );
   }
 
   @override
@@ -83,12 +88,14 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
         _isLoading = false;
       });
 
+      // ignore: avoid_print
       print('✅ Data loaded: ${events.length} events');
     } catch (e) {
       setState(() {
         _isLoading = false;
         _errorMessage = 'Failed to load data: $e';
       });
+      // ignore: avoid_print
       print('❌ Error loading data: $e');
     }
   }
@@ -109,8 +116,10 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
         });
       }
 
+      // ignore: avoid_print
       print('🔄 Data refreshed');
     } catch (e) {
+      // ignore: avoid_print
       print('❌ Error refreshing data: $e');
       // Don't update error message during background refresh
     }
@@ -125,6 +134,7 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
     try {
       final result =
           await _apiService.generateDummyData(widget.deviceId, count: 1);
+      // ignore: avoid_print
       print('✅ Generated ${result['eventsCreated']} fake cough event');
 
       // Refresh data after generation
@@ -140,6 +150,7 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
         );
       }
     } catch (e) {
+      // ignore: avoid_print
       print('❌ Error generating fake data: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -383,7 +394,7 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
 
                 const SizedBox(height: 10),
 
-                // Cough events list (clean + short, like the mock)
+                // Cough events list
                 if (_recentEvents.isEmpty)
                   const Center(
                     child: Padding(
@@ -440,6 +451,8 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
           ),
         ),
       ),
+
+      // ✅ CLEANED: No navigation to deleted screens
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
         onTap: (index) {
@@ -448,22 +461,12 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
               // Already on Cough Analyzer (Home)
               break;
             case 1:
-              // Navigate to Device Screen
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const DeviceScreen(),
-                ),
-              );
+              // Device screen was deleted during screens reset
+              _showComingSoon("Device");
               break;
             case 2:
-              // Navigate to Trends & Summary
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PatientSummaryPage(),
-                ),
-              );
+              // Summary screen was deleted during screens reset
+              _showComingSoon("Trends & summary");
               break;
           }
         },
@@ -490,25 +493,6 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
   Widget _buildCoughEventCard(CoughEvent event) {
     final timeFormat = DateFormat('HH:mm');
     final formattedTime = timeFormat.format(event.timestamp.toLocal());
-
-    // Color cardColor;
-    // String label;
-
-    // switch (event.coughType.toLowerCase()) {
-    //   case 'dry':
-    //     cardColor = Colors.orange.shade100;
-    //     label = 'Dry Cough';
-    //     break;
-    //   case 'wet':
-    //     cardColor = Colors.cyan.shade100;
-    //     label = 'Wet Cough';
-    //     break;
-    //   // ADD THIS CASE!
-    //   case 'unknown':
-    //   default:
-    //     cardColor = Colors.red.shade50; // Light Red for Alert
-    //     label = 'Cough Alert'; // Professional Label
-    // }
 
     final Color cardColor = Colors.red.shade50;
     final String label = "Cough Alert";
