@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'patient_weekly_summary_detail.dart';
+import 'patient_homeScreen.dart';
+import 'patient_connect_device_option.dart';
+import 'patient_summary_page.dart';
 
 class PatientWeeklySummary extends StatefulWidget {
   const PatientWeeklySummary({super.key});
@@ -194,17 +197,45 @@ class _PatientWeeklySummaryState extends State<PatientWeeklySummary> {
         selectedItemColor: AppTheme.primaryTeal,
         unselectedItemColor: Colors.grey,
         currentIndex: 2,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PatientHomeScreen(),
+                ),
+              );
+              break;
+            case 1:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PatientConnectDeviceOption(),
+                ),
+              );
+              break;
+            case 2:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PatientSummaryPage(),
+                ),
+              );
+              break;
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.watch),
+            icon: Icon(Icons.sensors),
             label: 'Device',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
+            icon: Icon(Icons.menu_book_outlined),
             label: 'Trends &\nsummary',
           ),
         ],

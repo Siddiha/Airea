@@ -72,3 +72,5 @@ venv/
 __pycache__/
 *.pyc
 .env
+# Personal reference files
+My_Reference/

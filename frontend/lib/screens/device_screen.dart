@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/device.dart';
 import '../services/api_service.dart';
+import 'cough_analyzer_screen.dart';
+import '../config/api_config.dart';
+import 'patient_summary_page.dart';
 
 class DeviceScreen extends StatefulWidget {
   const DeviceScreen({super.key});
@@ -49,6 +52,10 @@ class _DeviceScreenState extends State<DeviceScreen> {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.maybePop(context),
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -59,6 +66,52 @@ class _DeviceScreenState extends State<DeviceScreen> {
         onPressed: _showAddDeviceDialog,
         backgroundColor: Colors.cyan.shade600,
         child: const Icon(Icons.add),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 1,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              // Navigate to Cough Analyzer (Home)
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CoughAnalyzerScreen(
+                    deviceId: ApiConfig.defaultDeviceId,
+                  ),
+                ),
+              );
+              break;
+            case 1:
+              // Already on Device Screen
+              break;
+            case 2:
+              // Navigate to Trends & Summary
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PatientSummaryPage(),
+                ),
+              );
+              break;
+          }
+        },
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.wifi_tethering),
+            label: 'Device',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.menu_book_outlined),
+            label: 'Trends &\nsummary',
+          ),
+        ],
       ),
     );
   }

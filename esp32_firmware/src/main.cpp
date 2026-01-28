@@ -2,158 +2,149 @@
 #include <driver/i2s.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h> // Required for Railway HTTPS
 #include "cough_model.h"
 
-// WI-FI CREDENTIALS (CHANGE THESE!)
+// --- FREERTOS INCLUDES ---
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+
+// --- WI-FI CREDENTIALS ---
 const char *ssid = "Dialog 4G 437";
 const char *password = "20040920";
 
-// SERVER URL (Backend API endpoint)
-// Your PC's IP: 192.168.8.107 (found via ipconfig)
-const char *serverUrl = "http://192.168.8.107:8080/api/cough/event";
+// --- SERVER URL ---
+const char *serverUrl = "https://airea-production.up.railway.app/api/cough/event";
 
-// AUTHENTICATION (Get JWT token from backend)
-// Step 1: Register device via POST /api/device/register
-// Step 2: Generate API key via POST /api/auth/generate-key/ESP32_COUGH_01
-// Step 3: Login via POST /api/auth/login to get JWT token
-// Step 4: Copy the JWT token here
-const char *jwtToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJFU1AzMl9DT1VHSF8wMSIsImlhdCI6MTc2NzQyNTg4MCwiZXhwIjoxNzY3NTEyMjgwfQ.J9n6k9xALaEkUsASLIzsqo2SFa-KxroBZ8Y4CfZAbxwuMlbXAfH4IzxP5uM-LtZbAXtV2SAh5WFPhTgpk6QLbQ";  // JWT token from backend login
-
-// TENSORFLOW LITE INCLUDES
+// --- TENSORFLOW INCLUDES ---
 #include "tensorflow/lite/micro/all_ops_resolver.h"
 #include "tensorflow/lite/micro/micro_error_reporter.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 
-// PIN DEFINITIONS (ESP32-S3 N16R8)
+// --- PIN DEFINITIONS (ESP32-S3) ---
 #define I2S_WS 5
 #define I2S_SD 6
 #define I2S_SCK 4
 #define I2S_PORT I2S_NUM_0
 
-// AUDIO SETTINGS
+// --- AUDIO SETTINGS ---
 #define SAMPLE_RATE 16000
-#define RECORD_TIME 2
-const int kAudioBufferSize = SAMPLE_RATE * RECORD_TIME;
+const int kAudioBufferSize = 32000; // 2 Seconds
+#define COUGH_THRESHOLD 0.90
 
-// COUGH DETECTION SETTINGS
-#define COUGH_THRESHOLD 0.90  // 90% confidence threshold
-// Note: Current model only detects "cough vs noise" (binary classification)
-// To detect dry/wet coughs, you need to:
-// 1. Train a new model with 3 classes: dry, wet, noise
-// 2. Update the inference code to classify into 3 categories
-// 3. Modify send_alert() to send actual cough type instead of "unknown"
+// --- QUEUE STRUCTURE ---
+struct CoughEvent
+{
+    float confidence;
+    float volume;
+    unsigned long timestamp;
+};
+QueueHandle_t coughQueue;
 
-// AI MEMORY SETTINGS (8MB PSRAM available)
+// --- GLOBALS ---
 const int kArenaSize = 200 * 1024;
 uint8_t *tensor_arena;
+int16_t *raw_audio_buffer;
 
-// GLOBAL VARIABLES
 tflite::MicroErrorReporter micro_error_reporter;
 tflite::AllOpsResolver resolver;
 const tflite::Model *model;
 tflite::MicroInterpreter *interpreter;
-TfLiteTensor *input;
-TfLiteTensor *output;
-
-// Audio Buffer
-int16_t *raw_audio_buffer;
+TfLiteTensor *input = nullptr;
+TfLiteTensor *output = nullptr;
 
 // -------------------------------------------------------------------------
-// WI-FI SETUP FUNCTION
+// TASK 1: NETWORK SENDER (Fixed for Railway HTTPS)
 // -------------------------------------------------------------------------
-void setup_wifi()
+void network_sender_task(void *parameter)
 {
-    delay(10);
-    Serial.println();
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
+    CoughEvent receivedEvent;
 
-    WiFi.begin(ssid, password);
-
-    int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED)
+    while (true)
     {
-        delay(500);
-        Serial.print(".");
-        attempts++;
-        if (attempts > 20)
+        if (xQueueReceive(coughQueue, &receivedEvent, portMAX_DELAY) == pdTRUE)
         {
-            Serial.println("\nWi-Fi Failed! Continuing offline...");
-            return; // Don't hang forever if wifi is bad
+
+            Serial.println();
+            Serial.print("☁️  [Cloud] Uploading Event... ");
+
+            if (WiFi.status() != WL_CONNECTED)
+            {
+                Serial.print("(Connecting Wi-Fi)... ");
+                WiFi.begin(ssid, password);
+                int attempts = 0;
+                while (WiFi.status() != WL_CONNECTED && attempts < 20)
+                {
+                    vTaskDelay(500 / portTICK_PERIOD_MS);
+                    attempts++;
+                }
+            }
+
+            if (WiFi.status() == WL_CONNECTED)
+            {
+                // --- HTTPS FIX START ---
+                WiFiClientSecure client;
+                client.setInsecure(); // Trust Railway Certificate
+                client.setTimeout(10000);
+
+                HTTPClient http;
+
+                // Use the secure client!
+                if (http.begin(client, serverUrl))
+                {
+                    http.addHeader("Content-Type", "application/json");
+
+                    String jsonPayload = "{";
+                    jsonPayload += "\"deviceId\":\"ESP32_COUGH_01\",";
+                    jsonPayload += "\"confidence\":" + String(receivedEvent.confidence, 3) + ",";
+                    jsonPayload += "\"rawScore\":" + String(receivedEvent.confidence, 3) + ",";
+                    jsonPayload += "\"audioVolume\":" + String(receivedEvent.volume, 2);
+                    jsonPayload += "}";
+
+                    int httpResponseCode = http.POST(jsonPayload);
+                    if (httpResponseCode > 0)
+                    {
+                        Serial.printf("Done! (Status: %d)\n", httpResponseCode);
+                    }
+                    else
+                    {
+                        Serial.printf("Failed. (Error: %s)\n", http.errorToString(httpResponseCode).c_str());
+                    }
+                    http.end();
+                }
+                else
+                {
+                    Serial.println("Connection Failed.");
+                }
+                // --- HTTPS FIX END ---
+            }
+            else
+            {
+                Serial.println("Failed (No Wi-Fi).");
+            }
+            Serial.println("------------------------------------------------");
         }
-    }
-
-    Serial.println("");
-    Serial.println("Wi-Fi connected.");
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
-}
-
-// -------------------------------------------------------------------------
-// SEND ALERT FUNCTION
-// -------------------------------------------------------------------------
-void send_alert(float confidence, float rawScore, float audioVolume)
-{
-    if (WiFi.status() == WL_CONNECTED)
-    {
-        HTTPClient http;
-
-        Serial.println("Sending Cough Event to Backend...");
-
-        // Start connection
-        http.begin(serverUrl);
-        http.addHeader("Content-Type", "application/json");
-
-        // Add JWT authentication header
-        String authHeader = "Bearer " + String(jwtToken);
-        http.addHeader("Authorization", authHeader);
-
-        // Get current timestamp in milliseconds
-        unsigned long timestamp = millis();
-
-        // Create JSON payload matching backend CoughEventRequest format
-        // For now, we use "unknown" as we only detect cough vs noise (not dry vs wet)
-        String jsonPayload = "{";
-        jsonPayload += "\"deviceId\":\"ESP32_COUGH_01\",";
-        jsonPayload += "\"coughType\":\"unknown\",";
-        jsonPayload += "\"confidence\":" + String(confidence, 3) + ",";
-        jsonPayload += "\"rawScore\":" + String(rawScore, 3) + ",";
-        jsonPayload += "\"timestamp\":" + String(timestamp) + ",";
-        jsonPayload += "\"audioVolume\":" + String(audioVolume, 2);
-        jsonPayload += "}";
-
-        Serial.println("Payload: " + jsonPayload);
-
-        // Send POST request
-        int httpResponseCode = http.POST(jsonPayload);
-
-        if (httpResponseCode > 0)
-        {
-            Serial.print("Success! HTTP Response: ");
-            Serial.println(httpResponseCode);
-            String response = http.getString();
-            Serial.println("Backend Response: " + response);
-        }
-        else
-        {
-            Serial.print("HTTP Error: ");
-            Serial.println(httpResponseCode);
-        }
-
-        http.end(); // Free resources
-    }
-    else
-    {
-        Serial.println("Wi-Fi Disconnected. Cannot send event.");
     }
 }
 
 // -------------------------------------------------------------------------
-// SETUP I2S
+// TASK 2: AI LISTENER (Fixed for 0% on Silence)
 // -------------------------------------------------------------------------
-void setup_i2s()
+void audio_inference_task(void *parameter)
 {
+    if (input == nullptr)
+    {
+        Serial.println("❌ FATAL: Model failed to load.");
+        vTaskDelete(NULL);
+        return;
+    }
+
+    size_t bytes_read = 0;
+    static unsigned long last_alert_time = 0;
+    static unsigned long last_dot_time = 0;
+
     const i2s_config_t i2s_config = {
         .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),
         .sample_rate = SAMPLE_RATE,
@@ -164,17 +155,95 @@ void setup_i2s()
         .dma_buf_count = 4,
         .dma_buf_len = 1024,
         .use_apll = false,
-        .tx_desc_auto_clear = false,
         .fixed_mclk = 0};
-
     const i2s_pin_config_t pin_config = {
         .bck_io_num = I2S_SCK,
         .ws_io_num = I2S_WS,
         .data_out_num = I2S_PIN_NO_CHANGE,
         .data_in_num = I2S_SD};
 
-    i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL);
+    if (i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL) != ESP_OK)
+        return;
     i2s_set_pin(I2S_PORT, &pin_config);
+
+    Serial.println("🎤  System Ready. Listening...");
+
+    while (true)
+    {
+        i2s_read(I2S_PORT, raw_audio_buffer, kAudioBufferSize * sizeof(int16_t), &bytes_read, portMAX_DELAY);
+
+        int8_t *input_data = input->data.int8;
+        float avg_vol = 0;
+
+        for (int i = 0; i < input->bytes; i++)
+        {
+            int16_t sample = raw_audio_buffer[i * 2];
+            int32_t amplified = sample * 8;
+            if (amplified > 32767)
+                amplified = 32767;
+            if (amplified < -32768)
+                amplified = -32768;
+            input_data[i] = (int8_t)(amplified >> 8);
+            if (i % 100 == 0)
+                avg_vol += abs(amplified);
+        }
+        avg_vol /= (input->bytes / 100);
+
+        TfLiteStatus invoke_status = interpreter->Invoke();
+        if (invoke_status != kTfLiteOk)
+            continue;
+
+        float cough_score = 0;
+        if (output->type == kTfLiteInt8)
+        {
+            float scale = output->params.scale;
+            int zero_point = output->params.zero_point;
+            cough_score = (output->data.int8[1] - zero_point) * scale;
+        }
+        else
+        {
+            cough_score = output->data.f[1];
+        }
+
+        // --- 🛠️ 0% FIX START ---
+        // If volume is low, force score to 0.0
+        if (avg_vol < 300)
+        {
+            cough_score = 0.0;
+
+            // Heartbeat
+            if (millis() - last_dot_time > 2000)
+            {
+                Serial.print(".");
+                last_dot_time = millis();
+            }
+        }
+        // --- 0% FIX END ---
+
+        else
+        {
+            if (cough_score > COUGH_THRESHOLD && (millis() - last_alert_time > 5000))
+            {
+                Serial.println("\n");
+                Serial.println("🚨  COUGH DETECTED!");
+                Serial.printf("    Confidence: %.1f%%  |  Volume: %d\n", cough_score * 100, (int)avg_vol);
+
+                CoughEvent event;
+                event.confidence = cough_score;
+                event.volume = avg_vol;
+                event.timestamp = millis();
+                xQueueSend(coughQueue, &event, 0);
+                last_alert_time = millis();
+            }
+            else if (avg_vol > 500)
+            {
+                Serial.println();
+                Serial.printf("🔊  Noise Detected (Vol: %d, Cough Prob: %.1f%%)\n", (int)avg_vol, cough_score * 100);
+            }
+        }
+
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
 }
 
 // -------------------------------------------------------------------------
@@ -183,137 +252,34 @@ void setup_i2s()
 void setup()
 {
     Serial.begin(115200);
-    delay(3000);
+    delay(2000);
+    Serial.println("\n\n=================================");
+    Serial.println("   AIREA MONITORING SYSTEM       ");
+    Serial.println("   Status: ONLINE                ");
+    Serial.println("=================================");
 
-    Serial.println("Airea (S3): System Online.");
+    coughQueue = xQueueCreate(5, sizeof(CoughEvent));
 
-    // 1. ALLOCATE MEMORY (PSRAM)
     tensor_arena = (uint8_t *)ps_malloc(kArenaSize);
     raw_audio_buffer = (int16_t *)ps_malloc(kAudioBufferSize * sizeof(int16_t));
 
     if (!tensor_arena || !raw_audio_buffer)
     {
-        Serial.println("PSRAM Allocation Failed!");
+        Serial.println("❌ Memory Error.");
         while (1)
             ;
     }
 
-    // 2. CONNECT WI-FI
-    setup_wifi();
-
-    // 3. LOAD MODEL
     model = tflite::GetModel(model_data);
-    if (model->version() != TFLITE_SCHEMA_VERSION)
-    {
-        Serial.println("Schema Mismatch!");
-        while (1)
-            ;
-    }
-
-    // 4. START INTERPRETER
-    static tflite::MicroInterpreter static_interpreter(
-        model, resolver, tensor_arena, kArenaSize, &micro_error_reporter);
+    static tflite::MicroInterpreter static_interpreter(model, resolver, tensor_arena, kArenaSize, &micro_error_reporter);
     interpreter = &static_interpreter;
-
-    if (interpreter->AllocateTensors() != kTfLiteOk)
-    {
-        Serial.println("AllocateTensors Failed!");
-        while (1)
-            ;
-    }
+    interpreter->AllocateTensors();
 
     input = interpreter->input(0);
     output = interpreter->output(0);
 
-    // 5. START MIC
-    setup_i2s();
-    Serial.println("AI Active. Waiting for sound...");
+    xTaskCreatePinnedToCore(network_sender_task, "NetSender", 8192, NULL, 1, NULL, 0);
+    xTaskCreatePinnedToCore(audio_inference_task, "AudioAI", 8192, NULL, 2, NULL, 1);
 }
 
-// -------------------------------------------------------------------------
-// MAIN LOOP
-// -------------------------------------------------------------------------
-void loop()
-{
-    size_t bytes_read = 0;
-
-    // 1. LISTEN
-    i2s_read(I2S_PORT, raw_audio_buffer, kAudioBufferSize * sizeof(int16_t), &bytes_read, portMAX_DELAY);
-
-    // 2. AMPLIFY (Gain 8x)
-    int gain_factor = 8;
-    float average_vol = 0;
-    for (int i = 0; i < kAudioBufferSize; i++)
-    {
-        int32_t amplified = raw_audio_buffer[i] * gain_factor;
-        // Clamp values
-        if (amplified > 32767)
-            amplified = 32767;
-        if (amplified < -32768)
-            amplified = -32768;
-
-        raw_audio_buffer[i] = (int16_t)amplified;
-        average_vol += abs(raw_audio_buffer[i]);
-    }
-    average_vol /= kAudioBufferSize;
-
-    // 3. PREPARE FOR AI
-    if (input->type == kTfLiteInt8)
-    {
-        int8_t *input_data = input->data.int8;
-        for (int i = 0; i < kAudioBufferSize; i++)
-        {
-            if (i < input->bytes)
-                input_data[i] = (raw_audio_buffer[i] >> 8);
-        }
-    }
-    else
-    {
-        for (int i = 0; i < kAudioBufferSize; i++)
-        {
-            if (i < input->bytes / sizeof(float))
-                input->data.f[i] = raw_audio_buffer[i] / 32768.0f;
-        }
-    }
-
-    // 4. THINK
-    interpreter->Invoke();
-
-    // 5. DECIDE
-    float noise_score = 0;
-    float cough_score = 0;
-
-    if (output->type == kTfLiteInt8)
-    {
-        float scale = output->params.scale;
-        int zero_point = output->params.zero_point;
-        noise_score = (output->data.int8[0] - zero_point) * scale;
-        cough_score = (output->data.int8[1] - zero_point) * scale;
-    }
-    else
-    {
-        noise_score = output->data.f[0];
-        cough_score = output->data.f[1];
-    }
-
-    // 6. REPORT
-    Serial.print("Vol: ");
-    Serial.print((int)average_vol);
-    Serial.print(" | Noise: ");
-    Serial.print(noise_score * 100);
-    Serial.print("% | Cough: ");
-    Serial.print(cough_score * 100);
-    Serial.println("%");
-
-    // 7. ACT (Trigger + Wi-Fi Alert)
-    if (cough_score > COUGH_THRESHOLD)
-    {
-        Serial.println("COUGH DETECTED!");
-
-        // SEND EVENT TO BACKEND VIA WI-FI
-        // Pass confidence, raw score, and audio volume
-        send_alert(cough_score, cough_score, average_vol);
-
-        delay(1000); // Pause to prevent spamming server
-    }
-}
+void loop() { vTaskDelay(1000); }

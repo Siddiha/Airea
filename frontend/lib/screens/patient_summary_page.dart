@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'patient_daily_summary.dart';
 import 'patient_weekly_summary.dart';
+import 'patient_homeScreen.dart';
+import 'patient_connect_device_option.dart';
 
 class PatientSummaryPage extends StatelessWidget {
   const PatientSummaryPage({super.key});
@@ -105,17 +107,42 @@ class PatientSummaryPage extends StatelessWidget {
         selectedItemColor: AppTheme.primaryTeal,
         unselectedItemColor: Colors.grey,
         currentIndex: 2,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              // Navigate to Home
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PatientHomeScreen(),
+                ),
+              );
+              break;
+            case 1:
+              // Navigate to Device Screen
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PatientConnectDeviceOption(),
+                ),
+              );
+              break;
+            case 2:
+              // Already on Trends & Summary
+              break;
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.watch),
+            icon: Icon(Icons.sensors),
             label: 'Device',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
+            icon: Icon(Icons.menu_book_outlined),
             label: 'Trends &\nsummary',
           ),
         ],

@@ -1,55 +1,110 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import 'doctor_login_page.dart';
+import 'doctor_home_page.dart';
+import 'doctor_summary.dart';
+import 'doctor_edit_details.dart';
+import 'doctor_patient_info_list.dart';
+import 'patient_connect_device_option.dart';
 
-class DoctorProfilePage extends StatelessWidget {
+class DoctorProfilePage extends StatefulWidget {
   const DoctorProfilePage({super.key});
+
+  @override
+  State<DoctorProfilePage> createState() => _DoctorProfilePageState();
+}
+
+class _DoctorProfilePageState extends State<DoctorProfilePage> {
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DoctorHomePage()),
+        );
+        break;
+      case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const PatientConnectDeviceOption()),
+        );
+        break;
+      case 2:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DoctorSummary()),
+        );
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF0F8F7),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF0F8F7),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
         title: const Text(
           'Profile',
-          style: TextStyle(color: Colors.black87),
+          style: TextStyle(
+            color: AppTheme.darkBlue,
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
-      body: Center(
+      body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(30),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const DoctorEditDetails()),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6DBAA6),
+                  backgroundColor: AppTheme.primaryTeal,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text('Edit additional details'),
+                child: const Text(
+                  'Edit additional details',
+                  style: TextStyle(fontSize: 16),
+                ),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const DoctorPatientInfoList()),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6DBAA6),
+                  backgroundColor: AppTheme.primaryTeal,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text('Manage connected\npatients', textAlign: TextAlign.center),
+                child: const Text(
+                  'Manage connected\npatients',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16),
+                ),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
@@ -61,27 +116,40 @@ class DoctorProfilePage extends StatelessWidget {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6DBAA6),
+                  backgroundColor: AppTheme.primaryTeal,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text('Logout'),
+                child: const Text(
+                  'Logout',
+                  style: TextStyle(fontSize: 16),
+                ),
               ),
             ],
           ),
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
+        currentIndex: _selectedIndex,
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
+        onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.watch),
+            label: 'Device',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.description_outlined),
+            label: 'Trends & summary',
           ),
         ],
       ),
