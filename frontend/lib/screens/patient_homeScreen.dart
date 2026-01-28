@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-import 'patient_notifications.dart';
+//import 'patient_notifications.dart';
 import 'patient_profile.dart';
-import 'patient_connect_device_option.dart';
-import 'patient_connect_doctor_option.dart';
-import 'patient_summary_page.dart';
+//import 'patient_connect_device_option.dart';
+//import 'patient_connect_doctor_option.dart';
+//import 'patient_summary_page.dart';
 import 'cough_analyzer_screen.dart';
 import '../services/api_service.dart';
 import '../config/api_config.dart';
@@ -150,12 +150,14 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 _buildConnectionCard(
                   title: "Connect with a\ndevice",
                   onTap: () {
-                    Navigator.push(
+                    print("Connect Device Clicked");
+                    // TODO: Uncomment when PatientConnectDeviceOption is created
+                    /*Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => const PatientConnectDeviceOption(),
                       ),
-                    );
+                    );*/
                   },
                 ),
                 const SizedBox(height: 10),
@@ -164,12 +166,14 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 _buildConnectionCard(
                   title: "Connect with a\ndoctor",
                   onTap: () {
-                    Navigator.push(
+                    print("Connect Doctor Clicked");
+                    // TODO: Uncomment when PatientConnectDoctorOption is created
+                    /*Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => const PatientConnectDoctorOption(),
                       ),
-                    );
+                    );*/
                   },
                 ),
                 const SizedBox(height: 16),
@@ -221,10 +225,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         // Notification bell with red dot
         GestureDetector(
           onTap: () {
-            Navigator.push(
+            print("Notifications Clicked");
+            // TODO: Uncomment when PatientNotifications is created
+            /*Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const PatientNotifications()),
-            );
+            );*/
           },
           child: Stack(
             children: [
@@ -617,12 +623,15 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 label: "Device",
                 isSelected: _selectedIndex == 1,
                 onTap: () {
-                  Navigator.push(
+                  print("Device Tab Clicked");
+                  setState(() => _selectedIndex = 1);
+                  // TODO: Uncomment when PatientConnectDeviceOption is created
+                  /*Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const PatientConnectDeviceOption(),
                     ),
-                  );
+                  );*/
                 },
               ),
               _buildNavItem(
@@ -630,12 +639,15 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 label: "Trends &\nsummary",
                 isSelected: _selectedIndex == 2,
                 onTap: () {
-                  Navigator.push(
+                  print("Trends Tab Clicked");
+                  setState(() => _selectedIndex = 2);
+                  // TODO: Uncomment when PatientSummaryPage is created
+                  /*Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const PatientSummaryPage(),
                     ),
-                  );
+                  );*/
                 },
               ),
             ],
@@ -680,6 +692,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     );
   }
 }
+
+
 
 // Static ECG Line Painter - matches the design exactly
 class ECGLinePainter extends CustomPainter {

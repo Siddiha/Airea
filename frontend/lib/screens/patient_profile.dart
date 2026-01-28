@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
-import 'patient_edit_medical_details.dart';
-import 'patient_edit_emergency_contact.dart';
-import 'patient_view_medical_reports.dart';
-import 'patient_view_allergic_conditions.dart';
+//import 'patient_edit_medical_details.dart';
+//import 'patient_edit_emergency_contact.dart';
+//import 'patient_view_medical_reports.dart';
+//import 'patient_view_allergic_conditions.dart';
 
 class PatientProfile extends StatelessWidget {
   const PatientProfile({super.key});
@@ -32,12 +32,16 @@ class PatientProfile extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
+                    print("Edit Emergency Contact Clicked");
+                    // TODO: Uncomment when file is created
+                    /*
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const PatientEditMedicalDetails(),
                       ),
                     );
+                    */
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryTeal,
@@ -61,12 +65,16 @@ class PatientProfile extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
+                    print("Edit Emergency Contact Clicked");
+                    // TODO: Uncomment when file is created
+                    /*
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const PatientEditEmergencyContact(),
                       ),
                     );
+                    */
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryTeal,
@@ -90,12 +98,13 @@ class PatientProfile extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PatientViewMedicalReports(),
-                      ),
-                    );
+                    // TODO: Implement PatientViewMedicalReports navigation
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //     builder: (context) => const PatientViewMedicalReports(),
+                    //   ),
+                    // );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryTeal,
@@ -119,12 +128,16 @@ class PatientProfile extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
+                    print("View Allergic Conditions Clicked");
+                    // TODO: Uncomment when file is created
+                    /*
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const PatientViewAllergicConditions(),
                       ),
                     );
+                    */
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryTeal,

@@ -6,7 +6,7 @@ import '../models/cough_event.dart';
 import '../models/cough_statistics.dart';
 import '../services/api_service.dart';
 import 'device_screen.dart';
-import 'patient_summary_page.dart';
+// import 'patient_summary_page.dart';
 
 class CoughAnalyzerScreen extends StatefulWidget {
   final String deviceId;
@@ -458,12 +458,7 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
               break;
             case 2:
               // Navigate to Trends & Summary
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PatientSummaryPage(),
-                ),
-              );
+              // TODO: Implement PatientSummaryPage
               break;
           }
         },

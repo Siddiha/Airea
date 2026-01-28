@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
-import 'patient_contact.dart';
+//import 'patient_contact.dart';
 
 class PatientMoreInfo extends StatefulWidget {
   const PatientMoreInfo({super.key});
@@ -161,12 +161,7 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PatientContact(),
-                      ),
-                    );
+                    Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryTeal,
