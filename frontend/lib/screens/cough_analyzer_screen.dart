@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:airea_cough_monitor/screens/patient_homescreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:intl/intl.dart';
@@ -445,7 +446,12 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
         onTap: (index) {
           switch (index) {
             case 0:
-              // Already on Cough Analyzer (Home)
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PatientHomeScreen(),
+                ),
+              );
               break;
             case 1:
               // Navigate to Device Screen
