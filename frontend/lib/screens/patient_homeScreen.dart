@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 //import 'patient_notifications.dart';
-import 'patient_profile.dart';
+import 'patient_profile_frame.dart';
 //import 'patient_connect_device_option.dart';
 //import 'patient_connect_doctor_option.dart';
 //import 'patient_summary_page.dart';
@@ -194,7 +194,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const PatientProfile()),
+              MaterialPageRoute(builder: (_) => const PatientProfileFrame()),
             );
           },
           child: Container(
