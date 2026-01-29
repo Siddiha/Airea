@@ -207,14 +207,8 @@ class DoctorHomePage extends StatelessWidget {
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
-<<<<<<< HEAD
           // Add this second item to fix error
-          BottomNavigationBarItem(
-             icon: Icon(Icons.person),
-             label: 'Profile',
-    ),
-=======
->>>>>>> a96f1de289d7de845454f8d71c8d19b9289f0847
+        
         ],
       ),
       child: SafeArea(
