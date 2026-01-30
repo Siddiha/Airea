@@ -1,0 +1,158 @@
+/*
+  ESP32 + AD8232
+  - ECG waveform (raw + smoothed)
+  - Heart Rate (BPM) via simple adaptive-threshold peak detection
+  - Respiratory Rate (RR) via ECG-derived respiration (baseline wander)
+
+  Wiring:
+  AD8232 3.3V  -> ESP32 3V3
+  AD8232 GND   -> ESP32 GND
+  AD8232 OUTPUT-> ESP32 GPIO 34 (ADC1)
+*/
+
+#include <Arduino.h>
+
+constexpr int ECG_PIN = 34;
+constexpr int BAUD = 115200;
+
+// Sampling
+constexpr int SAMPLE_RATE_HZ = 250;
+constexpr unsigned long SAMPLE_INTERVAL_US = 1000000UL / SAMPLE_RATE_HZ;
+
+// ECG smoothing (fast)
+static float ecgEma = 0.0f;
+constexpr float ECG_EMA_ALPHA = 0.15f;
+
+// Heartbeat detection (BPM)
+static unsigned long lastBeatMs = 0;
+static float bpm = 0.0f;
+static bool wasAbove = false;
+
+static float signalMin = 4095.0f;
+static float signalMax = 0.0f;
+static unsigned long lastRangeResetMs = 0;
+constexpr unsigned long REFRACTORY_MS = 250; // avoid double counts
+
+// ---- Respiration extraction (slow baseline) ----
+// 1) baseline = very slow EMA of the raw ECG (captures drift)
+// 2) respSignal = another EMA to smooth baseline further
+static float baselineEma = 0.0f;
+static float respEma = 0.0f;
+
+// These alphas control “how slow” the breathing extraction is.
+// Smaller alpha => slower / smoother.
+// For ~0.1–0.5 Hz breathing (6–30 bpm), these work well.
+constexpr float BASELINE_ALPHA = 0.004f;   // baseline wander extractor
+constexpr float RESP_ALPHA     = 0.05f;   // extra smoothing
+
+// Resp peak detection (RR)
+static bool respWasAbove = false;
+static float rr = 0.0f;
+static unsigned long lastBreathMs = 0;
+
+// Resp thresholding window
+static float respMin = 1e9f;
+static float respMax = -1e9f;
+static unsigned long lastRespRangeResetMs = 0;
+
+// Prevent counting too fast (min breath interval)
+constexpr unsigned long MIN_BREATH_MS = 2500; 
+constexpr unsigned long MAX_BREATH_MS = 12000; // min 5 breaths/min
+
+void setup() {
+  Serial.begin(BAUD);
+  delay(500);
+
+  analogReadResolution(12);        // 0..4095
+  analogSetAttenuation(ADC_11db);  // ~3.3V range
+
+  Serial.println("Ready. Open Serial Plotter at 115200.");
+  Serial.println("Columns: raw ecgSmoothed bpm respSignal rr");
+}
+
+void loop() {
+  static unsigned long lastSampleUs = 0;
+  unsigned long nowUs = micros();
+  if (nowUs - lastSampleUs < SAMPLE_INTERVAL_US) return;
+  lastSampleUs += SAMPLE_INTERVAL_US;
+
+  unsigned long nowMs = millis();
+
+  // -------- Read ECG --------
+  int raw = analogRead(ECG_PIN);
+
+  // Fast smoothing for ECG display + BPM detection
+  ecgEma = ECG_EMA_ALPHA * raw + (1.0f - ECG_EMA_ALPHA) * ecgEma;
+  float ecgSmoothed = ecgEma;
+
+  // -------- Adaptive threshold for BPM --------
+  signalMin = min(signalMin, ecgSmoothed);
+  signalMax = max(signalMax, ecgSmoothed);
+
+  if (nowMs - lastRangeResetMs > 2000) {
+    signalMin = ecgSmoothed;
+    signalMax = ecgSmoothed;
+    lastRangeResetMs = nowMs;
+  }
+
+  float range = signalMax - signalMin;
+  float beatThreshold = signalMin + range * 0.65f;  
+
+  bool isAbove = (ecgSmoothed > beatThreshold);
+  if (!wasAbove && isAbove) { // rising edge
+    if (nowMs - lastBeatMs > REFRACTORY_MS) {
+      if (lastBeatMs != 0) {
+        unsigned long ibi = nowMs - lastBeatMs;
+        float newBpm = 60000.0f / (float)ibi;
+        if (newBpm >= 45.0f && newBpm <= 160.0f) {
+          bpm = (bpm == 0.0f) ? newBpm : (0.8f * bpm + 0.2f * newBpm);
+        }
+      }
+      lastBeatMs = nowMs;
+    }
+  }
+  wasAbove = isAbove;
+
+  // -------- Respiration extraction (baseline wander / EDR) --------
+  // baselineEma follows slow drift of raw ECG
+  baselineEma = BASELINE_ALPHA * raw + (1.0f - BASELINE_ALPHA) * baselineEma;
+
+  // respEma smooths baseline further (respSignal is what we peak-detect)
+  respEma = RESP_ALPHA * baselineEma + (1.0f - RESP_ALPHA) * respEma;
+  float respSignal = respEma;
+
+  // Track respiration signal min/max to build a threshold (reset every 8s)
+  respMin = min(respMin, respSignal);
+  respMax = max(respMax, respSignal);
+
+  if (nowMs - lastRespRangeResetMs > 8000) {
+    respMin = respSignal;
+    respMax = respSignal;
+    lastRespRangeResetMs = nowMs;
+  }
+
+  float respRange = respMax - respMin;
+  float respThreshold = respMin + respRange * 0.60f;
+
+  // Detect breaths as rising crossings of respThreshold
+  bool respAbove = (respSignal > respThreshold);
+  if (!respWasAbove && respAbove) {
+    if (lastBreathMs != 0) {
+      unsigned long bbi = nowMs - lastBreathMs; // breath-to-breath interval
+      if (bbi >= MIN_BREATH_MS && bbi <= MAX_BREATH_MS) {
+        float newRr = 60000.0f / (float)bbi;
+        rr = (rr == 0.0f) ? newRr : (0.85f * rr + 0.15f * newRr);
+      }
+    }
+    lastBreathMs = nowMs;
+  }
+  respWasAbove = respAbove;
+
+  // -------- Output (best for Serial Plotter) --------
+  // Columns: raw ecgSmoothed bpm respSignal rr
+  Serial.print(raw);                 Serial.print(' ');
+  Serial.print((int)ecgSmoothed);    Serial.print(' ');
+  Serial.print(bpm, 1);              Serial.print(' ');
+  Serial.print((int)respSignal);     Serial.print(' ');
+  Serial.println(rr, 1);
+}
