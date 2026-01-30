@@ -3,7 +3,7 @@ import '../models/device.dart';
 import '../services/api_service.dart';
 import 'cough_analyzer_screen.dart';
 import '../config/api_config.dart';
-import 'patient_summary_page.dart';
+//import 'patient_summary_page.dart';
 
 class DeviceScreen extends StatefulWidget {
   const DeviceScreen({super.key});
@@ -87,12 +87,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
               break;
             case 2:
               // Navigate to Trends & Summary
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PatientSummaryPage(),
-                ),
-              );
+              // TODO: Implement PatientSummaryPage navigation
               break;
           }
         },
