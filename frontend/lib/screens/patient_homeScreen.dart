@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 //import 'patient_notifications.dart';
 import 'patient_profile_frame.dart';
 //import 'patient_connect_device_option.dart';
-//import 'patient_connect_doctor_option.dart';
+import 'patient_contact_doctor.dart';
 //import 'patient_summary_page.dart';
 import 'cough_analyzer_screen.dart';
 import '../services/api_service.dart';
@@ -167,13 +167,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   title: "Connect with a\ndoctor",
                   onTap: () {
                     print("Connect Doctor Clicked");
-                    // TODO: Uncomment when PatientConnectDoctorOption is created
-                    /*Navigator.push(
+                    // TODO: Uncomment when PatientConnectDoct is created
+                    Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const PatientConnectDoctorOption(),
+                        builder: (_) => const PatientContactDoctor(),
                       ),
-                    );*/
+                    );
                   },
                 ),
                 const SizedBox(height: 16),

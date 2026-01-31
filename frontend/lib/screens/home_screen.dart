@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'cough_analyzer_screen.dart';
+import 'patient_contact_doctor.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _isChecking = true;
       _errorMessage = null;
     });
-
+   
     try {
       // Check if backend is reachable
       final isHealthy = await _apiService.checkHealth();
@@ -60,6 +61,8 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
+  
+  
 
   @override
   Widget build(BuildContext context) {
@@ -147,8 +150,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                 ),
               ),
-              const SizedBox(height: 24),
+                 const SizedBox(height: 12),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PatientContactDoctor(),
+                    ),
+                  );
+                },
+                child: Text(
+                  'Connect with doctor',
+                  style: TextStyle(color: Colors.cyan.shade800),
+                ),
+              ),
 
+              const SizedBox(height: 24),
               // Info text
               Container(
                 padding: const EdgeInsets.all(16),
