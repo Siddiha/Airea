@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart'; 
-//import 'patient_connect_device_code.dart';
+import 'patient_connect_device_code.dart';
 
 class PatientConnectDeviceOption extends StatelessWidget {
   const PatientConnectDeviceOption({super.key});
@@ -37,15 +37,12 @@ class PatientConnectDeviceOption extends StatelessWidget {
                 context: context,
                 label: "Yes",
                 onTap: () {
-                  // TODO: Uncomment when ready
-                  /*
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const PatientConnectDeviceCode(),
                     ),
                   );
-                  */
                   print("Yes Pressed - Go to Code Screen");
                 },
               ),
