@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'patient_homescreen.dart';
 import 'patient_create_account.dart';
+import '../services/auth_service.dart';
 
 class PatientLoginPage extends StatefulWidget {
   const PatientLoginPage({super.key});
@@ -12,12 +13,43 @@ class PatientLoginPage extends StatefulWidget {
 class _PatientLoginPageState extends State<PatientLoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authService = AuthService();
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter email and password')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final result = await _authService.login(email, password);
+
+    setState(() => _isLoading = false);
+
+    if (result['success']) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => PatientHomeScreen()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message'])),
+      );
+    }
   }
 
   @override
@@ -51,11 +83,11 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
 
                 const SizedBox(height: 60),
 
-                // Username Field
+                // Email Field
                 TextField(
                   controller: _emailController,
                   decoration: InputDecoration(
-                    hintText: 'User name',
+                    hintText: 'Email',
                     hintStyle: const TextStyle(
                       color: Colors.black54,
                       fontSize: 15,
@@ -116,13 +148,7 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
                 SizedBox(
                   width: 200,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => PatientHomeScreen()),
-                      );
-                    },
+                    onPressed: _isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1B3A5F),
                       foregroundColor: Colors.white,
@@ -132,13 +158,22 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
                       ),
                       elevation: 3,
                     ),
-                    child: const Text(
-                      'Login',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Login',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ),
 
