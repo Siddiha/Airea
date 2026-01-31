@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../config/app_theme.dart';
+import '../config/app_theme.dart'; 
 //import 'patient_connect_device_code.dart';
 
 class PatientConnectDeviceOption extends StatelessWidget {
@@ -8,125 +8,172 @@ class PatientConnectDeviceOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC), 
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(40.0),
+          padding: const EdgeInsets.symmetric(horizontal: 40.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Spacer(),
+              const Spacer(flex: 2), 
 
-              // Question
+              // 1. MAIN QUESTION TEXT
               const Text(
                 'Do you want to pair\nwith the wearable\ndevice ?',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  fontSize: 24, 
+                  height: 1.3,
+                  fontWeight: FontWeight.w600, 
+                  color: Colors.black,
+                  letterSpacing: 0.5,
                 ),
               ),
 
-              const SizedBox(height: 60),
+              const SizedBox(height: 50),
 
-              // Yes Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Uncomment when ready
-                    /* <-- DELETE THIS LINE
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PatientConnectDeviceCode(),
-                      ),
-                    );
-                    */
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryTeal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+              // 2. "YES" BUTTON
+              _buildOptionButton(
+                context: context,
+                label: "Yes",
+                onTap: () {
+                  // TODO: Uncomment when ready
+                  /*
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PatientConnectDeviceCode(),
                     ),
-                  ),
-                  child: const Text(
-                    'Yes',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                ),
+                  );
+                  */
+                  print("Yes Pressed - Go to Code Screen");
+                },
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 20), // Spacing between buttons
 
-              // No Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryTeal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: const Text(
-                    'No',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                ),
+              // 3. "NO" BUTTON
+              _buildOptionButton(
+                context: context,
+                label: "No",
+                onTap: () {
+                  Navigator.pop(context);
+                },
               ),
 
-              const Spacer(),
+              const Spacer(flex: 3),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context),
+      bottomNavigationBar: _buildCustomBottomNav(context),
     );
   }
 
-  Widget _buildBottomNav(BuildContext context) {
+  Widget _buildOptionButton({
+    required BuildContext context,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return Container(
+      width: double.infinity,
+      height: 55,
       decoration: BoxDecoration(
-        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade300,
-            blurRadius: 10,
-            offset: const Offset(0, -2),
+            color: Colors.grey.withOpacity(0.3),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 3), 
           ),
         ],
       ),
-      child: BottomNavigationBar(
-        backgroundColor: Colors.white,
-        selectedItemColor: AppTheme.primaryTeal,
-        unselectedItemColor: Colors.grey,
-        currentIndex: 1,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF5F9EA0), 
+          foregroundColor: Colors.white,
+          elevation: 0, 
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.watch),
-            label: 'Device',
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: 'Trends &\nsummary',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomBottomNav(BuildContext context) {
+    return Container(
+      height: 80,
+      padding: const EdgeInsets.only(top: 10, bottom: 10),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          // Home Item
+          _buildNavItem(
+            icon: Icons.home,
+            label: "Home",
+            isSelected: false, 
+          ),
+          
+          // Device Item 
+          _buildNavItem(
+            icon: Icons.sensors, 
+            label: "Device",
+            isSelected: true, 
+          ),
+
+          // Trends Item
+          _buildNavItem(
+            icon: Icons.menu_book, 
+            label: "Trends &\nsummary",
+            isSelected: false,
           ),
         ],
       ),
     );
   }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+  }) {
+    final Color itemColor = isSelected ? Colors.black : Colors.grey.shade400;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 30,
+          color: itemColor, 
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            color: itemColor,
+            height: 1.1,
+          ),
+        ),
+      ],
+    );
+  }
 }
+
+
 
   

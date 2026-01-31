@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 //import 'patient_notifications.dart';
 import 'patient_profile_frame.dart';
-//import 'patient_connect_device_option.dart';
+import 'patient_connect_device_option.dart';
 //import 'patient_connect_doctor_option.dart';
 //import 'patient_summary_page.dart';
 import 'cough_analyzer_screen.dart';
@@ -151,13 +151,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   title: "Connect with a\ndevice",
                   onTap: () {
                     print("Connect Device Clicked");
-                    // TODO: Uncomment when PatientConnectDeviceOption is created
-                    /*Navigator.push(
+                    Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => const PatientConnectDeviceOption(),
                       ),
-                    );*/
+                    );
                   },
                 ),
                 const SizedBox(height: 10),
@@ -625,13 +624,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 onTap: () {
                   print("Device Tab Clicked");
                   setState(() => _selectedIndex = 1);
-                  // TODO: Uncomment when PatientConnectDeviceOption is created
-                  /*Navigator.push(
+
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const PatientConnectDeviceOption(),
                     ),
-                  );*/
+                  );
                 },
               ),
               _buildNavItem(
