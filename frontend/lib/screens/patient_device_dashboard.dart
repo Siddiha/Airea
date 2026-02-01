@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'patient_device_disconnected.dart';
+import 'patient_device_manual.dart';
 
 class PatientDeviceDashboard extends StatelessWidget {
   const PatientDeviceDashboard({super.key});
@@ -180,7 +181,14 @@ class PatientDeviceDashboard extends StatelessWidget {
                    ],
                  ),
                  child: TextButton(
-                   onPressed: () {},
+                   onPressed: () {
+                    Navigator.push(
+                       context,
+                       MaterialPageRoute(
+                         builder: (context) => const PatientDeviceManual(),
+                       ),
+                     );
+                   },
                    style: TextButton.styleFrom(
                      foregroundColor: Colors.black,
                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
