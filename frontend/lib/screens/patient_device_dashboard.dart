@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
+import 'patient_device_disconnected.dart';
 
 class PatientDeviceDashboard extends StatelessWidget {
   const PatientDeviceDashboard({super.key});
@@ -99,7 +100,12 @@ class PatientDeviceDashboard extends StatelessWidget {
                 height: 55,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Action
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                         builder: (context) => const PatientDeviceDisconnected(),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4FA095), 
