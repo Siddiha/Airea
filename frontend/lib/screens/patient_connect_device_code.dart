@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'patient_device_connected.dart';
+import 'patient_device_guidance.dart';
 
 class PatientConnectDeviceCode extends StatelessWidget {
   const PatientConnectDeviceCode({super.key});
@@ -104,7 +105,12 @@ class PatientConnectDeviceCode extends StatelessWidget {
                   height: 50,
                   child: ElevatedButton(
                     onPressed: () {
-                      print("Guidance Clicked");
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PatientDeviceGuidance(),
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5F9EA0), 
