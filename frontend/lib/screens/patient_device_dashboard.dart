@@ -2,14 +2,20 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'patient_device_disconnected.dart';
 import 'patient_device_manual.dart';
+import '../models/device_model.dart'; 
 
 class PatientDeviceDashboard extends StatelessWidget {
   const PatientDeviceDashboard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-
+    // Initialize the Controller
+    final DeviceController controller = DeviceController();
+    
+    // Get Real Data 
+    final int batteryLevel = controller.currentDevice?.batteryLevel ?? 70; 
+    final String deviceID = controller.currentDevice?.deviceID ?? "XXX XXX";
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -69,17 +75,18 @@ class PatientDeviceDashboard extends StatelessWidget {
                         fit: StackFit.expand,
                         children: [
                           CircularProgressIndicator(
-                            value: 0.7, // 70%
+                            // Dynamic Value 
+                            value: batteryLevel / 100, 
                             strokeWidth: 8,
                             backgroundColor: Colors.grey.shade200,
                             valueColor: const AlwaysStoppedAnimation<Color>(
                               Color(0xFF5A9BD5), 
                             ),
                           ),
-                          const Center(
+                          Center(
                             child: Text(
-                              '70%',
-                              style: TextStyle(
+                              '$batteryLevel%', 
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF5A9BD5),
@@ -101,10 +108,13 @@ class PatientDeviceDashboard extends StatelessWidget {
                 height: 55,
                 child: ElevatedButton(
                   onPressed: () {
+                    // Call the Disconnect Logic
+                    controller.disconnectDevice(); 
+                    
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                         builder: (context) => const PatientDeviceDisconnected(),
+                          builder: (context) => const PatientDeviceDisconnected(),
                       ),
                     );
                   },
@@ -141,8 +151,8 @@ class PatientDeviceDashboard extends StatelessWidget {
                   ],
                 ),
                 child: Column(
-                  children: const [
-                    Text(
+                  children: [
+                    const Text(
                       "Device’s unique ID",
                       style: TextStyle(
                         fontSize: 18,
@@ -150,10 +160,10 @@ class PatientDeviceDashboard extends StatelessWidget {
                         color: Colors.black,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'XXX XXX',
-                      style: TextStyle(
+                      deviceID, 
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
