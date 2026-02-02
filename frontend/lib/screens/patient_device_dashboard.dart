@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'patient_device_disconnected.dart';
 import 'patient_device_manual.dart';
+import 'patient_summary_overview.dart';
+import 'patient_homeScreen.dart';
+import 'patient_summary_overview.dart';
+import 'patient_homeScreen.dart';
 
 class PatientDeviceDashboard extends StatelessWidget {
   const PatientDeviceDashboard({super.key});
@@ -235,27 +239,64 @@ class PatientDeviceDashboard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(icon: Icons.home, label: "Home", isSelected: false),
-          _buildNavItem(icon: Icons.sensors, label: "Device", isSelected: true),
-          _buildNavItem(icon: Icons.menu_book, label: "Trends &\nsummary", isSelected: false),
+          _buildNavItem(
+            icon: Icons.home,
+            label: "Home",
+            isSelected: false,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
+              );
+            },
+          ),
+          _buildNavItem(
+            icon: Icons.sensors,
+            label: "Device",
+            isSelected: true,
+            onTap: () {},
+          ),
+          _buildNavItem(
+            icon: Icons.menu_book,
+            label: "Trends &\nsummary",
+            isSelected: false,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => PatientSummaryOverview()),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildNavItem({required IconData icon, required String label, required bool isSelected}) {
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
     final Color itemColor = isSelected ? Colors.black : Colors.grey.shade400;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 30, color: itemColor),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12, color: itemColor, height: 1.1),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 30, color: itemColor),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: itemColor, height: 1.1),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
