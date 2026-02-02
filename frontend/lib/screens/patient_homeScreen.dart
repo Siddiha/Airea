@@ -6,6 +6,7 @@ import 'patient_profile_frame.dart';
 import 'patient_connect_device_option.dart';
 //import 'patient_connect_doctor_option.dart';
 //import 'patient_summary_page.dart';
+import 'patient_summary_overview.dart';
 import 'cough_analyzer_screen.dart';
 import '../services/api_service.dart';
 import '../config/api_config.dart';
@@ -642,13 +643,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 onTap: () {
                   print("Trends Tab Clicked");
                   setState(() => _selectedIndex = 2);
-                  // TODO: Uncomment when PatientSummaryPage is created
-                  /*Navigator.push(
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const PatientSummaryPage(),
+                      builder: (_) => PatientSummaryOverview(),
                     ),
-                  );*/
+                  );
                 },
               ),
             ],
