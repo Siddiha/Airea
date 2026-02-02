@@ -9,45 +9,59 @@ class ContactDoctor extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Contact Doctor')),
       bottomNavigationBar: _bottomNav(0),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const CircleAvatar(
-              radius: 40,
-              child: Icon(Icons.person, size: 40),
+
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center, 
+              children: [
+                const CircleAvatar(
+                  radius: 40,
+                  child: Icon(Icons.person, size: 40),
+                ),
+
+                const SizedBox(height: 30),
+
+                _infoCard('Mobile Number', '+94 74 xxx xxxx'),
+                _infoCard(
+                  'Clinic/Hospital Address',
+                  'No 12, hospital Road, hospital',
+                ),
+                _infoCard('Email', 'doctor@gmail.com'),
+              ],
             ),
-            const SizedBox(height: 30),
-            _infoCard('Mobile Number', '+94 74 xxx xxxx'),
-            _infoCard(
-              'Clinic/Hospital Address',
-              'No 12, hospital Road, hospital',
-            ),
-            _infoCard('Email', 'doctor@gmail.com'),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _infoCard(String title, String value) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 6),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          Text(value),
-        ],
+    return SizedBox(
+      width: 320, //forces horizontal centering
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [
+            BoxShadow(color: Colors.black12, blurRadius: 6),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(value),
+          ],
+        ),
       ),
     );
   }
@@ -55,7 +69,7 @@ class ContactDoctor extends StatelessWidget {
   BottomNavigationBar _bottomNav(int index) {
     return BottomNavigationBar(
       currentIndex: index,
-      selectedItemColor:AppTheme.primaryTeal,
+      selectedItemColor: AppTheme.primaryTeal,
       unselectedItemColor: Colors.grey,
       items: const [
         BottomNavigationBarItem(

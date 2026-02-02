@@ -9,9 +9,11 @@ class DoctorDetails extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text("Doctor's details")),
       bottomNavigationBar: _bottomNav(0),
-      body: Padding(
+      body: Center(
+        child:SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const CircleAvatar(
               radius: 40,
@@ -26,12 +28,16 @@ class DoctorDetails extends StatelessWidget {
             _infoCard('Medical License Number', 'XXX XXX XXX'),
           ],
         ),
+        
+        ),
       ),
     );
   }
 
   Widget _infoCard(String title, String value) {
-    return Container(
+    return SizedBox(
+      width:320,
+      child:Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -48,6 +54,7 @@ class DoctorDetails extends StatelessWidget {
           const SizedBox(height: 6),
           Text(value),
         ],
+      ),
       ),
     );
   }
