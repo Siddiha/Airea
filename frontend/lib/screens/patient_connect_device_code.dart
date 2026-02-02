@@ -2,18 +2,33 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'patient_device_connected.dart';
 import 'patient_device_guidance.dart';
+import '../models/device_model.dart'; 
 
-class PatientConnectDeviceCode extends StatelessWidget {
+class PatientConnectDeviceCode extends StatefulWidget {
   const PatientConnectDeviceCode({super.key});
+
+  @override
+  State<PatientConnectDeviceCode> createState() => _PatientConnectDeviceCodeState();
+}
+
+class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
+  final TextEditingController _codeController = TextEditingController();
+  final DeviceController _deviceLogic = DeviceController();
+
+  @override
+  void dispose() {
+    _codeController.dispose(); 
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), 
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Container(
-            height: MediaQuery.of(context).size.height - 100, 
+            height: MediaQuery.of(context).size.height - 100,
             padding: const EdgeInsets.symmetric(horizontal: 40.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -34,14 +49,16 @@ class PatientConnectDeviceCode extends StatelessWidget {
 
                 const SizedBox(height: 30),
 
-                // 2. Input Field
+                // 2. Input Field 
                 Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFC7D0D5), 
+                    color: const Color(0xFFC7D0D5),
                     borderRadius: BorderRadius.circular(50),
                   ),
                   child: TextField(
+                    controller: _codeController, 
                     textAlign: TextAlign.left,
+                    keyboardType: TextInputType.number, 
                     decoration: const InputDecoration(
                       hintText: 'type',
                       hintStyle: TextStyle(color: Colors.black54, fontSize: 16),
@@ -54,21 +71,36 @@ class PatientConnectDeviceCode extends StatelessWidget {
 
                 const SizedBox(height: 30),
 
-                // 3. Confirm Button
+                // 3. Confirm Button 
                 SizedBox(
-                  width: 180, 
+                  width: 180,
                   height: 50,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PatientDeviceConnected(),
-                        ),
-                      );
+                      // Get the text from the box
+                      String input = _codeController.text;
+                      
+                      // Ask Controller to validate
+                      bool isSuccess = _deviceLogic.pairDevice(input);
+
+                      if (isSuccess) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PatientDeviceConnected(),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Invalid Code! Please try again."),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF5F9EA0), 
+                      backgroundColor: const Color(0xFF5F9EA0),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
@@ -113,7 +145,7 @@ class PatientConnectDeviceCode extends StatelessWidget {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF5F9EA0), 
+                      backgroundColor: const Color(0xFF5F9EA0),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
