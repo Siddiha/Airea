@@ -10,6 +10,7 @@ import 'patient_summary_overview.dart';
 import 'cough_analyzer_screen.dart';
 import '../services/api_service.dart';
 import '../config/api_config.dart';
+import 'patient_contact_doctor.dart';
 
 class PatientHomeScreen extends StatefulWidget {
   const PatientHomeScreen({super.key});
@@ -167,13 +168,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   title: "Connect with a\ndoctor",
                   onTap: () {
                     print("Connect Doctor Clicked");
-                    // TODO: Uncomment when PatientConnectDoctorOption is created
-                    /*Navigator.push(
+                    
+                    Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const PatientConnectDoctorOption(),
+                        builder: (_) => const PatientContactDoctor (),
                       ),
-                    );*/
+                    );
                   },
                 ),
                 const SizedBox(height: 16),
