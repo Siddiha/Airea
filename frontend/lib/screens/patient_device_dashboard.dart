@@ -2,14 +2,24 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'patient_device_disconnected.dart';
 import 'patient_device_manual.dart';
+import 'patient_summary_overview.dart';
+import 'patient_homeScreen.dart';
+
+
+import '../models/device_model.dart'; 
 
 class PatientDeviceDashboard extends StatelessWidget {
   const PatientDeviceDashboard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-
+    // Initialize the Controller
+    final DeviceController controller = DeviceController();
+    
+    // Get Real Data 
+    final int batteryLevel = controller.currentDevice?.batteryLevel ?? 70; 
+    final String deviceID = controller.currentDevice?.deviceID ?? "XXX XXX";
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -69,17 +79,18 @@ class PatientDeviceDashboard extends StatelessWidget {
                         fit: StackFit.expand,
                         children: [
                           CircularProgressIndicator(
-                            value: 0.7, // 70%
+                            // Dynamic Value 
+                            value: batteryLevel / 100, 
                             strokeWidth: 8,
                             backgroundColor: Colors.grey.shade200,
                             valueColor: const AlwaysStoppedAnimation<Color>(
                               Color(0xFF5A9BD5), 
                             ),
                           ),
-                          const Center(
+                          Center(
                             child: Text(
-                              '70%',
-                              style: TextStyle(
+                              '$batteryLevel%', 
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF5A9BD5),
@@ -101,10 +112,13 @@ class PatientDeviceDashboard extends StatelessWidget {
                 height: 55,
                 child: ElevatedButton(
                   onPressed: () {
+                    // Call the Disconnect Logic
+                    controller.disconnectDevice(); 
+                    
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                         builder: (context) => const PatientDeviceDisconnected(),
+                          builder: (context) => const PatientDeviceDisconnected(),
                       ),
                     );
                   },
@@ -141,8 +155,8 @@ class PatientDeviceDashboard extends StatelessWidget {
                   ],
                 ),
                 child: Column(
-                  children: const [
-                    Text(
+                  children: [
+                    const Text(
                       "Device’s unique ID",
                       style: TextStyle(
                         fontSize: 18,
@@ -150,10 +164,10 @@ class PatientDeviceDashboard extends StatelessWidget {
                         color: Colors.black,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'XXX XXX',
-                      style: TextStyle(
+                      deviceID, 
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
@@ -235,27 +249,64 @@ class PatientDeviceDashboard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(icon: Icons.home, label: "Home", isSelected: false),
-          _buildNavItem(icon: Icons.sensors, label: "Device", isSelected: true),
-          _buildNavItem(icon: Icons.menu_book, label: "Trends &\nsummary", isSelected: false),
+          _buildNavItem(
+            icon: Icons.home,
+            label: "Home",
+            isSelected: false,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
+              );
+            },
+          ),
+          _buildNavItem(
+            icon: Icons.sensors,
+            label: "Device",
+            isSelected: true,
+            onTap: () {},
+          ),
+          _buildNavItem(
+            icon: Icons.menu_book,
+            label: "Trends &\nsummary",
+            isSelected: false,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => PatientSummaryOverview()),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildNavItem({required IconData icon, required String label, required bool isSelected}) {
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
     final Color itemColor = isSelected ? Colors.black : Colors.grey.shade400;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 30, color: itemColor),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12, color: itemColor, height: 1.1),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 30, color: itemColor),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: itemColor, height: 1.1),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

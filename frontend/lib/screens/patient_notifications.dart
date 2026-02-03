@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
+import '../models/device_model.dart'; 
 
 class PatientNotifications extends StatelessWidget {
   const PatientNotifications({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Fetch Real Data from Controller
+    final List<PatientNotification> notifications = DeviceController().fetchNotifications();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), 
       body: SafeArea(
@@ -25,20 +29,21 @@ class PatientNotifications extends StatelessWidget {
               ),
               const SizedBox(height: 30),
 
-              // --- Notification List ---
-              _buildSimpleNotificationItem(
-                title: "High heart beat detected",
-                time: "13:00",
-              ),
-              const SizedBox(height: 16),
-              _buildSimpleNotificationItem(
-                title: "Connected with doctor",
-                time: "12:56",
-              ),
-              const SizedBox(height: 16),
-              _buildSimpleNotificationItem(
-                title: "Device connected",
-                time: "12:48",
+              // Use Expanded + ListView.builder
+              Expanded(
+                child: ListView.separated(
+                  itemCount: notifications.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final note = notifications[index];
+                    
+                    // 4. Pass data into your existing design widget
+                    return _buildSimpleNotificationItem(
+                      title: note.title,
+                      time: note.time,
+                    );
+                  },
+                ),
               ),
             ],
           ),
