@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../models/device_model.dart'; 
+import 'patient_connect_device_option.dart'; 
+import 'patient_summary_overview.dart';
 
 class PatientNotifications extends StatelessWidget {
   const PatientNotifications({super.key});
@@ -78,13 +80,27 @@ class PatientNotifications extends StatelessWidget {
               icon: Icons.sensors, 
               label: "Device", 
               isSelected: false, 
-              onTap: () {}
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PatientConnectDeviceOption(), 
+                  ),
+                );
+              }
             ),
             _buildNavItem(
               icon: Icons.menu_book_outlined, 
               label: "Trends &\nsummary", 
               isSelected: false, 
-              onTap: () {}
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PatientSummaryOverview(),
+                  ),
+                );
+              }
             ),
           ],
         ),

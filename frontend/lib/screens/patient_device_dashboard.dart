@@ -240,7 +240,7 @@ class PatientDeviceDashboard extends StatelessWidget {
   // BOTTOM NAVIGATION 
   Widget _buildCustomBottomNav(BuildContext context) {
     return Container(
-      height: 85,
+      height: 100,
       padding: const EdgeInsets.only(top: 10, bottom: 10),
       decoration: const BoxDecoration(
         color: Colors.white,
