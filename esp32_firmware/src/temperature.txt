@@ -1,0 +1,64 @@
+/*
+  ESP32 + MAX30205 (MTA-CJMCU)
+  - Body Temperature Monitoring
+  - High Temperature Alert Logic
+
+  Wiring:
+  MAX30205 VIN   -> ESP32 3V3
+  MAX30205 GND   -> ESP32 GND
+  MAX30205 SDA   -> ESP32 GPIO 21 (Defined in code)
+  MAX30205 SCL   -> ESP32 GPIO 22 (Defined in code)
+  MAX30205 OS    -> ESP32 GPIO 4  (Overtemp Shutdown pin)
+*/
+
+#include <Wire.h>
+#include "Protocentral_MAX30205.h"
+
+MAX30205 tempSensor;
+
+// Pin Definitions
+const int OS_PIN = 4;    
+const int SDA_PIN = 21;  
+const int SCL_PIN = 22;  
+
+// Threshold for your "Airea" monitor
+const float TEMP_THRESHOLD = 37.5; 
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Start I2C
+  Wire.begin(SDA_PIN, SCL_PIN);
+
+  // Initialize the OS pin as input
+  pinMode(OS_PIN, INPUT_PULLUP);
+
+
+  // Check if sensor is connected
+  while (!tempSensor.scanAvailableSensors()) {
+    Serial.println("Error: MAX30205 not found! Check SDA/SCL and GND.");
+    delay(2000);
+  }
+
+  Serial.println("Sensor Found and Ready!");
+}
+
+void loop() {
+  // Read the temperature
+  float currentTemp = tempSensor.getTemperature();
+
+  // Print to Serial Monitor
+  Serial.print("Body Temp: ");
+  Serial.print(currentTemp, 2);
+  Serial.print(" °C");
+
+  // Logic-based Alert (Since hardware registers are tricky)
+  if (currentTemp > TEMP_THRESHOLD) {
+    Serial.println(" | [ALERT: High Temperature!]");
+  } else {
+    Serial.println(" | [Status: Normal]");
+  }
+
+  // DELAY 1 SECOND TO COLLECT DATA 
+  delay(1000); 
+}
