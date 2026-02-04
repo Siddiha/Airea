@@ -43,6 +43,33 @@ print("--- 1. LOADING DATA ---")
 df_falls = pd.read_csv("processed_data/training_falls.csv")
 df_adls = pd.read_csv("processed_data/training_adls.csv")
 
+# ==========================================
+# [NEW] NORMALIZATION STEP
+# We scale data to be roughly between -1 and 1
+# NOTE: You MUST do this same math in your Arduino C++ code!
+# ==========================================
+
+def normalize_data(df):
+    # Accelerometer is usually +/- 2g to 16g. 
+    # Dividing by 20 covers spikes up to ~2g (approx 20 m/s^2)
+    # If your sensor is set to 4g or 8g, you might want to divide by 40 or 80.
+    df['accX'] = df['accX'] / 20.0
+    df['accY'] = df['accY'] / 20.0
+    df['accZ'] = df['accZ'] / 20.0
+    
+    # Gyroscope is in degrees/sec. 
+    # Dividing by 500 covers normal rotation speeds.
+    df['gyroX'] = df['gyroX'] / 500.0
+    df['gyroY'] = df['gyroY'] / 500.0
+    df['gyroZ'] = df['gyroZ'] / 500.0
+    return df
+
+df_falls = normalize_data(df_falls)
+df_adls = normalize_data(df_adls)
+
+# [End of NEW section]
+# ==========================================
+
 # Balance data (Optional: Limit ADLs to 3x Falls to prevent bias)
 if len(df_adls) > len(df_falls) * 3:
     print(f"Trimming ADLs to {len(df_falls)*3} rows for balance...")

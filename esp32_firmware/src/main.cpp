@@ -1,285 +1,189 @@
+/*
+ * AIREA Project - Final Firmware (Logistic Fix)
+ * Hardware: ESP32-S3 + MPU6050
+ * Status: READY FOR FINAL TEST
+ */
+
 #include <Arduino.h>
-#include <driver/i2s.h>
-#include <WiFi.h>
-#include <HTTPClient.h>
-#include <WiFiClientSecure.h> // Required for Railway HTTPS
-#include "cough_model.h"
+#include <Wire.h>
 
-// --- FREERTOS INCLUDES ---
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-
-// --- WI-FI CREDENTIALS ---
-const char *ssid = "Dialog 4G 437";
-const char *password = "20040920";
-
-// --- SERVER URL ---
-const char *serverUrl = "https://airea-production.up.railway.app/api/cough/event";
-
-// --- TENSORFLOW INCLUDES ---
-#include "tensorflow/lite/micro/all_ops_resolver.h"
-#include "tensorflow/lite/micro/micro_error_reporter.h"
+#include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
+#include "tensorflow/lite/micro/system_setup.h"
 #include "tensorflow/lite/schema/schema_generated.h"
+#include "tensorflow/lite/micro/micro_error_reporter.h"
 
-// --- PIN DEFINITIONS (ESP32-S3) ---
-#define I2S_WS 5
-#define I2S_SD 6
-#define I2S_SCK 4
-#define I2S_PORT I2S_NUM_0
+#include "fall_model.h"
 
-// --- AUDIO SETTINGS ---
-#define SAMPLE_RATE 16000
-const int kAudioBufferSize = 32000; // 2 Seconds
-#define COUGH_THRESHOLD 0.90
+#define SDA_PIN 1
+#define SCL_PIN 2
+#define MPU_ADDR 0x68
 
-// --- QUEUE STRUCTURE ---
-struct CoughEvent
-{
-    float confidence;
-    float volume;
-    unsigned long timestamp;
-};
-QueueHandle_t coughQueue;
+const int kTensorArenaSize = 60 * 1024;
+uint8_t *tensor_arena = nullptr;
 
-// --- GLOBALS ---
-const int kArenaSize = 200 * 1024;
-uint8_t *tensor_arena;
-int16_t *raw_audio_buffer;
-
-tflite::MicroErrorReporter micro_error_reporter;
-tflite::AllOpsResolver resolver;
-const tflite::Model *model;
-tflite::MicroInterpreter *interpreter;
+tflite::MicroInterpreter *interpreter = nullptr;
+// Increased to 30 to cover everything
+tflite::MicroMutableOpResolver<30> *resolver = nullptr;
+tflite::ErrorReporter *error_reporter = nullptr;
+const tflite::Model *model = nullptr;
 TfLiteTensor *input = nullptr;
 TfLiteTensor *output = nullptr;
 
-// -------------------------------------------------------------------------
-// TASK 1: NETWORK SENDER (Fixed for Railway HTTPS)
-// -------------------------------------------------------------------------
-void network_sender_task(void *parameter)
+const int TIME_STEPS = 200;
+const int NUM_FEATURES = 6;
+const int INPUT_BUFFER_SIZE = TIME_STEPS * NUM_FEATURES;
+float data_buffer[INPUT_BUFFER_SIZE];
+int buffer_head = 0;
+const float FALL_CONFIDENCE = 0.85;
+const int ALARM_COOLDOWN = 5000;
+
+void writeMPU(byte reg, byte data)
 {
-    CoughEvent receivedEvent;
-
-    while (true)
-    {
-        if (xQueueReceive(coughQueue, &receivedEvent, portMAX_DELAY) == pdTRUE)
-        {
-
-            Serial.println();
-            Serial.print("☁️  [Cloud] Uploading Event... ");
-
-            if (WiFi.status() != WL_CONNECTED)
-            {
-                Serial.print("(Connecting Wi-Fi)... ");
-                WiFi.begin(ssid, password);
-                int attempts = 0;
-                while (WiFi.status() != WL_CONNECTED && attempts < 20)
-                {
-                    vTaskDelay(500 / portTICK_PERIOD_MS);
-                    attempts++;
-                }
-            }
-
-            if (WiFi.status() == WL_CONNECTED)
-            {
-                // --- HTTPS FIX START ---
-                WiFiClientSecure client;
-                client.setInsecure(); // Trust Railway Certificate
-                client.setTimeout(10000);
-
-                HTTPClient http;
-
-                // Use the secure client!
-                if (http.begin(client, serverUrl))
-                {
-                    http.addHeader("Content-Type", "application/json");
-
-                    String jsonPayload = "{";
-                    jsonPayload += "\"deviceId\":\"ESP32_COUGH_01\",";
-                    jsonPayload += "\"confidence\":" + String(receivedEvent.confidence, 3) + ",";
-                    jsonPayload += "\"rawScore\":" + String(receivedEvent.confidence, 3) + ",";
-                    jsonPayload += "\"audioVolume\":" + String(receivedEvent.volume, 2);
-                    jsonPayload += "}";
-
-                    int httpResponseCode = http.POST(jsonPayload);
-                    if (httpResponseCode > 0)
-                    {
-                        Serial.printf("Done! (Status: %d)\n", httpResponseCode);
-                    }
-                    else
-                    {
-                        Serial.printf("Failed. (Error: %s)\n", http.errorToString(httpResponseCode).c_str());
-                    }
-                    http.end();
-                }
-                else
-                {
-                    Serial.println("Connection Failed.");
-                }
-                // --- HTTPS FIX END ---
-            }
-            else
-            {
-                Serial.println("Failed (No Wi-Fi).");
-            }
-            Serial.println("------------------------------------------------");
-        }
-    }
+    Wire.beginTransmission(MPU_ADDR);
+    Wire.write(reg);
+    Wire.write(data);
+    Wire.endTransmission();
 }
 
-// -------------------------------------------------------------------------
-// TASK 2: AI LISTENER (Fixed for 0% on Silence)
-// -------------------------------------------------------------------------
-void audio_inference_task(void *parameter)
-{
-    if (input == nullptr)
-    {
-        Serial.println("❌ FATAL: Model failed to load.");
-        vTaskDelete(NULL);
-        return;
-    }
-
-    size_t bytes_read = 0;
-    static unsigned long last_alert_time = 0;
-    static unsigned long last_dot_time = 0;
-
-    const i2s_config_t i2s_config = {
-        .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),
-        .sample_rate = SAMPLE_RATE,
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
-        .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
-        .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB),
-        .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-        .dma_buf_count = 4,
-        .dma_buf_len = 1024,
-        .use_apll = false,
-        .fixed_mclk = 0};
-    const i2s_pin_config_t pin_config = {
-        .bck_io_num = I2S_SCK,
-        .ws_io_num = I2S_WS,
-        .data_out_num = I2S_PIN_NO_CHANGE,
-        .data_in_num = I2S_SD};
-
-    if (i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL) != ESP_OK)
-        return;
-    i2s_set_pin(I2S_PORT, &pin_config);
-
-    Serial.println("🎤  System Ready. Listening...");
-
-    while (true)
-    {
-        i2s_read(I2S_PORT, raw_audio_buffer, kAudioBufferSize * sizeof(int16_t), &bytes_read, portMAX_DELAY);
-
-        int8_t *input_data = input->data.int8;
-        float avg_vol = 0;
-
-        for (int i = 0; i < input->bytes; i++)
-        {
-            int16_t sample = raw_audio_buffer[i * 2];
-            int32_t amplified = sample * 8;
-            if (amplified > 32767)
-                amplified = 32767;
-            if (amplified < -32768)
-                amplified = -32768;
-            input_data[i] = (int8_t)(amplified >> 8);
-            if (i % 100 == 0)
-                avg_vol += abs(amplified);
-        }
-        avg_vol /= (input->bytes / 100);
-
-        TfLiteStatus invoke_status = interpreter->Invoke();
-        if (invoke_status != kTfLiteOk)
-            continue;
-
-        float cough_score = 0;
-        if (output->type == kTfLiteInt8)
-        {
-            float scale = output->params.scale;
-            int zero_point = output->params.zero_point;
-            cough_score = (output->data.int8[1] - zero_point) * scale;
-        }
-        else
-        {
-            cough_score = output->data.f[1];
-        }
-
-        // --- 🛠️ 0% FIX START ---
-        // If volume is low, force score to 0.0
-        if (avg_vol < 300)
-        {
-            cough_score = 0.0;
-
-            // Heartbeat
-            if (millis() - last_dot_time > 2000)
-            {
-                Serial.print(".");
-                last_dot_time = millis();
-            }
-        }
-        // --- 0% FIX END ---
-
-        else
-        {
-            if (cough_score > COUGH_THRESHOLD && (millis() - last_alert_time > 5000))
-            {
-                Serial.println("\n");
-                Serial.println("🚨  COUGH DETECTED!");
-                Serial.printf("    Confidence: %.1f%%  |  Volume: %d\n", cough_score * 100, (int)avg_vol);
-
-                CoughEvent event;
-                event.confidence = cough_score;
-                event.volume = avg_vol;
-                event.timestamp = millis();
-                xQueueSend(coughQueue, &event, 0);
-                last_alert_time = millis();
-            }
-            else if (avg_vol > 500)
-            {
-                Serial.println();
-                Serial.printf("🔊  Noise Detected (Vol: %d, Cough Prob: %.1f%%)\n", (int)avg_vol, cough_score * 100);
-            }
-        }
-
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-    }
-}
-
-// -------------------------------------------------------------------------
-// SETUP
-// -------------------------------------------------------------------------
 void setup()
 {
+    delay(3000);
     Serial.begin(115200);
-    delay(2000);
-    Serial.println("\n\n=================================");
-    Serial.println("   AIREA MONITORING SYSTEM       ");
-    Serial.println("   Status: ONLINE                ");
-    Serial.println("=================================");
+    while (!Serial)
+        delay(10);
+    Serial.println("\n--- AIREA SYSTEM FINAL ---");
 
-    coughQueue = xQueueCreate(5, sizeof(CoughEvent));
+    Wire.begin(SDA_PIN, SCL_PIN, 100000);
+    writeMPU(0x6B, 0);
+    delay(50);
+    writeMPU(0x1C, 0x08);
+    writeMPU(0x1B, 0x08);
 
-    tensor_arena = (uint8_t *)ps_malloc(kArenaSize);
-    raw_audio_buffer = (int16_t *)ps_malloc(kAudioBufferSize * sizeof(int16_t));
+    static tflite::MicroErrorReporter micro_error_reporter;
+    error_reporter = &micro_error_reporter;
 
-    if (!tensor_arena || !raw_audio_buffer)
+    model = tflite::GetModel(fall_model);
+    if (model->version() != TFLITE_SCHEMA_VERSION)
     {
-        Serial.println("❌ Memory Error.");
+        error_reporter->Report("Model version %d not supported!", model->version());
         while (1)
             ;
     }
 
-    model = tflite::GetModel(model_data);
-    static tflite::MicroInterpreter static_interpreter(model, resolver, tensor_arena, kArenaSize, &micro_error_reporter);
-    interpreter = &static_interpreter;
-    interpreter->AllocateTensors();
+    tensor_arena = (uint8_t *)malloc(kTensorArenaSize + 16);
+    if (!tensor_arena)
+    {
+        Serial.println("❌ Malloc Failed");
+        while (1)
+            ;
+    }
+    uintptr_t arena_addr = (uintptr_t)tensor_arena;
+    if (arena_addr % 16 != 0)
+        arena_addr += (16 - (arena_addr % 16));
+    tensor_arena = (uint8_t *)arena_addr;
+
+    resolver = new tflite::MicroMutableOpResolver<30>();
+
+    // --- COMPLETE OP LIST ---
+    resolver->AddFullyConnected();
+    resolver->AddSoftmax();
+    resolver->AddReshape();
+    resolver->AddRelu();
+    resolver->AddQuantize();
+    resolver->AddDequantize();
+    resolver->AddConv2D();
+    resolver->AddExpandDims();
+    resolver->AddConcatenation();
+    resolver->AddPack();
+    resolver->AddMaxPool2D();
+    resolver->AddShape();
+
+    // [FIX] The missing piece for tonight:
+    resolver->AddLogistic(); // This fixes the "LOGISTIC" error
+
+    // Extras just in case:
+    resolver->AddFill();
+    resolver->AddSplit();
+    resolver->AddSplitV();
+    resolver->AddStridedSlice();
+    resolver->AddMean();
+    resolver->AddPad();
+    resolver->AddAdd();
+    resolver->AddMul();
+
+    interpreter = new tflite::MicroInterpreter(
+        model, *resolver, tensor_arena, kTensorArenaSize, error_reporter);
+
+    if (interpreter->AllocateTensors() != kTfLiteOk)
+    {
+        Serial.println("❌ Failed to Allocate Tensors!");
+        while (1)
+            ;
+    }
 
     input = interpreter->input(0);
     output = interpreter->output(0);
-
-    xTaskCreatePinnedToCore(network_sender_task, "NetSender", 8192, NULL, 1, NULL, 0);
-    xTaskCreatePinnedToCore(audio_inference_task, "AudioAI", 8192, NULL, 2, NULL, 1);
+    Serial.println("✅ AIREA Armed & Monitoring...");
 }
 
-void loop() { vTaskDelay(1000); }
+void loop()
+{
+    Wire.beginTransmission(MPU_ADDR);
+    Wire.write(0x3B);
+    Wire.endTransmission(false);
+    Wire.requestFrom((uint16_t)MPU_ADDR, (uint8_t)14, true);
+
+    if (Wire.available() == 14)
+    {
+        int16_t raw_ax = Wire.read() << 8 | Wire.read();
+        int16_t raw_ay = Wire.read() << 8 | Wire.read();
+        int16_t raw_az = Wire.read() << 8 | Wire.read();
+        Wire.read();
+        Wire.read();
+        int16_t raw_gx = Wire.read() << 8 | Wire.read();
+        int16_t raw_gy = Wire.read() << 8 | Wire.read();
+        int16_t raw_gz = Wire.read() << 8 | Wire.read();
+
+        float norm_ax = (raw_ax / 8192.0 * 9.81) / 20.0;
+        float norm_ay = (raw_ay / 8192.0 * 9.81) / 20.0;
+        float norm_az = (raw_az / 8192.0 * 9.81) / 20.0;
+        float norm_gx = (raw_gx / 65.5) / 500.0;
+        float norm_gy = (raw_gy / 65.5) / 500.0;
+        float norm_gz = (raw_gz / 65.5) / 500.0;
+
+        for (int i = 0; i < INPUT_BUFFER_SIZE - 6; i++)
+        {
+            data_buffer[i] = data_buffer[i + 6];
+        }
+        int tail = INPUT_BUFFER_SIZE - 6;
+        data_buffer[tail + 0] = norm_ax;
+        data_buffer[tail + 1] = norm_ay;
+        data_buffer[tail + 2] = norm_az;
+        data_buffer[tail + 3] = norm_gx;
+        data_buffer[tail + 4] = norm_gy;
+        data_buffer[tail + 5] = norm_gz;
+
+        buffer_head++;
+        if (buffer_head < TIME_STEPS)
+        {
+            delay(10);
+            return;
+        }
+
+        for (int i = 0; i < INPUT_BUFFER_SIZE; i++)
+            input->data.f[i] = data_buffer[i];
+
+        if (interpreter->Invoke() == kTfLiteOk)
+        {
+            float fall_prob = output->data.f[0];
+            if (fall_prob > FALL_CONFIDENCE)
+            {
+                Serial.println("\n🚨 FALL DETECTED! 🚨");
+                buffer_head = 0;
+                delay(ALARM_COOLDOWN);
+            }
+        }
+    }
+    delay(10);
+}
