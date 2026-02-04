@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart'; 
 import 'patient_connect_device_code.dart';
+import 'patient_homeScreen.dart';
+import 'patient_summary_overview.dart';
 
 class PatientConnectDeviceOption extends StatelessWidget {
   const PatientConnectDeviceOption({super.key});
@@ -121,7 +123,13 @@ class PatientConnectDeviceOption extends StatelessWidget {
           _buildNavItem(
             icon: Icons.home,
             label: "Home",
-            isSelected: false, 
+            isSelected: false,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
+              );
+            }, 
           ),
           
           // Device Item 
@@ -129,6 +137,7 @@ class PatientConnectDeviceOption extends StatelessWidget {
             icon: Icons.sensors, 
             label: "Device",
             isSelected: true, 
+            onTap: (){}
           ),
 
           // Trends Item
@@ -136,6 +145,12 @@ class PatientConnectDeviceOption extends StatelessWidget {
             icon: Icons.menu_book, 
             label: "Trends &\nsummary",
             isSelected: false,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => PatientSummaryOverview()),
+              );
+            },
           ),
         ],
       ),
@@ -146,9 +161,13 @@ class PatientConnectDeviceOption extends StatelessWidget {
     required IconData icon,
     required String label,
     required bool isSelected,
+    required VoidCallback onTap,
   }) {
     final Color itemColor = isSelected ? Colors.black : Colors.grey.shade400;
-    return Column(
+    return GestureDetector(
+    onTap: onTap, 
+    behavior: HitTestBehavior.opaque, 
+    child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
@@ -167,9 +186,9 @@ class PatientConnectDeviceOption extends StatelessWidget {
           ),
         ),
       ],
+    ),
     );
-  }
-}
+}}
 
 
 
