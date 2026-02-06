@@ -3,6 +3,7 @@ import 'patient_homeScreen.dart';
 import 'device_screen.dart';
 import 'patient_edit_emergency_contact.dart';
 import 'patient_edit_medical_details.dart';
+import 'patient_view_past_medical_reports.dart';
 
 
 
@@ -33,7 +34,7 @@ class PatientProfileFrame extends StatelessWidget {
               // Pass the label and the class name (or null if not created yet)
               _buildMenuButton(context, 'Edit medical details', EditMedicalInfo()), 
               _buildMenuButton(context, 'Edit emergency contact', EditEmergencyInfo()),
-              _buildMenuButton(context, 'View medical reports', null),
+              _buildMenuButton(context, 'View medical reports', ViewReportsScreen()),
               _buildMenuButton(context, 'View allergic conditions', null),
               _buildMenuButton(context, 'Log out', null), // Example: LogoutPage()
             ],

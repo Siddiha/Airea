@@ -1,14 +1,9 @@
 import 'package:open_filex/open_filex.dart';
- // Corrected import
 
-// ==================== OOAD: Base Class ====================
-
-/// Abstract base class representing the common attributes of any document.
 abstract class MedicalDocument {
   final String id;
   final String fileName;
   final DateTime dateAdded;
-  // Encapsulation: Keep file path private
   final String _filePath;
 
   MedicalDocument({
@@ -20,11 +15,8 @@ abstract class MedicalDocument {
 
   String get filePath => _filePath;
 
-  /// Polymorphic method: Every document type defines how it opens itself.
   Future<OpenResult> openDocument();
 }
-
-// ==================== OOAD: Concrete Classes ====================
 
 class PdfMedicalReport extends MedicalDocument {
   PdfMedicalReport({
@@ -58,8 +50,7 @@ class ImageMedicalReport extends MedicalDocument {
   }
 }
 
-// ==================== Service (Data Storage) ====================
-
+// store the file data
 class MedicalReportService {
   // Singleton pattern to share data between screens
   static final MedicalReportService _instance = MedicalReportService._internal();
