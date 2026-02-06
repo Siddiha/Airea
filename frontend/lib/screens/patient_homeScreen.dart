@@ -355,10 +355,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-  color: Colors.grey.withValues(alpha: 0.3),  // Changed from 0.15 to 0.3
-  blurRadius: 10,  // Increased from 8 to 10
-  offset: const Offset(0, 3),  // Increased from 2 to 3
-),
+            color:
+                Colors.grey.withValues(alpha: 0.3), // Changed from 0.15 to 0.3
+            blurRadius: 10, // Increased from 8 to 10
+            offset: const Offset(0, 3), // Increased from 2 to 3
+          ),
         ],
       ),
       child: Column(
@@ -420,10 +421,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-  color: Colors.grey.withValues(alpha: 0.3),  // Changed from 0.15 to 0.3
-  blurRadius: 10,  // Increased from 8 to 10
-  offset: const Offset(0, 3),  // Increased from 2 to 3
-),
+            color:
+                Colors.grey.withValues(alpha: 0.3), // Changed from 0.15 to 0.3
+            blurRadius: 10, // Increased from 8 to 10
+            offset: const Offset(0, 3), // Increased from 2 to 3
+          ),
         ],
       ),
       child: Column(
@@ -479,10 +481,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-  color: Colors.grey.withValues(alpha: 0.3),  // Changed from 0.15 to 0.3
-  blurRadius: 10,  // Increased from 8 to 10
-  offset: const Offset(0, 3),  // Increased from 2 to 3
-),
+            color:
+                Colors.grey.withValues(alpha: 0.3), // Changed from 0.15 to 0.3
+            blurRadius: 10, // Increased from 8 to 10
+            offset: const Offset(0, 3), // Increased from 2 to 3
+          ),
         ],
       ),
       child: Row(
@@ -559,10 +562,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-  color: Colors.grey.withValues(alpha: 0.3),  // Changed from 0.15 to 0.3
-  blurRadius: 10,  // Increased from 8 to 10
-  offset: const Offset(0, 3),  // Increased from 2 to 3
-),
+            color:
+                Colors.grey.withValues(alpha: 0.3), // Changed from 0.15 to 0.3
+            blurRadius: 10, // Increased from 8 to 10
+            offset: const Offset(0, 3), // Increased from 2 to 3
+          ),
         ],
       ),
       child: Row(
@@ -607,10 +611,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-  color: Colors.grey.withValues(alpha: 0.3),  // Changed from 0.15 to 0.3
-  blurRadius: 10,  // Increased from 8 to 10
-  offset: const Offset(0, 3),  // Increased from 2 to 3
-),
+            color:
+                Colors.grey.withValues(alpha: 0.3), // Changed from 0.15 to 0.3
+            blurRadius: 10, // Increased from 8 to 10
+            offset: const Offset(0, 3), // Increased from 2 to 3
+          ),
         ],
       ),
       child: SafeArea(
