@@ -1,0 +1,270 @@
+/*
+ * AIREA Project - Wi-Fi Edition
+ * Hardware: ESP32-S3 + MPU6050
+ * Features: AI Fall Detection + Live Web Dashboard
+ */
+
+#include <Arduino.h>
+#include <Wire.h>
+#include <WiFi.h>
+#include <WebServer.h>
+
+// TensorFlow Lite Micro Libraries
+#include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
+#include "tensorflow/lite/micro/micro_interpreter.h"
+#include "tensorflow/lite/micro/system_setup.h"
+#include "tensorflow/lite/schema/schema_generated.h"
+#include "tensorflow/lite/micro/micro_error_reporter.h"
+
+// Your Model
+#include "fall_model.h"
+
+// ================= WIFI CONFIG (EDIT THIS!) =================
+const char *ssid = "Dialog 4G 437"; // <--- ENTER YOUR WIFI NAME
+const char *password = "20040920";  // <--- ENTER YOUR WIFI PASS
+
+// ================= WEB SERVER =================
+WebServer server(80);
+bool fall_detected = false;
+float last_confidence = 0.0;
+
+// HTML for the Web Dashboard
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML><html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 50px; background-color: #f4f4f4; }
+    h1 { font-size: 30px; }
+    .box { padding: 40px; border-radius: 10px; display: inline-block; box-shadow: 0px 0px 20px rgba(0,0,0,0.1); background: white; }
+    .status { font-size: 50px; font-weight: bold; margin: 20px 0; }
+    .safe { color: #2ecc71; }
+    .danger { color: #e74c3c; animation: blink 1s infinite; }
+    .btn { background-color: #3498db; color: white; padding: 15px 30px; text-decoration: none; font-size: 20px; border-radius: 5px; display: inline-block; cursor: pointer; }
+    @keyframes blink { 50% { opacity: 0; } }
+  </style>
+  <script>
+    setInterval(function() {
+      fetch("/status").then(response => response.json()).then(data => {
+        let statusDiv = document.getElementById("status");
+        let boxDiv = document.getElementById("box");
+        let confDiv = document.getElementById("conf");
+        
+        if (data.fall) {
+          statusDiv.innerHTML = "🚨 FALL DETECTED!";
+          statusDiv.className = "status danger";
+          confDiv.innerHTML = "Confidence: " + data.confidence + "%";
+        } else {
+          statusDiv.innerHTML = "✅ MONITORING";
+          statusDiv.className = "status safe";
+          confDiv.innerHTML = "System Active";
+        }
+      });
+    }, 1000); // Check every 1 second
+    
+    function resetAlarm() {
+      fetch("/reset");
+      document.getElementById("status").innerHTML = "✅ MONITORING";
+      document.getElementById("status").className = "status safe";
+    }
+  </script>
+</head>
+<body>
+  <div id="box" class="box">
+    <h1>AIREA Fall Monitor</h1>
+    <div id="status" class="status safe">Loading...</div>
+    <div id="conf" style="color: #555;">Connecting...</div>
+    <br><br>
+    <div class="btn" onclick="resetAlarm()">RESET ALARM</div>
+  </div>
+</body>
+</html>
+)rawliteral";
+
+// ================= HARDWARE CONFIG =================
+#define SDA_PIN 1
+#define SCL_PIN 2
+#define MPU_ADDR 0x68
+const int kTensorArenaSize = 60 * 1024;
+uint8_t *tensor_arena = nullptr;
+
+// Globals
+tflite::MicroInterpreter *interpreter = nullptr;
+tflite::MicroMutableOpResolver<35> *resolver = nullptr;
+tflite::ErrorReporter *error_reporter = nullptr;
+const tflite::Model *model = nullptr;
+TfLiteTensor *input = nullptr;
+TfLiteTensor *output = nullptr;
+
+// Data
+const int TIME_STEPS = 200;
+const int NUM_FEATURES = 6;
+const int INPUT_BUFFER_SIZE = TIME_STEPS * NUM_FEATURES;
+float data_buffer[INPUT_BUFFER_SIZE];
+int buffer_head = 0;
+const float FALL_CONFIDENCE = 0.85;
+
+void writeMPU(byte reg, byte data)
+{
+    Wire.beginTransmission(MPU_ADDR);
+    Wire.write(reg);
+    Wire.write(data);
+    Wire.endTransmission();
+}
+
+void setup()
+{
+    delay(2000);
+    Serial.begin(115200);
+
+    // --- 1. CONNECT WIFI ---
+    Serial.print("\nConnecting to WiFi");
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.println("\n✅ WiFi Connected!");
+    Serial.print("📡 IP Address: http://");
+    Serial.println(WiFi.localIP()); // <--- OPEN THIS IN YOUR BROWSER
+
+    // --- 2. START WEB SERVER ---
+    server.on("/", []()
+              { server.send(200, "text/html", index_html); });
+
+    server.on("/status", []()
+              {
+    String json = "{ \"fall\": " + String(fall_detected ? "true" : "false") + 
+                  ", \"confidence\": " + String(last_confidence) + " }";
+    server.send(200, "application/json", json); });
+
+    server.on("/reset", []()
+              {
+    fall_detected = false;
+    buffer_head = 0; // Clear buffer
+    server.send(200, "text/plain", "OK");
+    Serial.println("System Reset via Web."); });
+
+    server.begin();
+
+    // --- 3. INIT SENSOR ---
+    Wire.begin(SDA_PIN, SCL_PIN, 100000);
+    writeMPU(0x6B, 0);
+    delay(10);
+    writeMPU(0x1C, 0x08);
+    writeMPU(0x1B, 0x08);
+
+    // --- 4. INIT AI ---
+    static tflite::MicroErrorReporter micro_error_reporter;
+    error_reporter = &micro_error_reporter;
+
+    model = tflite::GetModel(fall_model);
+    if (model->version() != TFLITE_SCHEMA_VERSION)
+        while (1)
+            ;
+
+    tensor_arena = (uint8_t *)malloc(kTensorArenaSize + 16);
+    uintptr_t arena_addr = (uintptr_t)tensor_arena;
+    if (arena_addr % 16 != 0)
+    {
+        arena_addr += (16 - (arena_addr % 16));
+        tensor_arena = (uint8_t *)arena_addr;
+    }
+
+    resolver = new tflite::MicroMutableOpResolver<35>();
+    resolver->AddFullyConnected();
+    resolver->AddSoftmax();
+    resolver->AddRelu();
+    resolver->AddConv2D();
+    resolver->AddMaxPool2D();
+    resolver->AddReshape();
+    resolver->AddExpandDims();
+    resolver->AddConcatenation();
+    resolver->AddPack();
+    resolver->AddShape();
+    resolver->AddFill();
+    resolver->AddSplit();
+    resolver->AddStridedSlice();
+    resolver->AddQuantize();
+    resolver->AddDequantize();
+    resolver->AddLogistic();
+    resolver->AddAdd();
+    resolver->AddMul();
+    resolver->AddSub();
+    resolver->AddMean();
+
+    interpreter = new tflite::MicroInterpreter(
+        model, *resolver, tensor_arena, kTensorArenaSize, error_reporter);
+    interpreter->AllocateTensors();
+
+    input = interpreter->input(0);
+    output = interpreter->output(0);
+}
+
+void loop()
+{
+    // Keep the server happy
+    server.handleClient();
+
+    // Read Sensor
+    Wire.beginTransmission(MPU_ADDR);
+    Wire.write(0x3B);
+    Wire.endTransmission(false);
+    Wire.requestFrom((uint16_t)MPU_ADDR, (uint8_t)14, true);
+
+    if (Wire.available() == 14)
+    {
+        int16_t raw_ax = Wire.read() << 8 | Wire.read();
+        int16_t raw_ay = Wire.read() << 8 | Wire.read();
+        int16_t raw_az = Wire.read() << 8 | Wire.read();
+        Wire.read();
+        Wire.read();
+        int16_t raw_gx = Wire.read() << 8 | Wire.read();
+        int16_t raw_gy = Wire.read() << 8 | Wire.read();
+        int16_t raw_gz = Wire.read() << 8 | Wire.read();
+
+        // Normalize
+        float norm_ax = (raw_ax / 8192.0 * 9.81) / 20.0;
+        float norm_ay = (raw_ay / 8192.0 * 9.81) / 20.0;
+        float norm_az = (raw_az / 8192.0 * 9.81) / 20.0;
+        float norm_gx = (raw_gx / 65.5) / 500.0;
+        float norm_gy = (raw_gy / 65.5) / 500.0;
+        float norm_gz = (raw_gz / 65.5) / 500.0;
+
+        // Buffer
+        for (int i = 0; i < INPUT_BUFFER_SIZE - 6; i++)
+        {
+            data_buffer[i] = data_buffer[i + 6];
+        }
+        int tail = INPUT_BUFFER_SIZE - 6;
+        data_buffer[tail + 0] = norm_ax;
+        data_buffer[tail + 1] = norm_ay;
+        data_buffer[tail + 2] = norm_az;
+        data_buffer[tail + 3] = norm_gx;
+        data_buffer[tail + 4] = norm_gy;
+        data_buffer[tail + 5] = norm_gz;
+
+        buffer_head++;
+
+        // Only run inference if we are NOT currently in an alarm state
+        // (This prevents the alarm from resetting itself immediately after a fall)
+        if (buffer_head >= TIME_STEPS && !fall_detected)
+        {
+            for (int i = 0; i < INPUT_BUFFER_SIZE; i++)
+                input->data.f[i] = data_buffer[i];
+
+            if (interpreter->Invoke() == kTfLiteOk)
+            {
+                float fall_prob = output->data.f[0];
+                if (fall_prob > FALL_CONFIDENCE)
+                {
+                    fall_detected = true; // Trigger Alarm
+                    last_confidence = fall_prob * 100.0;
+                    Serial.println("🚨 FALL DETECTED (Web Updated) 🚨");
+                }
+            }
+        }
+    }
+    delay(5); // Slightly faster to accommodate wifi overhead
+}
