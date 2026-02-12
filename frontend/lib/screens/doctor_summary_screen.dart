@@ -7,7 +7,7 @@ class DoctorSummaryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), // Light grey background
+      backgroundColor: const Color(0xFFF8FAFC), 
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
@@ -25,15 +25,12 @@ class DoctorSummaryScreen extends StatelessWidget {
               ),
               const SizedBox(height: 40),
 
-              // --- Buttons List ---
-              // We use a Column to stack the buttons
               Column(
                 children: [
                   _buildSummaryButton(
                     label: "Daily summary",
                     onTap: () {
                       // Navigate to Daily Summary Screen
-                      // Navigator.push(context, MaterialPageRoute(builder: (context) => DailySummaryScreen()));
                     },
                   ),
                   const SizedBox(height: 20),
@@ -67,7 +64,7 @@ class DoctorSummaryScreen extends StatelessWidget {
         ),
       ),
 
-      // --- Bottom Navigation Bar (Modified) ---
+      // --- Bottom Navigation Bar  ---
       bottomNavigationBar: Container(
         height: 80,
         decoration: BoxDecoration(
@@ -89,14 +86,13 @@ class DoctorSummaryScreen extends StatelessWidget {
               label: "Home",
               isSelected: false,
               onTap: () {
-                // Navigate to Doctor Home
                 Navigator.pop(context);
               },
             ),
 
             // 2. Trends & Summary Button (Active)
             _buildNavItem(
-              icon: Icons.menu_book_outlined, // Icon matching the screenshot
+              icon: Icons.menu_book_outlined, 
               label: "Trends &\nsummary",
               isSelected: true, // This is the current screen
               onTap: () {},
@@ -107,7 +103,7 @@ class DoctorSummaryScreen extends StatelessWidget {
     );
   }
 
-  // --- Helper Widget for the Teal Buttons ---
+  
   Widget _buildSummaryButton({
     required String label,
     required VoidCallback onTap,
@@ -115,14 +111,14 @@ class DoctorSummaryScreen extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: double.infinity, // Full width
+        width: double.infinity, 
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
-          color: const Color(0xFF5E9E94), // The Teal color from your screenshots
+          color: const Color(0xFF5E9E94), 
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2), // Drop shadow
+              color: Colors.black.withOpacity(0.2), 
               blurRadius: 6,
               offset: const Offset(0, 4),
             ),
@@ -141,7 +137,6 @@ class DoctorSummaryScreen extends StatelessWidget {
     );
   }
 
-  // --- Helper Widget for Bottom Navigation Items ---
   Widget _buildNavItem({
     required IconData icon,
     required String label,
@@ -177,7 +172,7 @@ class DoctorSummaryScreen extends StatelessWidget {
 // --- TEMPORARY MAIN FUNCTION FOR TESTING ---
 void main() {
   runApp(const MaterialApp(
-    home: DoctorSummaryScreen(), // Launches your screen directly
+    home: DoctorSummaryScreen(), 
     debugShowCheckedModeBanner: false,
   ));
 }
