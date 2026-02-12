@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
+import 'doctor_daily_records_calender.dart';
 
 class DoctorSummaryScreen extends StatelessWidget {
   const DoctorSummaryScreen({super.key});
@@ -30,6 +31,10 @@ class DoctorSummaryScreen extends StatelessWidget {
                   _buildSummaryButton(
                     label: "Daily summary",
                     onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const DoctorDailyRecordsCalendar())
+                      );
                       // Navigate to Daily Summary Screen
                     },
                   ),
