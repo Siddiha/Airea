@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
+import 'doctor_daily_summary_detail.dart'; 
 
 class DoctorDailyRecordsCalendar extends StatefulWidget {
   const DoctorDailyRecordsCalendar({super.key});
@@ -124,7 +126,17 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
                                 final isSelected = day == _selectedDay;
                                 
                                 return GestureDetector(
-                                  onTap: () => setState(() => _selectedDay = day),
+                                  onTap: () {
+                                    setState((){
+                                      _selectedDay = day;
+                                    });
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => DoctorDailySummaryDetail(day: day),
+                                      ),
+                                      );
+                              },
                                   child: Container(
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
