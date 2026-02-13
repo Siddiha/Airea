@@ -46,7 +46,7 @@ class DoctorSummaryScreen extends StatelessWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const DoctorDailyRecordsCalendar()
+                        MaterialPageRoute(builder: (context) => const DoctorWeeklyRecordsCalendar()
                         ),
                       );
                       // Navigate to Weekly Summary Screen
