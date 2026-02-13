@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
-class DoctorDailyRecordsCalendar extends StatefulWidget {
-  const DoctorDailyRecordsCalendar({super.key});
+class DoctorWeeklyRecordsCalendar extends StatefulWidget {
+  const DoctorWeeklyRecordsCalendar({super.key});
 
   @override
-  State<DoctorDailyRecordsCalendar> createState() => _DoctorDailyRecordsCalendarState();
+  State<DoctorWeeklyRecordsCalendar> createState() => _DoctorWeeklyRecordsCalendarState();
 }
 
-class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar> {
-  int _selectedDay = 20; 
+class _DoctorWeeklyRecordsCalendarState extends State<DoctorWeeklyRecordsCalendar> {
+  final int _startDay = 15;
+  final int _endDay = 20;
 
   @override
   Widget build(BuildContext context) {
@@ -17,14 +18,14 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
       body: SafeArea(
         child: Column(
           children: [
-            // --- Top Header ---
+            // --- 1. Top Header ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Daily Summary',
+                    'Weekly Summary',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -39,6 +40,7 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
               ),
             ),
 
+            // --- 2. Scrollable Content ---
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -47,7 +49,8 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
                     children: [
                       const SizedBox(height: 20),
                       const Text(
-                        "Select a date form the calendar",
+                        "Select a date range from the calendar",
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
@@ -56,10 +59,10 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
                       ),
                       const SizedBox(height: 20),
             
-                      // --- CALENDAR CARD  ---
+                      // --- CALENDAR CARD ---
                       Container(
                         width: double.infinity,
-                        constraints: const BoxConstraints(maxWidth: 400), 
+                        constraints: const BoxConstraints(maxWidth: 400),
                         padding: const EdgeInsets.fromLTRB(16, 20, 16, 30),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF2FBF9), 
@@ -75,16 +78,16 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Icon(Icons.arrow_back, color: Colors.grey, size: 26),
+                                  Icon(Icons.arrow_back, color: Colors.black87, size: 26),
                                   Text(
                                     "November",
                                     style: TextStyle(
                                       fontSize: 22,
                                       fontWeight: FontWeight.w500,
-                                      color: Colors.grey,
+                                      color: Colors.black87,
                                     ),
                                   ),
-                                  Icon(Icons.arrow_forward, color: Colors.grey, size: 26),
+                                  Icon(Icons.arrow_forward, color: Colors.black87, size: 26),
                                 ],
                               ),
                             ),
@@ -98,7 +101,7 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
                                   .map((day) => Text(
                                         day,
                                         style: const TextStyle(
-                                          color: Colors.grey, 
+                                          color: Colors.black87, 
                                           fontWeight: FontWeight.bold,
                                           fontSize: 14
                                         ),
@@ -117,27 +120,30 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
                                 crossAxisCount: 7,
                                 childAspectRatio: 1.3, 
                                 mainAxisSpacing: 8,
-                                crossAxisSpacing: 8,
+                                crossAxisSpacing: 0, 
                               ),
                               itemBuilder: (context, index) {
                                 final day = index + 1;
-                                final isSelected = day == _selectedDay;
                                 
-                                return GestureDetector(
-                                  onTap: () => setState(() => _selectedDay = day),
-                                  child: Container(
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: isSelected ? const Color(0xFFA8E6CF) : Colors.transparent,
-                                      shape: BoxShape.circle,
+                                // Logic for the green range bar
+                                final bool isInRange = day >= _startDay && day <= _endDay;
+                                
+                                return Container(
+                                  alignment: Alignment.center,
+                                  margin: const EdgeInsets.symmetric(vertical: 4), 
+                                  decoration: BoxDecoration(
+                                    color: isInRange ? const Color(0xFFA8E6CF).withOpacity(0.6) : Colors.transparent,
+                                    borderRadius: BorderRadius.horizontal(
+                                      left: day == _startDay ? const Radius.circular(8) : Radius.zero,
+                                      right: day == _endDay ? const Radius.circular(8) : Radius.zero,
                                     ),
-                                    child: Text(
-                                      "$day",
-                                      style: TextStyle(
-                                        color: isSelected ? Colors.black : Colors.grey,
-                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                        fontSize: 16,
-                                      ),
+                                  ),
+                                  child: Text(
+                                    "$day",
+                                    style: TextStyle(
+                                      color: isInRange ? Colors.black : Colors.grey,
+                                      fontWeight: isInRange ? FontWeight.bold : FontWeight.normal,
+                                      fontSize: 16,
                                     ),
                                   ),
                                 );
@@ -146,7 +152,7 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
                           ],
                         ),
                       ),
-                      const SizedBox(height: 30), 
+                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
