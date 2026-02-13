@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'doctor_weekly_summary_detail.dart';
 
 class DoctorWeeklyRecordsCalendar extends StatefulWidget {
   const DoctorWeeklyRecordsCalendar({super.key});
@@ -8,8 +9,32 @@ class DoctorWeeklyRecordsCalendar extends StatefulWidget {
 }
 
 class _DoctorWeeklyRecordsCalendarState extends State<DoctorWeeklyRecordsCalendar> {
-  final int _startDay = 15;
-  final int _endDay = 20;
+  int _startDay = 15;
+  int _endDay = 20;
+
+  void _selectWeek(int day) {
+    setState(() {
+      int weekStartIndex = (day - 1) ~/ 7; 
+      
+      _startDay = (weekStartIndex * 7) + 1;
+      _endDay = _startDay + 6;
+
+      if (_endDay > 30) _endDay = 30;
+    });
+  }
+
+  String _getDateRangeString() {
+    String suffix(int day) {
+      if (day >= 11 && day <= 13) return 'th';
+      switch (day % 10) {
+        case 1: return 'st';
+        case 2: return 'nd';
+        case 3: return 'rd';
+        default: return 'th';
+      }
+    }
+    return "${_startDay}${suffix(_startDay)} - ${_endDay}${suffix(_endDay)} November, 2025";
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -127,8 +152,21 @@ class _DoctorWeeklyRecordsCalendarState extends State<DoctorWeeklyRecordsCalenda
                                 
                                 // Logic for the green range bar
                                 final bool isInRange = day >= _startDay && day <= _endDay;
+
+                                return GestureDetector(
+                                  onTap: (){
+                                    _selectWeek(day);
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => DoctorWeeklySummaryDetail(
+                                          dateText: _getDateRangeString(),
+                                        ),
+                                        ),
+                                      );
+                                  },
                                 
-                                return Container(
+                                child: Container(
                                   alignment: Alignment.center,
                                   margin: const EdgeInsets.symmetric(vertical: 4), 
                                   decoration: BoxDecoration(
@@ -146,6 +184,7 @@ class _DoctorWeeklyRecordsCalendarState extends State<DoctorWeeklyRecordsCalenda
                                       fontSize: 16,
                                     ),
                                   ),
+                                ),
                                 );
                               },
                             ),
