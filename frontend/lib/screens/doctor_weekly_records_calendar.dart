@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../config/app_theme.dart';
 
 class DoctorWeeklyRecordsCalendar extends StatefulWidget {
   const DoctorWeeklyRecordsCalendar({super.key});
@@ -9,14 +8,13 @@ class DoctorWeeklyRecordsCalendar extends StatefulWidget {
 }
 
 class _DoctorWeeklyRecordsCalendarState extends State<DoctorWeeklyRecordsCalendar> {
-  // Hardcoded range to match your screenshot (15th to 20th)
   final int _startDay = 15;
   final int _endDay = 20;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), // Light grey background
+      backgroundColor: const Color(0xFFF8FAFC), 
       body: SafeArea(
         child: Column(
           children: [
@@ -67,7 +65,7 @@ class _DoctorWeeklyRecordsCalendarState extends State<DoctorWeeklyRecordsCalenda
                         constraints: const BoxConstraints(maxWidth: 400),
                         padding: const EdgeInsets.fromLTRB(16, 20, 16, 30),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF2FBF9), // Light Mint
+                          color: const Color(0xFFF2FBF9), 
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(color: Colors.grey.withOpacity(0.2)),
                         ),
@@ -120,9 +118,9 @@ class _DoctorWeeklyRecordsCalendarState extends State<DoctorWeeklyRecordsCalenda
                               itemCount: 30,
                               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 7,
-                                childAspectRatio: 1.3, // Keeps cells flattened
+                                childAspectRatio: 1.3, 
                                 mainAxisSpacing: 8,
-                                crossAxisSpacing: 0, // Removed spacing to make the bar look continuous
+                                crossAxisSpacing: 0, 
                               ),
                               itemBuilder: (context, index) {
                                 final day = index + 1;
@@ -132,11 +130,9 @@ class _DoctorWeeklyRecordsCalendarState extends State<DoctorWeeklyRecordsCalenda
                                 
                                 return Container(
                                   alignment: Alignment.center,
-                                  margin: const EdgeInsets.symmetric(vertical: 4), // Small vertical gap
+                                  margin: const EdgeInsets.symmetric(vertical: 4), 
                                   decoration: BoxDecoration(
-                                    // The green highlight color
                                     color: isInRange ? const Color(0xFFA8E6CF).withOpacity(0.6) : Colors.transparent,
-                                    // Optional: Round the edges of the start and end of the range
                                     borderRadius: BorderRadius.horizontal(
                                       left: day == _startDay ? const Radius.circular(8) : Radius.zero,
                                       right: day == _endDay ? const Radius.circular(8) : Radius.zero,
