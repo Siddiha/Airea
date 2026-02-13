@@ -135,8 +135,8 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
                                     MaterialPageRoute(
                                       builder: (context) => DoctorDailySummaryDetail(day: day),
                                       ),
-                                      );
-                              },
+                                    );
+                                 },
                                   child: Container(
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
