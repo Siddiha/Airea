@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:table_calendar/table_calendar.dart';
 import 'doctor_weekly_summary_detail.dart';
 
 class DoctorWeeklyRecordsCalendar extends StatefulWidget {
@@ -9,21 +10,36 @@ class DoctorWeeklyRecordsCalendar extends StatefulWidget {
 }
 
 class _DoctorWeeklyRecordsCalendarState extends State<DoctorWeeklyRecordsCalendar> {
-  int _startDay = 15;
-  int _endDay = 20;
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _rangeStart;
+  DateTime? _rangeEnd;
 
-  void _selectWeek(int day) {
+  
+  void _selectWeek(DateTime selectedDate) {
+    final int daysToSubtract = selectedDate.weekday - 1;
+    final DateTime startOfWeek = selectedDate.subtract(Duration(days: daysToSubtract));
+    final DateTime endOfWeek = startOfWeek.add(const Duration(days: 6));
+
     setState(() {
-      int weekStartIndex = (day - 1) ~/ 7; 
-      
-      _startDay = (weekStartIndex * 7) + 1;
-      _endDay = _startDay + 6;
-
-      if (_endDay > 30) _endDay = 30;
+      _focusedDay = selectedDate;
+      _rangeStart = startOfWeek;
+      _rangeEnd = endOfWeek;
     });
+
+    // Navigate to detail screen with formatted string
+    String rangeString = _getDateRangeString(startOfWeek, endOfWeek);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DoctorWeeklySummaryDetail(
+          dateText: rangeString,
+        ),
+      ),
+    );
   }
 
-  String _getDateRangeString() {
+  String _getDateRangeString(DateTime start, DateTime end) {
     String suffix(int day) {
       if (day >= 11 && day <= 13) return 'th';
       switch (day % 10) {
@@ -33,13 +49,20 @@ class _DoctorWeeklyRecordsCalendarState extends State<DoctorWeeklyRecordsCalenda
         default: return 'th';
       }
     }
-    return "${_startDay}${suffix(_startDay)} - ${_endDay}${suffix(_endDay)} November, 2025";
+    
+    // List of month names
+    const List<String> months = [
+      "", "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+
+    return "${start.day}${suffix(start.day)} - ${end.day}${suffix(end.day)} ${months[start.month]}, ${start.year}";
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), 
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: Column(
           children: [
@@ -83,112 +106,83 @@ class _DoctorWeeklyRecordsCalendarState extends State<DoctorWeeklyRecordsCalenda
                         ),
                       ),
                       const SizedBox(height: 20),
-            
+
                       // --- CALENDAR CARD ---
                       Container(
                         width: double.infinity,
                         constraints: const BoxConstraints(maxWidth: 400),
-                        padding: const EdgeInsets.fromLTRB(16, 20, 16, 30),
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF2FBF9), 
+                          color: const Color(0xFFF2FBF9),
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(color: Colors.grey.withOpacity(0.2)),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Month Header
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 10.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Icon(Icons.arrow_back, color: Colors.black87, size: 26),
-                                  Text(
-                                    "November",
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  Icon(Icons.arrow_forward, color: Colors.black87, size: 26),
-                                ],
-                              ),
-                            ),
-                            
-                            const SizedBox(height: 20),
-                            
-                            // Days of Week
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: ["M", "T", "W", "T", "F", "S", "S"]
-                                  .map((day) => Text(
-                                        day,
-                                        style: const TextStyle(
-                                          color: Colors.black87, 
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14
-                                        ),
-                                      ))
-                                  .toList(),
-                            ),
-                            
-                            const SizedBox(height: 10),
-            
-                            // Date Grid
-                            GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: 30,
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 7,
-                                childAspectRatio: 1.3, 
-                                mainAxisSpacing: 8,
-                                crossAxisSpacing: 0, 
-                              ),
-                              itemBuilder: (context, index) {
-                                final day = index + 1;
-                                
-                                // Logic for the green range bar
-                                final bool isInRange = day >= _startDay && day <= _endDay;
+                        child: TableCalendar(
+                          firstDay: DateTime.utc(2020, 1, 1),
+                          lastDay: DateTime.utc(2030, 12, 31),
+                          focusedDay: _focusedDay,
+                          
+                          // Range Configuration
+                          rangeStartDay: _rangeStart,
+                          rangeEndDay: _rangeEnd,
+                          rangeSelectionMode: RangeSelectionMode.toggledOn,
+                          
+                          // Handle Tap
+                          onDaySelected: (selectedDay, focusedDay) {
+                            _selectWeek(selectedDay);
+                          },
+                          onPageChanged: (focusedDay) {
+                            _focusedDay = focusedDay;
+                          },
 
-                                return GestureDetector(
-                                  onTap: (){
-                                    _selectWeek(day);
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => DoctorWeeklySummaryDetail(
-                                          dateText: _getDateRangeString(),
-                                        ),
-                                        ),
-                                      );
-                                  },
-                                
-                                child: Container(
-                                  alignment: Alignment.center,
-                                  margin: const EdgeInsets.symmetric(vertical: 4), 
-                                  decoration: BoxDecoration(
-                                    color: isInRange ? const Color(0xFFA8E6CF).withOpacity(0.6) : Colors.transparent,
-                                    borderRadius: BorderRadius.horizontal(
-                                      left: day == _startDay ? const Radius.circular(8) : Radius.zero,
-                                      right: day == _endDay ? const Radius.circular(8) : Radius.zero,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    "$day",
-                                    style: TextStyle(
-                                      color: isInRange ? Colors.black : Colors.grey,
-                                      fontWeight: isInRange ? FontWeight.bold : FontWeight.normal,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ),
-                                );
-                              },
+                          // Styles
+                          headerStyle: const HeaderStyle(
+                            formatButtonVisible: false,
+                            titleCentered: true,
+                            titleTextStyle: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
                             ),
-                          ],
+                            leftChevronIcon: Icon(Icons.arrow_back, color: Colors.black87, size: 26),
+                            rightChevronIcon: Icon(Icons.arrow_forward, color: Colors.black87, size: 26),
+                          ),
+                          
+                          calendarStyle: const CalendarStyle(
+                            rangeHighlightColor: Color(0xFFA8E6CF), 
+                            
+                            rangeStartDecoration: BoxDecoration(
+                              color: Color(0xFFA8E6CF),
+                              shape: BoxShape.rectangle,
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(8),
+                                bottomLeft: Radius.circular(8),
+                              ),
+                            ),
+                            rangeEndDecoration: BoxDecoration(
+                              color: Color(0xFFA8E6CF),
+                              shape: BoxShape.rectangle,
+                              borderRadius: BorderRadius.only(
+                                topRight: Radius.circular(8),
+                                bottomRight: Radius.circular(8),
+                              ),
+                            ),
+                            
+                            rangeStartTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                            rangeEndTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                            withinRangeTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                            
+                            todayDecoration: BoxDecoration(
+                              color: Color(0xFFE0F2F1),
+                              shape: BoxShape.circle,
+                            ),
+                            todayTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                          ),
+                          
+                          daysOfWeekStyle: const DaysOfWeekStyle(
+                            weekdayStyle: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+                            weekendStyle: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 30),
@@ -200,7 +194,7 @@ class _DoctorWeeklyRecordsCalendarState extends State<DoctorWeeklyRecordsCalenda
           ],
         ),
       ),
-      
+
       // --- Bottom Navigation Bar ---
       bottomNavigationBar: Container(
         height: 80,
@@ -233,13 +227,13 @@ class _DoctorWeeklyRecordsCalendarState extends State<DoctorWeeklyRecordsCalenda
         Icon(icon, color: isSelected ? Colors.black : Colors.grey, size: 28),
         const SizedBox(height: 4),
         Text(
-          label, 
-          textAlign: TextAlign.center, 
+          label,
+          textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 10, 
+            fontSize: 10,
             color: isSelected ? Colors.black : Colors.grey,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          )
+          ),
         ),
       ],
     );
