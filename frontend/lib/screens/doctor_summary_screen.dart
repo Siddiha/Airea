@@ -3,6 +3,7 @@ import '../config/app_theme.dart';
 import 'doctor_daily_records_calendar.dart';
 import 'doctor_weekly_records_calendar.dart';
 import 'doctor_select_patient_report.dart';
+import 'doctor_allergic_conditions_screen.dart';
 
 class DoctorSummaryScreen extends StatelessWidget {
   const DoctorSummaryScreen({super.key});
@@ -72,6 +73,12 @@ class DoctorSummaryScreen extends StatelessWidget {
                   _buildSummaryButton(
                     label: "Allergic conditions",
                     onTap: () {
+                      Navigator.push(
+                        context, 
+                        MaterialPageRoute(
+                          builder: (context) => const DoctorAllergicConditionsScreen(),
+                          ),
+                        );
                       // Navigate to Allergies Screen
                     },
                   ),
