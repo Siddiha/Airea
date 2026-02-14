@@ -43,11 +43,13 @@ class DoctorSelectPatientReport extends StatelessWidget {
                 padding: const EdgeInsets.all(24.0),
                 children: [
                   _buildReportCard(
+                    context: context,
                     fileName: "Report 1",
                     dateAdded: "12/12/2025",
                   ),
                   const SizedBox(height: 16),
                   _buildReportCard(
+                    context: context,
                     fileName: "Report 2",
                     dateAdded: "12/12/2025",
                   ),
@@ -95,8 +97,19 @@ class DoctorSelectPatientReport extends StatelessWidget {
     );
   }
 
-  Widget _buildReportCard({required String fileName, required String dateAdded}) {
-    return Container(
+  Widget _buildReportCard({required BuildContext context, required String fileName, required String dateAdded}) {
+    return GestureDetector(
+      onTap: (){
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DoctorPatientReportDetail(
+              fileName: fileName,
+            ),
+          ),
+        );
+      },
+    child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFF2FBF9), 
@@ -165,6 +178,7 @@ class DoctorSelectPatientReport extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 
