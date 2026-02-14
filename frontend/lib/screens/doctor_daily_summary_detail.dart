@@ -2,12 +2,25 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 
 class DoctorDailySummaryDetail extends StatelessWidget {
-  final int day; 
+  final DateTime date; 
 
-  const DoctorDailySummaryDetail({super.key, required this.day});
+  const DoctorDailySummaryDetail({super.key, required this.date});
 
   @override
   Widget build(BuildContext context) {
+    final List<String> monthNames = [
+      "", "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+
+    final String month = monthNames[date.month];
+    
+    
+    String suffix = "th";
+    if (date.day % 10 == 1 && date.day != 11) suffix = "st";
+    else if (date.day % 10 == 2 && date.day != 12) suffix = "nd";
+    else if (date.day % 10 == 3 && date.day != 13) suffix = "rd";
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), 
       body: SafeArea(
@@ -23,7 +36,7 @@ class DoctorDailySummaryDetail extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Daily Summary for\n${day}th November,\n2025', 
+                      'Daily Summary for\n${date.day}$suffix $month,\n${date.year}', 
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -47,7 +60,7 @@ class DoctorDailySummaryDetail extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF2FBF9), // Light Mint background
+                    color: const Color(0xFFF2FBF9), 
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: Colors.grey.withOpacity(0.3)),
                   ),
@@ -65,7 +78,7 @@ class DoctorDailySummaryDetail extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 20), // Spacing before bottom nav
+              const SizedBox(height: 20),
             ],
           ),
         ),
