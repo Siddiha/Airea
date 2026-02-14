@@ -58,6 +58,12 @@ class DoctorSummaryScreen extends StatelessWidget {
                   _buildSummaryButton(
                     label: "View past medical reports",
                     onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const DoctorSelectPatientReport(),
+                          ),
+                        );
                       // Navigate to Reports Screen
                     },
                   ),
