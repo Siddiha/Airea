@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'doctor_patient_report_detail.dart';
 
 class DoctorSelectPatientReport extends StatelessWidget {
   const DoctorSelectPatientReport({super.key});
