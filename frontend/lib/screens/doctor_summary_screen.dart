@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'doctor_daily_records_calendar.dart';
 import 'doctor_weekly_records_calendar.dart';
+import 'doctor_select_patient_report.dart';
 
 class DoctorSummaryScreen extends StatelessWidget {
   const DoctorSummaryScreen({super.key});
