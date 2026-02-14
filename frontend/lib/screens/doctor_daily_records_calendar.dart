@@ -11,14 +11,13 @@ class DoctorDailyRecordsCalendar extends StatefulWidget {
 }
 
 class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar> {
-  // 1. Add these variables to track the date
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
   @override
   void initState() {
     super.initState();
-    _selectedDay = _focusedDay; // Default selection is today
+    _selectedDay = _focusedDay; // Default selection 
   }
 
   @override
@@ -67,7 +66,7 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
                       ),
                       const SizedBox(height: 20),
 
-                      // --- CALENDAR CARD (Replaced Manual Grid with TableCalendar) ---
+                      // --- CALENDAR CARD ---
                       Container(
                         width: double.infinity,
                         constraints: const BoxConstraints(maxWidth: 400),
@@ -96,7 +95,7 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
                               context,
                               MaterialPageRoute(
                                 builder: (context) => DoctorDailySummaryDetail(
-                                  day: selectedDay.day, 
+                                  date: selectedDay, 
                                 ),
                               ),
                             );
@@ -107,20 +106,19 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
                             _focusedDay = focusedDay;
                           },
 
-                          // 5. Styles to match your design
                           headerStyle: const HeaderStyle(
-                            formatButtonVisible: false, // Hides the "2 weeks" toggle
+                            formatButtonVisible: false, 
                             titleCentered: true,
                             titleTextStyle: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w500,
-                              color: Colors.grey, // Matches your "November" color
+                              color: Colors.grey, 
                             ),
                             leftChevronIcon: Icon(Icons.arrow_back, color: Colors.grey, size: 26),
                             rightChevronIcon: Icon(Icons.arrow_forward, color: Colors.grey, size: 26),
                           ),
                           calendarStyle: const CalendarStyle(
-                            // Selected day style (Green Circle)
+                            // Selected day 
                             selectedDecoration: BoxDecoration(
                               color: Color(0xFFA8E6CF),
                               shape: BoxShape.circle,
@@ -131,7 +129,7 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
                             ),
                             // Today style
                             todayDecoration: BoxDecoration(
-                              color: Color(0xFFE0F2F1), // Lighter green for today
+                              color: Color(0xFFE0F2F1), 
                               shape: BoxShape.circle,
                             ),
                             todayTextStyle: TextStyle(
