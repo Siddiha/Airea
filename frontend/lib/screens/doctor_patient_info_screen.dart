@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'option_connect_patient.dart';
 
 class DoctorPatientInfoScreen extends StatelessWidget {
   const DoctorPatientInfoScreen({super.key});
@@ -40,34 +41,44 @@ class DoctorPatientInfoScreen extends StatelessWidget {
                   const SizedBox(height: 25),
 
                   // Grey Box
-                  Container(
-                    width: 280,
-                    height: 220,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDDE3E4),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Colors.green,
-                          child: Icon(
-                            Icons.add,
-                            size: 45,
-                            color: Colors.white,
+                GestureDetector(
+                            onTap: () {
+                       Navigator.push(
+                         context,
+                        MaterialPageRoute(
+                        builder: (context) => const OptionConnectPatient(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                           width: 280,
+                          height: 220,
+                         decoration: BoxDecoration(
+                            color: const Color(0xFFDDE3E4),
+                             borderRadius: BorderRadius.circular(16),
                           ),
-                        ),
-                        SizedBox(height: 20),
-                        Text(
-                          "Press to\nconnect with\n a patient",
+                           child: const Column(
+                       mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                           CircleAvatar(
+                         radius: 40,
+                       backgroundColor: Colors.green,
+                            child: Icon(
+                          Icons.add,
+                             size: 45,
+                            color: Colors.white,
+                            ),
+                          ),
+                           SizedBox(height: 20),
+                          Text(
+                                 "Press to\nconnect with\n a patient",
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
+                              style: TextStyle(fontSize: 14),
+                      ),
+                  ],
+                   ),
+                 ),
+                ),
                 ],
               ),
             ),
