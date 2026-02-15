@@ -15,7 +15,7 @@ class DoctorPatientInfoScreen extends StatelessWidget {
               top: 40,
               left: 20,
               child: Text(
-                "Registered Patient’s",
+                "Registered Patient",
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
@@ -25,42 +25,50 @@ class DoctorPatientInfoScreen extends StatelessWidget {
 
             // Center Content
             Center(
-              child: Container(
-                width: 280,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 30),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDDE3E4),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Text(
-                      "No any patients\nconnected !",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                      ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  //text outside box 
+                  const Text(
+                    "No any patients\nconnected !",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
                     ),
-                    SizedBox(height: 25),
-                    CircleAvatar(
-                      radius: 35,
-                      backgroundColor: Colors.green,
-                      child: Icon(
-                        Icons.add,
-                        size: 40,
-                        color: Colors.white,
-                      ),
+                  ),
+
+                  const SizedBox(height: 25),
+
+                  // Grey Box
+                  Container(
+                    width: 280,
+                    height: 220,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDDE3E4),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    SizedBox(height: 15),
-                    Text(
-                      "Press to\nconnect with\n a patient",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14),
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundColor: Colors.green,
+                          child: Icon(
+                            Icons.add,
+                            size: 45,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        Text(
+                          "Press to\nconnect with\n a patient",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 14),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
 
