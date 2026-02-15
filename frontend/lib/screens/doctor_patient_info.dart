@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'doctor_patient_info_screen.dart'; // import doctor_patient_info_screen
 
-class DoctorPatientInfoScreen extends StatelessWidget {
-  const DoctorPatientInfoScreen({super.key});
+class DoctorPatientInfo extends StatelessWidget {
+  const DoctorPatientInfo({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -55,29 +56,40 @@ class DoctorPatientInfoScreen extends StatelessWidget {
 
                   const SizedBox(height: 120),
 
-                  // Connect button
-                  Container(
-                    width: 280,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDDE3E4),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      children: const [
-                        CircleAvatar(
-                          backgroundColor: Colors.green,
-                          child: Icon(Icons.add, color: Colors.white),
+                  // Connect Button
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const DoctorPatientInfoScreen(),
                         ),
-                        SizedBox(width: 15),
-                        Expanded(
-                          child: Text(
-                            "Press to connect\nwith a patient",
-                            style: TextStyle(fontSize: 14),
+                      );
+                    },
+                    child: Container(
+                      width: 280,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDDE3E4),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        children: const [
+                          CircleAvatar(
+                            backgroundColor: Colors.green,
+                            child: Icon(Icons.add, color: Colors.white),
                           ),
-                        )
-                      ],
+                          SizedBox(width: 15),
+                          Expanded(
+                            child: Text(
+                              "Press to connect\nwith a patient",
+                              style: TextStyle(fontSize: 14),
+                            ),
+                          )
+                        ],
+                      ),
                     ),
                   ),
                 ],

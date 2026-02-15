@@ -72,7 +72,7 @@ class DoctorHomeScreen extends StatelessWidget {
                           Navigator.push(
                            context,
                         MaterialPageRoute(
-                       builder: (context) => const DoctorPatientInfoScreen(),
+                       builder: (context) => const DoctorPatientInfo(),
                      ),
                  );
               },
