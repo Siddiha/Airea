@@ -10,19 +10,7 @@ class ConnectWithPatient extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            // Title
-            const Positioned(
-              top: 40,
-              left: 20,
-              child: Text(
-                "Connect with a patient",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-
+        
             // Main Content
             Center(
               child: Column(
@@ -31,36 +19,40 @@ class ConnectWithPatient extends StatelessWidget {
                   const Text(
                     "Please enter patient’s\nid",
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 18),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      ),
                   ),
 
                   const SizedBox(height: 20),
 
                   // Text Field
-                  Container(
-                    width: 250,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const TextField(
-                      decoration: InputDecoration(
-                        hintText: "type",
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 12,
+                 SizedBox(
+                        width: 250,
+                          child: TextField(
+                         decoration: InputDecoration(
+                             hintText: "type",
+                              filled: true,
+                          fillColor: Colors.grey[300],
+                         contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                            vertical: 14,
+                         ),
+                           border: OutlineInputBorder(
+                             borderRadius: BorderRadius.circular(25), // 👈 curve here
+                            borderSide: BorderSide.none,
+                      ),
                         ),
                       ),
-                    ),
-                  ),
+                   ),
 
                   const SizedBox(height: 20),
 
                   // Confirm Button
                   SizedBox(
-                    width: 120,
-                    height: 40,
+                    width: 150,
+                    height: 50,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF5DA092),
@@ -80,14 +72,18 @@ class ConnectWithPatient extends StatelessWidget {
                   const Text(
                     "Please contact with\ndoctor to get his/her id",
                     textAlign: TextAlign.center,
+                     style: TextStyle(
+                           fontSize: 18,
+                           fontWeight: FontWeight.bold,
+                   ),
                   ),
 
                   const SizedBox(height: 20),
 
                   // Guidance Button
                   SizedBox(
-                    width: 220,
-                    height: 45,
+                    width: 280,
+                    height: 50,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF5DA092),
@@ -98,8 +94,11 @@ class ConnectWithPatient extends StatelessWidget {
                       ),
                       onPressed: () {},
                       child: const Text(
-                        "Guidance to connect\nwith patient",
+                        "Guidance to connect \n with patient",
                         textAlign: TextAlign.center,
+                        style: TextStyle(
+                               fontSize: 14,   
+                        ),
                       ),
                     ),
                   ),
