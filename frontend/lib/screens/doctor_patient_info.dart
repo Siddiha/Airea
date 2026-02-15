@@ -15,7 +15,7 @@ class DoctorPatientInfoScreen extends StatelessWidget {
               top: 40,
               left: 20,
               child: Text(
-                "Registered Patient’s",
+                "Registered Patient",
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
