@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'guidance_to_connect_patient.dart';
+import 'patient_connection_message.dart';
 
 class ConnectWithPatient extends StatelessWidget {
   const ConnectWithPatient({super.key});
@@ -61,7 +63,13 @@ class ConnectWithPatient extends StatelessWidget {
                         ),
                       ),
                       onPressed: () {
-                        // Add confirm logic here
+                        Navigator.push(
+                                   context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                  const PatientConnectionMessage(),
+                                ),
+                         );
                       },
                       child: const Text("Confirm"),
                     ),
@@ -92,7 +100,14 @@ class ConnectWithPatient extends StatelessWidget {
                         ),
                         elevation: 5,
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                               context,
+                           MaterialPageRoute(
+                        builder: (context) => const GuidanceToConnectPatient(),
+                       ),
+  );
+                      },
                       child: const Text(
                         "Guidance to connect \n with patient",
                         textAlign: TextAlign.center,
