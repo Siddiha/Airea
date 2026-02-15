@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'guidance_to_connect_patient.dart';
 
 class ConnectWithPatient extends StatelessWidget {
   const ConnectWithPatient({super.key});
@@ -92,7 +93,14 @@ class ConnectWithPatient extends StatelessWidget {
                         ),
                         elevation: 5,
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                               context,
+                           MaterialPageRoute(
+                        builder: (context) => const GuidanceToConnectPatient(),
+                       ),
+  );
+                      },
                       child: const Text(
                         "Guidance to connect \n with patient",
                         textAlign: TextAlign.center,
