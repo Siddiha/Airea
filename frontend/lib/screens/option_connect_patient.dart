@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'connect_with_patient.dart';
 
 class OptionConnectPatient extends StatelessWidget {
   const OptionConnectPatient({super.key});
@@ -35,8 +36,13 @@ class OptionConnectPatient extends StatelessWidget {
                     elevation: 5,
                   ),
                   onPressed: () {
-                    // You can add navigation here later
-                  },
+                    Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                               builder: (context) => const ConnectWithPatient(),
+                             ),
+                       );
+                    },
                   child: const Text(
                     "Yes",
                     style: TextStyle(fontSize: 16),
