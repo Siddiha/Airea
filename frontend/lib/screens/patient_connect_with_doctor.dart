@@ -25,7 +25,7 @@ class _PatientConnectWithDoctorState
     return Scaffold(
       backgroundColor: Colors.white,
 
-      // -------- BODY --------
+      // BODY 
       body: Center(
         child: SingleChildScrollView(
           child: Column(
@@ -123,7 +123,7 @@ class _PatientConnectWithDoctorState
         ),
       ),
 
-      // -------- BOTTOM NAV --------
+      // BOTTOM NAV 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onBottomNavTapped,
