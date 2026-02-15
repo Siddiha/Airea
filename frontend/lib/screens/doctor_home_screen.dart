@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'doctor_notification.dart'; // import notification screen
 
 class DoctorHomeScreen extends StatelessWidget {
   const DoctorHomeScreen({super.key});
@@ -17,8 +18,8 @@ class DoctorHomeScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Row(
+                children: [
+                  const Row(
                     children: [
                       CircleAvatar(
                         radius: 20,
@@ -35,7 +36,20 @@ class DoctorHomeScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  Icon(Icons.notifications_none, size: 26),
+
+                  // Notification button 
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none, size: 26),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const DoctorNotificationScreen(),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -110,7 +124,7 @@ class DoctorHomeScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: isNumber ? 22 : 26,
                 fontWeight: FontWeight.bold,
-                color: isNumber ? Colors.green : Colors.green,
+                color: Colors.green,
               ),
             ),
           ],
