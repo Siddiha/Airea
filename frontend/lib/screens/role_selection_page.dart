@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'patient_login_page.dart';
-//import 'doctor_login_page.dart';
+import 'doctor_home_screen.dart';
 
 class RoleSelectionPage extends StatelessWidget {
   const RoleSelectionPage({super.key});
@@ -79,12 +79,12 @@ class RoleSelectionPage extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {
                     // <--- 2. COMMENT OUT THE NAVIGATION LOGIC HERE
-                    print("Doctor login not ready yet");
-                    /*Navigator.push(
+                      print("Doctor login not ready yet");
+                      Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const DoctorLoginPage()),
+                      MaterialPageRoute(builder: (context) => const DoctorHomeScreen ()),
                     );
-                    */
+                    
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryTeal,
