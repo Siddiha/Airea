@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'doctor_notification.dart'; // import notification screen
+import 'doctor_patient_info.dart'; 
 
 class DoctorHomeScreen extends StatelessWidget {
   const DoctorHomeScreen({super.key});
@@ -66,11 +67,21 @@ class DoctorHomeScreen extends StatelessWidget {
             const SizedBox(height: 20),
 
             // Connect card
-            _infoCard(
-              title: "Connect to a patient",
-              value: "+",
-              isNumber: false,
-            ),
+             GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                           context,
+                        MaterialPageRoute(
+                       builder: (context) => const DoctorPatientInfoScreen(),
+                     ),
+                 );
+              },
+                       child: _infoCard(
+                     title: "Connect to a patient",
+                    value: "+",
+                    isNumber: false,
+             ),
+           ),
 
             const Spacer(),
 
