@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'doctor_remove_patient_screen.dart'; 
+import 'doctor_remove_patient_screen.dart';
+import 'doctor_patient_removed_success_screen.dart'; // Import the new screen
 
 class DoctorManagePatientsScreen extends StatefulWidget {
   const DoctorManagePatientsScreen({super.key});
@@ -12,6 +13,8 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
   // Sample data simulating registered patients
   final List<String> _patients = [
     "Patient name",
+    "John Doe", 
+    "Sarah Smith"
   ];
 
   void _removePatient(int index) {
@@ -21,15 +24,24 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
   }
 
   Future<void> _confirmRemove(int index) async {
-    // 1. Navigate to the confirmation screen
+    // 1. Navigate to the confirmation screen (Yes/No)
     final bool? shouldRemove = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const DoctorRemovePatientScreen()),
     );
 
-    // 2. If the user clicked "Yes" (returned true), remove the patient
+    // 2. If user clicked "Yes"
     if (shouldRemove == true) {
+      // Remove the patient
       _removePatient(index);
+
+      // Show the Success Screen
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const DoctorPatientRemovedSuccessScreen()),
+        );
+      }
     }
   }
 
@@ -94,7 +106,7 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
                               
                               const SizedBox(width: 12),
                               
-                              // RED BUTTON: Connects to Remove Screen
+                              // Remove Button
                               GestureDetector(
                                 onTap: () => _confirmRemove(index), 
                                 child: Container(
@@ -167,7 +179,7 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
         ),
       ),
 
-      // --- Simple Bottom Nav ---
+      // --- Bottom Nav ---
       bottomNavigationBar: SizedBox(
         height: 80,
         child: Center(
