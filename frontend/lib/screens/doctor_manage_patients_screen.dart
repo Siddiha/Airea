@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'doctor_remove_patient_screen.dart'; 
 
 class DoctorManagePatientsScreen extends StatefulWidget {
   const DoctorManagePatientsScreen({super.key});
@@ -17,6 +18,19 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
     setState(() {
       _patients.removeAt(index);
     });
+  }
+
+  Future<void> _confirmRemove(int index) async {
+    // 1. Navigate to the confirmation screen
+    final bool? shouldRemove = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const DoctorRemovePatientScreen()),
+    );
+
+    // 2. If the user clicked "Yes" (returned true), remove the patient
+    if (shouldRemove == true) {
+      _removePatient(index);
+    }
   }
 
   @override
@@ -53,7 +67,6 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
                           padding: const EdgeInsets.only(bottom: 20.0),
                           child: Row(
                             children: [
-                              // Patient Name Pill
                               Expanded(
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
@@ -81,9 +94,9 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
                               
                               const SizedBox(width: 12),
                               
-                              // Remove Button 
+                              // RED BUTTON: Connects to Remove Screen
                               GestureDetector(
-                                onTap: () => _removePatient(index),
+                                onTap: () => _confirmRemove(index), 
                                 child: Container(
                                   height: 45,
                                   width: 45,
@@ -125,7 +138,6 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Green Plus Icon
                       Container(
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
@@ -173,7 +185,7 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
   }
 }
 
-// --- TEMPORARY MAIN FUNCTION FOR TESTING ---
+// --- MAIN FUNCTION FOR TESTING ---
 void main() {
   runApp(const MaterialApp(
     home: DoctorManagePatientsScreen(),
