@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'patient_login_page.dart';
-import 'doctor_home_screen.dart';
+//import 'doctor_home_screen.dart';
+import 'doctor_login_page.dart';
 
 class RoleSelectionPage extends StatelessWidget {
   const RoleSelectionPage({super.key});
@@ -82,7 +83,7 @@ class RoleSelectionPage extends StatelessWidget {
                       print("Doctor login not ready yet");
                       Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const DoctorHomeScreen ()),
+                      MaterialPageRoute(builder: (context) => const DoctorLoginPage ()),
                     );
                     
                   },
