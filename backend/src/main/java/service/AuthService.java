@@ -2,12 +2,16 @@ package service;
 
 import config.JwtUtil;
 import dto.AuthResponse;
+import dto.DoctorAuthResponse;
 import dto.LoginRequest;
 import dto.RegisterRequest;
+import dto.DoctorRegisterRequest;
+import model.Doctor;
 import model.Patient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import repository.DoctorRepository;
 import repository.PatientRepository;
 
 import java.time.LocalDate;
@@ -18,6 +22,9 @@ public class AuthService {
 
     @Autowired
     private PatientRepository patientRepository;
+
+    @Autowired
+    private DoctorRepository doctorRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -147,6 +154,76 @@ public class AuthService {
                 .tokenType("Bearer")
                 .expiresIn(jwtUtil.getExpirationInSeconds())
                 .patient(patientInfo)
+                .build();
+    }
+
+    // ========== Doctor Authentication ==========
+
+    public DoctorAuthResponse doctorRegister(DoctorRegisterRequest request) {
+        // Check if email already exists
+        if (doctorRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email already registered");
+        }
+
+        // Create new doctor
+        Doctor doctor = new Doctor();
+        doctor.setEmail(request.getEmail());
+        doctor.setPassword(passwordEncoder.encode(request.getPassword()));
+        doctor.setFullName(request.getFullName());
+        doctor.setSpecialization(request.getSpecialization());
+        doctor.setPhoneNumber(request.getPhoneNumber());
+        doctor.setHospital(request.getHospital());
+
+        // Save doctor
+        Doctor savedDoctor = doctorRepository.save(doctor);
+
+        // Generate JWT token
+        String token = jwtUtil.generateToken(savedDoctor.getEmail());
+
+        return buildDoctorAuthResponse(savedDoctor, token);
+    }
+
+    public DoctorAuthResponse doctorLogin(LoginRequest request) {
+        // Find doctor by email
+        Doctor doctor = doctorRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+
+        // Verify password
+        if (!passwordEncoder.matches(request.getPassword(), doctor.getPassword())) {
+            throw new RuntimeException("Invalid email or password");
+        }
+
+        // Check if account is active
+        if (!doctor.getIsActive()) {
+            throw new RuntimeException("Account is deactivated");
+        }
+
+        // Generate JWT token
+        String token = jwtUtil.generateToken(doctor.getEmail());
+
+        return buildDoctorAuthResponse(doctor, token);
+    }
+
+    public Doctor getDoctorByEmail(String email) {
+        return doctorRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Doctor not found"));
+    }
+
+    private DoctorAuthResponse buildDoctorAuthResponse(Doctor doctor, String token) {
+        DoctorAuthResponse.DoctorInfo doctorInfo = DoctorAuthResponse.DoctorInfo.builder()
+                .id(doctor.getId())
+                .email(doctor.getEmail())
+                .fullName(doctor.getFullName())
+                .specialization(doctor.getSpecialization())
+                .phoneNumber(doctor.getPhoneNumber())
+                .hospital(doctor.getHospital())
+                .build();
+
+        return DoctorAuthResponse.builder()
+                .token(token)
+                .tokenType("Bearer")
+                .expiresIn(jwtUtil.getExpirationInSeconds())
+                .doctor(doctorInfo)
                 .build();
     }
 

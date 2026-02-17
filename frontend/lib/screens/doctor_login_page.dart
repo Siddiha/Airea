@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'patient_homescreen.dart';
 import 'doctor_home_screen.dart';
-import 'patient_create_account.dart';
 import '../services/auth_service.dart';
-import 'patient_create_account.dart';
 import 'doctor_create_account.dart';
 
 class DoctorLoginPage extends StatefulWidget {
@@ -39,7 +36,7 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
 
     setState(() => _isLoading = true);
 
-    final result = await _authService.login(email, password);
+    final result = await _authService.doctorLogin(email, password);
 
     setState(() => _isLoading = false);
 
