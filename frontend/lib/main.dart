@@ -6,6 +6,9 @@ import 'screens/patient_profile_frame.dart';
 // Import for testing summary screens
 import 'screens/summary_screens_test.dart';
 
+import 'package:airea_cough_monitor/screens/patient_allergies_entry.dart';
+import 'package:airea_cough_monitor/screens/patient_edit_allergy.dart';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -26,7 +29,7 @@ class AireaApp extends StatelessWidget {
       title: 'AIREA - Smart Respiratory Monitor',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme(),
-      home: const WelcomePage(),
+      home: const PatientAllergies(),
     );
   }
 }

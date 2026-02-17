@@ -6,7 +6,6 @@ import '../services/auth_service.dart';
 import 'patient_create_account.dart';
 import 'doctor_create_account.dart';
 
-
 class DoctorLoginPage extends StatefulWidget {
   const DoctorLoginPage({super.key});
 
