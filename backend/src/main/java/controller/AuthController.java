@@ -1,9 +1,12 @@
 package controller;
 
 import dto.AuthResponse;
+import dto.DoctorAuthResponse;
+import dto.DoctorRegisterRequest;
 import dto.LoginRequest;
 import dto.RegisterRequest;
 import jakarta.validation.Valid;
+import model.Doctor;
 import model.Patient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -123,6 +126,56 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                     "error", true,
                     "message", e.getMessage()
+            ));
+        }
+    }
+
+    // ========== Doctor Authentication Endpoints ==========
+
+    @PostMapping("/doctor/register")
+    public ResponseEntity<?> doctorRegister(@Valid @RequestBody DoctorRegisterRequest request) {
+        try {
+            DoctorAuthResponse response = authService.doctorRegister(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", true,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/doctor/login")
+    public ResponseEntity<?> doctorLogin(@Valid @RequestBody LoginRequest request) {
+        try {
+            DoctorAuthResponse response = authService.doctorLogin(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "error", true,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @GetMapping("/doctor/profile")
+    public ResponseEntity<?> getDoctorProfile(@RequestHeader("Authorization") String authHeader) {
+        try {
+            String email = extractEmailFromToken(authHeader);
+            Doctor doctor = authService.getDoctorByEmail(email);
+
+            return ResponseEntity.ok(Map.of(
+                    "id", doctor.getId(),
+                    "email", doctor.getEmail(),
+                    "fullName", doctor.getFullName() != null ? doctor.getFullName() : "",
+                    "specialization", doctor.getSpecialization() != null ? doctor.getSpecialization() : "",
+                    "phoneNumber", doctor.getPhoneNumber() != null ? doctor.getPhoneNumber() : "",
+                    "hospital", doctor.getHospital() != null ? doctor.getHospital() : ""
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "error", true,
+                    "message", "Invalid or expired token"
             ));
         }
     }

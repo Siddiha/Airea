@@ -33,10 +33,12 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints - no authentication required
                 .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/health").permitAll()
+                .requestMatchers("/api/auth/doctor/register", "/api/auth/doctor/login").permitAll()
                 .requestMatchers("/api/cough/**").permitAll()
                 .requestMatchers("/api/device/**").permitAll()
                 // Protected endpoints - require authentication
                 .requestMatchers("/api/auth/profile", "/api/auth/link-device").authenticated()
+                .requestMatchers("/api/auth/doctor/profile").authenticated()
                 // Allow all other requests for now
                 .anyRequest().permitAll()
             )

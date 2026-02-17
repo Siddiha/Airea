@@ -68,4 +68,50 @@ class AuthService {
   Future<String?> getToken() async {
     return await _storage.read(key: _tokenKey);
   }
+
+  // ========== Doctor Authentication ==========
+
+  // Doctor Register (email + password)
+  Future<Map<String, dynamic>> doctorRegister(String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/doctor/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'email': email, 'password': password}),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 201) {
+        await _storage.write(key: _tokenKey, value: data['token']);
+        return {'success': true, 'data': data};
+      } else {
+        return {'success': false, 'message': data['message'] ?? 'Registration failed'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error'};
+    }
+  }
+
+  // Doctor Login (email + password)
+  Future<Map<String, dynamic>> doctorLogin(String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/doctor/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'email': email, 'password': password}),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        await _storage.write(key: _tokenKey, value: data['token']);
+        return {'success': true, 'data': data};
+      } else {
+        return {'success': false, 'message': data['message'] ?? 'Invalid credentials'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error'};
+    }
+  }
 }

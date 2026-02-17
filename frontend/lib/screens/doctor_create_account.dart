@@ -54,7 +54,7 @@ class _DoctorCreateAccountState extends State<DoctorCreateAccount> {
 
     setState(() => _isLoading = true);
 
-    final result = await _authService.register(email, password);
+    final result = await _authService.doctorRegister(email, password);
 
     setState(() => _isLoading = false);
 
@@ -95,7 +95,7 @@ class _DoctorCreateAccountState extends State<DoctorCreateAccount> {
             children: [
               const SizedBox(height: 20),
               const Text(
-                'Sign up as Patient',
+                'Sign up as Doctor',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
