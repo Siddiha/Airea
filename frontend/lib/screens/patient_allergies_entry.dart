@@ -216,14 +216,6 @@ class _PatientAllergiesState extends State<PatientAllergies> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Icon(Icons.health_and_safety_outlined,
-          //     size: 72, color: Colors.grey.shade300),
-          // const SizedBox(height: 16),
-          // Text(
-          //   'No allergies added yet',
-          //   style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
-          // ),
-          // const SizedBox(height: 6),
           Text(
             'Type in the text box and press + to add',
             style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
