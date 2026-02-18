@@ -7,10 +7,11 @@ class ApiConfig {
   // ========================================
 
   // Production URL (Railway deployment)
-  static const String _productionUrl = 'https://airea-production.up.railway.app/api';
+  static const String _productionUrl =
+      'https://airea-production.up.railway.app/api';
 
   // Set to true to use production backend, false for local development
-  static const bool useProduction = false;
+  static const bool useProduction = true;
 
   // Local development settings
   static const String _computerIP = '192.168.8.106';
@@ -61,7 +62,7 @@ class ApiConfig {
   // NEW: Daily summary endpoint (replaces old stats endpoints)
   static String dailySummaryUrl(String deviceId, String date) =>
       '$baseUrl/summary/daily/$deviceId?date=$date';
-      
+
   // DEPRECATED: Old stats endpoint - backend doesn't implement these
   // Use dailySummaryUrl instead
   static String deviceStatsUrl(String deviceId, String period) =>
