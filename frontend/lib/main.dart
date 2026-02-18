@@ -6,6 +6,7 @@ import 'screens/patient_profile_frame.dart';
 // Import for testing summary screens
 import 'screens/summary_screens_test.dart';
 import 'screens/doctor_user_details.dart';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -26,7 +27,7 @@ class AireaApp extends StatelessWidget {
       title: 'Airea',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme(),
-      home: const DoctorMoreDetails(),
+      home: const WelcomePage(),
     );
   }
 }

@@ -1,0 +1,156 @@
+#include <Wire.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
+#include "Protocentral_MAX30205.h"
+#include <driver/i2s.h>
+
+// ================= PIN DEFINITIONS =================
+
+// 1. Temperature (MAX30205) - Default I2C Bus
+#define MAX_SDA 4
+#define MAX_SCL 5
+
+// 2. Motion (MPU-6050) - Secondary I2C Bus
+#define MPU_SDA 15
+#define MPU_SCL 16
+
+// 3. ECG (AD-8232) - Analog
+#define ECG_PIN 1      // ADC1 Channel 0
+#define ECG_LO_PLUS 6  // Leads Off +
+#define ECG_LO_MINUS 7 // Leads Off -
+
+// 4. Microphone (INMP-441) - I2S
+#define I2S_WS 42
+#define I2S_SD 2
+#define I2S_SCK 41
+#define I2S_PORT I2S_NUM_0
+
+// ================= OBJECTS =================
+
+MAX30205 tempSensor;
+Adafruit_MPU6050 mpu;
+
+// Create a second I2C bus instance for the MPU6050
+TwoWire I2C_MPU = TwoWire(1);
+
+// ================= SETUP =================
+
+void setup()
+{
+  Serial.begin(115200);
+  while (!Serial)
+    delay(10); // Wait for Serial Monitor
+  Serial.println("\n--- STARTING SENSOR TEST ---\n");
+
+  // --- 1. SETUP MAX30205 (Temp) ---
+  Wire.begin(MAX_SDA, MAX_SCL); // Start default bus
+  if (!tempSensor.begin())
+  {
+    Serial.println("❌ MAX30205 (Temp) NOT FOUND! Check wiring on pins 4 & 5.");
+  }
+  else
+  {
+    Serial.println("✅ MAX30205 (Temp) Connected.");
+  }
+
+  // --- 2. SETUP MPU-6050 (Motion) ---
+  I2C_MPU.begin(MPU_SDA, MPU_SCL); // Start secondary bus
+  if (!mpu.begin(0x68, &I2C_MPU))
+  { // Pass address and bus reference
+    Serial.println("❌ MPU-6050 (Motion) NOT FOUND! Check wiring on pins 15 & 16.");
+  }
+  else
+  {
+    Serial.println("✅ MPU-6050 (Motion) Connected.");
+    mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
+    mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+    mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+  }
+
+  // --- 3. SETUP AD-8232 (ECG) ---
+  pinMode(ECG_LO_PLUS, INPUT);
+  pinMode(ECG_LO_MINUS, INPUT);
+  // ADC setup is automatic
+  Serial.println("✅ AD-8232 (ECG) Pins Initialized.");
+
+  // --- 4. SETUP INMP-441 (Mic) ---
+  setupI2S();
+  Serial.println("✅ INMP-441 (Mic) I2S Driver Started.");
+
+  Serial.println("\n--- ALL SYSTEMS GO. READING DATA... ---\n");
+  delay(1000);
+}
+
+// ================= LOOP =================
+
+void loop()
+{
+  Serial.println("------------------------------------------------");
+
+  // --- READ TEMP ---
+  float bodyTemp = tempSensor.getTemperature();
+  Serial.print("TEMP: ");
+  Serial.print(bodyTemp);
+  Serial.println(" C");
+
+  // --- READ MOTION ---
+  sensors_event_t a, g, temp;
+  mpu.getEvent(&a, &g, &temp);
+  Serial.print("ACCEL: X=");
+  Serial.print(a.acceleration.x);
+  Serial.print(" Y=");
+  Serial.print(a.acceleration.y);
+  Serial.print(" Z=");
+  Serial.println(a.acceleration.z);
+
+  // --- READ ECG ---
+  Serial.print("ECG: ");
+  if ((digitalRead(ECG_LO_PLUS) == 1) || (digitalRead(ECG_LO_MINUS) == 1))
+  {
+    Serial.println("Leads Off (Check Pads!)");
+  }
+  else
+  {
+    int ecgValue = analogRead(ECG_PIN);
+    Serial.println(ecgValue);
+  }
+
+  // --- READ MIC (Calculate Volume) ---
+  int32_t sample = 0;
+  size_t bytes_read = 0;
+  // Read a single sample for testing (in real apps, read a buffer)
+  i2s_read(I2S_PORT, &sample, sizeof(sample), &bytes_read, portMAX_DELAY);
+
+  // The mic sends 24-bit data in a 32-bit block. We shift it to make it readable.
+  // This is a rough "loudness" check.
+  Serial.print("MIC RAW: ");
+  Serial.println(sample >> 14);
+
+  delay(1000); // Slow down so you can read the text
+}
+
+// ================= I2S HELPER FUNCTION =================
+void setupI2S()
+{
+  const i2s_config_t i2s_config = {
+      .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX), // Receive, not transmit
+      .sample_rate = 44100,
+      .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT, // INMP441 uses 24 bits in 32 bit slots
+      .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,  // Because L/R pin is grounded
+      .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_STAND_I2S),
+      .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
+      .dma_buf_count = 4,
+      .dma_buf_len = 1024,
+      .use_apll = false,
+      .tx_desc_auto_clear = false,
+      .fixed_mclk = 0};
+
+  const i2s_pin_config_t pin_config = {
+      .bck_io_num = I2S_SCK,
+      .ws_io_num = I2S_WS,
+      .data_out_num = -1, // Not used
+      .data_in_num = I2S_SD};
+
+  i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL);
+  i2s_set_pin(I2S_PORT, &pin_config);
+}
