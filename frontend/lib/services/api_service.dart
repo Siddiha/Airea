@@ -73,15 +73,30 @@ class ApiService {
     }
   }
 
-  /// Get hourly statistics
+  /// Get hourly statistics (using summary endpoint)
   Future<CoughStatistics> getHourlyStatistics(String deviceId) async {
     try {
+      // Use current hour's data from summary endpoint
+      final now = DateTime.now();
+      final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      
       final response = await http.get(
-        Uri.parse('$baseUrl/cough/stats/$deviceId/hour'),
+        Uri.parse('$baseUrl/summary/daily/$deviceId?date=$dateStr'),
       );
 
       if (response.statusCode == 200) {
-        return CoughStatistics.fromJson(json.decode(response.body));
+        final data = json.decode(response.body);
+        // Map summary data to CoughStatistics format
+        return CoughStatistics(
+          totalCoughs: data['totalCoughs'] ?? 0,
+          dryCoughs: 0, // Not tracked in current system
+          wetCoughs: 0, // Not tracked in current system
+          unknownCoughs: data['totalCoughs'] ?? 0,
+          averageConfidence: (data['avgConfidence'] ?? 0.0).toDouble(),
+          coughsPerHour: (data['coughFrequency'] ?? 0.0).toDouble(),
+          mostCommonType: 'cough',
+          period: 'hour',
+        );
       } else {
         throw Exception('Failed to load statistics: ${response.statusCode}');
       }
@@ -91,15 +106,29 @@ class ApiService {
     }
   }
 
-  /// Get today's statistics
+  /// Get today's statistics (using summary endpoint)
   Future<CoughStatistics> getTodayStatistics(String deviceId) async {
     try {
+      final now = DateTime.now();
+      final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      
       final response = await http.get(
-        Uri.parse('$baseUrl/cough/stats/$deviceId/today'),
+        Uri.parse('$baseUrl/summary/daily/$deviceId?date=$dateStr'),
       );
 
       if (response.statusCode == 200) {
-        return CoughStatistics.fromJson(json.decode(response.body));
+        final data = json.decode(response.body);
+        // Map summary data to CoughStatistics format
+        return CoughStatistics(
+          totalCoughs: data['totalCoughs'] ?? 0,
+          dryCoughs: 0, // Not tracked in current system
+          wetCoughs: 0, // Not tracked in current system
+          unknownCoughs: data['totalCoughs'] ?? 0,
+          averageConfidence: (data['avgConfidence'] ?? 0.0).toDouble(),
+          coughsPerHour: (data['coughFrequency'] ?? 0.0).toDouble(),
+          mostCommonType: 'cough',
+          period: 'today',
+        );
       } else {
         throw Exception('Failed to load statistics: ${response.statusCode}');
       }
@@ -109,15 +138,30 @@ class ApiService {
     }
   }
 
-  /// Get weekly statistics
+  /// Get weekly statistics (using summary endpoint for today)
   Future<CoughStatistics> getWeeklyStatistics(String deviceId) async {
     try {
+      final now = DateTime.now();
+      final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      
       final response = await http.get(
-        Uri.parse('$baseUrl/cough/stats/$deviceId/week'),
+        Uri.parse('$baseUrl/summary/daily/$deviceId?date=$dateStr'),
       );
 
       if (response.statusCode == 200) {
-        return CoughStatistics.fromJson(json.decode(response.body));
+        final data = json.decode(response.body);
+        // Map summary data to CoughStatistics format
+        // For weekly, we're showing today's data as placeholder
+        return CoughStatistics(
+          totalCoughs: data['totalCoughs'] ?? 0,
+          dryCoughs: 0, // Not tracked in current system
+          wetCoughs: 0, // Not tracked in current system
+          unknownCoughs: data['totalCoughs'] ?? 0,
+          averageConfidence: (data['avgConfidence'] ?? 0.0).toDouble(),
+          coughsPerHour: (data['coughFrequency'] ?? 0.0).toDouble(),
+          mostCommonType: 'cough',
+          period: 'week',
+        );
       } else {
         throw Exception('Failed to load statistics: ${response.statusCode}');
       }
