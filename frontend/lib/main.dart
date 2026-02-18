@@ -5,7 +5,7 @@ import 'screens/welcome_page.dart';
 import 'screens/patient_profile_frame.dart';
 // Import for testing summary screens
 import 'screens/summary_screens_test.dart';
-
+import 'screens/doctor_user_details.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -23,10 +23,10 @@ class AireaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AIREA - Smart Respiratory Monitor',
+      title: 'Airea',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme(),
-      home: const WelcomePage(),
+      home: const DoctorMoreDetails(),
     );
   }
 }
