@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'patient_homescreen.dart';
 import 'patient_create_account.dart';
+import 'forgot_password_screen.dart';
 import '../services/auth_service.dart';
 
 class PatientLoginPage extends StatefulWidget {
@@ -130,13 +131,24 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
                 // Forgot Password
                 Align(
                   alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {},
-                    child: const Text(
-                      'Forgot password',
-                      style: TextStyle(
-                        color: Colors.black54,
-                        fontSize: 13,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ForgotPasswordScreen(userType: 'PATIENT'),
+                        ),
+                      );
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'Forgot password?',
+                        style: TextStyle(
+                          color: Color(0xFF1B3A5F),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
