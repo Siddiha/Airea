@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import service.AuthService;
 
+import service.PasswordResetService;
+
 import java.util.Map;
 
 @RestController
@@ -23,6 +25,9 @@ public class AuthController {
 
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private PasswordResetService passwordResetService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
@@ -176,6 +181,95 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
                     "error", true,
                     "message", "Invalid or expired token"
+            ));
+        }
+    }
+
+    // ========== Password Reset Endpoints ==========
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            String userType = request.get("userType");
+
+            if (email == null || email.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", true,
+                        "message", "Email is required"
+                ));
+            }
+            if (userType == null || userType.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", true,
+                        "message", "User type is required"
+                ));
+            }
+
+            passwordResetService.requestReset(email, userType);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Verification code sent to your email"
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", true,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            String otp = request.get("otp");
+            String userType = request.get("userType");
+
+            boolean valid = passwordResetService.verifyOtp(email, otp, userType);
+
+            if (valid) {
+                return ResponseEntity.ok(Map.of(
+                        "message", "OTP verified successfully",
+                        "valid", true
+                ));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", true,
+                        "message", "Invalid or expired verification code",
+                        "valid", false
+                ));
+            }
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", true,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            String otp = request.get("otp");
+            String newPassword = request.get("newPassword");
+            String userType = request.get("userType");
+
+            if (newPassword == null || newPassword.length() < 6) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", true,
+                        "message", "Password must be at least 6 characters"
+                ));
+            }
+
+            passwordResetService.resetPassword(email, otp, newPassword, userType);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Password reset successfully"
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", true,
+                    "message", e.getMessage()
             ));
         }
     }

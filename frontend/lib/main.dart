@@ -23,7 +23,7 @@ class AireaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AIREA - Smart Respiratory Monitor',
+      title: 'Airea',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme(),
       home: const WelcomePage(),

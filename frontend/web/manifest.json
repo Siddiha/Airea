@@ -1,6 +1,6 @@
 {
-    "name": "airea_cough_monitor",
-    "short_name": "airea_cough_monitor",
+    "name": "Airea",
+    "short_name": "Airea",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

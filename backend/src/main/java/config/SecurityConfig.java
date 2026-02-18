@@ -34,8 +34,10 @@ public class SecurityConfig {
                 // Public endpoints - no authentication required
                 .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/health").permitAll()
                 .requestMatchers("/api/auth/doctor/register", "/api/auth/doctor/login").permitAll()
+                .requestMatchers("/api/auth/forgot-password", "/api/auth/verify-otp", "/api/auth/reset-password").permitAll()
                 .requestMatchers("/api/cough/**").permitAll()
                 .requestMatchers("/api/device/**").permitAll()
+                .requestMatchers("/api/summary/**").permitAll()
                 // Protected endpoints - require authentication
                 .requestMatchers("/api/auth/profile", "/api/auth/link-device").authenticated()
                 .requestMatchers("/api/auth/doctor/profile").authenticated()
