@@ -98,10 +98,6 @@ class _DoctorMoreDetailsState extends State<DoctorMoreDetails> {
     // Navigation / next action goes here.
   }
 
-  // ────────────────────────────────────────────────
-  // Build
-  // ────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -126,8 +122,6 @@ class _DoctorMoreDetailsState extends State<DoctorMoreDetails> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 32),
-
-              // ── Heading ──
               const Text(
                 'Please help us to know\nmore about you',
                 textAlign: TextAlign.center,
@@ -138,10 +132,7 @@ class _DoctorMoreDetailsState extends State<DoctorMoreDetails> {
                   height: 1.3,
                 ),
               ),
-
               const SizedBox(height: 40),
-
-              // ── Form fields ──
               Expanded(
                 child: ListView(
                   children: [
@@ -182,16 +173,13 @@ class _DoctorMoreDetailsState extends State<DoctorMoreDetails> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // ── Finish button ──
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _onFinish,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A2B5F), // dark navy
+                    backgroundColor: const Color(0xFF1A2B5F),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(
@@ -205,7 +193,6 @@ class _DoctorMoreDetailsState extends State<DoctorMoreDetails> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 28),
             ],
           ),
@@ -213,10 +200,6 @@ class _DoctorMoreDetailsState extends State<DoctorMoreDetails> {
       ),
     );
   }
-
-  // ────────────────────────────────────────────────
-  // Reusable field builder
-  // ────────────────────────────────────────────────
 
   Widget _buildField({
     required TextEditingController controller,
@@ -229,7 +212,6 @@ class _DoctorMoreDetailsState extends State<DoctorMoreDetails> {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      // Clear the flag for this field as soon as user starts typing.
       onChanged: (_) {
         if (isEmpty) {
           setState(() => _emptyFlags.remove(flagKey));
@@ -244,8 +226,8 @@ class _DoctorMoreDetailsState extends State<DoctorMoreDetails> {
         ),
         filled: true,
         fillColor: isEmpty
-            ? const Color(0xFFFFEBEE) // light red tint when empty
-            : const Color(0xFFE8EAF0), // default grey-blue from Figma
+            ? const Color(0xFFFFEBEE)
+            : const Color(0xFFE8EAF0),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         border: OutlineInputBorder(

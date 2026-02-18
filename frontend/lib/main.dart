@@ -5,7 +5,6 @@ import 'screens/welcome_page.dart';
 import 'screens/patient_profile_frame.dart';
 // Import for testing summary screens
 import 'screens/summary_screens_test.dart';
-import 'screens/doctor_user_details.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
