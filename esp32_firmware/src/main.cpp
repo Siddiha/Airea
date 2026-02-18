@@ -1,285 +1,408 @@
 #include <Arduino.h>
-#include <driver/i2s.h>
+#include <Wire.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
-#include <WiFiClientSecure.h> // Required for Railway HTTPS
-#include "cough_model.h"
 
-// --- FREERTOS INCLUDES ---
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-
-// --- WI-FI CREDENTIALS ---
-const char *ssid = "Dialog 4G 437";
-const char *password = "20040920";
-
-// --- SERVER URL ---
-const char *serverUrl = "https://airea-production.up.railway.app/api/cough/event";
-
-// --- TENSORFLOW INCLUDES ---
+// --- TFLITE INCLUDES ---
 #include "tensorflow/lite/micro/all_ops_resolver.h"
 #include "tensorflow/lite/micro/micro_error_reporter.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 
-// --- PIN DEFINITIONS (ESP32-S3) ---
-#define I2S_WS 5
-#define I2S_SD 6
-#define I2S_SCK 4
+// --- YOUR MODELS ---
+#include "cough_model.h"
+#include "fall_model.h"
+#include "Protocentral_MAX30205.h"
+
+// =========================================================
+// 1. PIN DEFINITIONS & CONSTANTS
+// =========================================================
+// Temperature (I2C Bus 0)
+#define PIN_TEMP_SDA 4
+#define PIN_TEMP_SCL 5
+
+// Motion (I2C Bus 1)
+#define PIN_MOTION_SDA 15
+#define PIN_MOTION_SCL 16
+
+// Audio (I2S)
+#define I2S_WS 42
+#define I2S_SD 2
+#define I2S_SCK 41
 #define I2S_PORT I2S_NUM_0
 
-// --- AUDIO SETTINGS ---
-#define SAMPLE_RATE 16000
-const int kAudioBufferSize = 32000; // 2 Seconds
-#define COUGH_THRESHOLD 0.90
+// Heart (Analog)
+#define PIN_ECG_OUT 1
 
-// --- QUEUE STRUCTURE ---
-struct CoughEvent
+// WiFi
+const char *SSID_NAME = "Dialog 4G 437";
+const char *WIFI_PASS = "20040920";
+const char *SERVER_URL = "https://airea-production.up.railway.app/api/event";
+
+// Thresholds
+const float TEMP_HIGH_LIMIT = 37.5;
+const float BPM_LOW_LIMIT = 45.0;
+const float BPM_HIGH_LIMIT = 130.0;
+const float RR_LOW_LIMIT = 8.0;
+const float RR_HIGH_LIMIT = 30.0;
+const float FALL_CONFIDENCE_THRESHOLD = 0.85;
+
+// =========================================================
+// 2. CLASS: BIO SENSORS (Temp, Heart, Resp)
+// =========================================================
+class BioMonitor
 {
-    float confidence;
-    float volume;
-    unsigned long timestamp;
-};
-QueueHandle_t coughQueue;
+private:
+    MAX30205 tempSensor;
+    TwoWire *i2cBus;
 
-// --- GLOBALS ---
-const int kArenaSize = 200 * 1024;
-uint8_t *tensor_arena;
-int16_t *raw_audio_buffer;
+    // ECG Variables
+    float ecgEma = 0.0f;
+    float bpm = 0.0f;
+    unsigned long lastBeatMs = 0;
+    float baselineEma = 0.0f;
+    float respEma = 0.0f;
+    float rr = 0.0f;
+    unsigned long lastBreathMs = 0;
 
-tflite::MicroErrorReporter micro_error_reporter;
-tflite::AllOpsResolver resolver;
-const tflite::Model *model;
-tflite::MicroInterpreter *interpreter;
-TfLiteTensor *input = nullptr;
-TfLiteTensor *output = nullptr;
-
-// -------------------------------------------------------------------------
-// TASK 1: NETWORK SENDER (Fixed for Railway HTTPS)
-// -------------------------------------------------------------------------
-void network_sender_task(void *parameter)
-{
-    CoughEvent receivedEvent;
-
-    while (true)
+    // Internal Helper for Respiration
+    bool detectPeak(float val, float &minVal, float &maxVal, unsigned long &lastReset, float thresholdRatio)
     {
-        if (xQueueReceive(coughQueue, &receivedEvent, portMAX_DELAY) == pdTRUE)
+        unsigned long now = millis();
+        minVal = min(minVal, val);
+        maxVal = max(maxVal, val);
+        if (now - lastReset > 3000)
+        { // Reset dynamic threshold periodically
+            minVal = val;
+            maxVal = val;
+            lastReset = now;
+        }
+        float range = maxVal - minVal;
+        return (val > (minVal + range * thresholdRatio));
+    }
+
+public:
+    float currentTemp = 0.0;
+
+    void begin(TwoWire &wireRef)
+    {
+        i2cBus = &wireRef;
+        // Start Temp Sensor on the passed I2C bus
+        if (!tempSensor.scanAvailableSensors())
         {
+            Serial.println("⚠️ Temp Sensor not found on Bus 0");
+        }
+        pinMode(PIN_ECG_OUT, INPUT);
+        analogReadResolution(12);
+    }
 
-            Serial.println();
-            Serial.print("☁️  [Cloud] Uploading Event... ");
+    void update()
+    {
+        // --- 1. Temperature (Read less frequently, e.g., every 1s) ---
+        static unsigned long lastTempRead = 0;
+        if (millis() - lastTempRead > 1000)
+        {
+            currentTemp = tempSensor.getTemperature();
+            lastTempRead = millis();
+        }
 
-            if (WiFi.status() != WL_CONNECTED)
-            {
-                Serial.print("(Connecting Wi-Fi)... ");
-                WiFi.begin(ssid, password);
-                int attempts = 0;
-                while (WiFi.status() != WL_CONNECTED && attempts < 20)
+        // --- 2. ECG & BPM Processing (Run every call) ---
+        int raw = analogRead(PIN_ECG_OUT);
+
+        // Signal Smoothing
+        ecgEma = 0.15f * raw + 0.85f * ecgEma;
+
+        // Simple Peak Detection for BPM
+        static float sigMin = 4095, sigMax = 0;
+        static unsigned long lastSigReset = 0;
+        static bool beatWasHigh = false;
+
+        bool beatHigh = detectPeak(ecgEma, sigMin, sigMax, lastSigReset, 0.70);
+
+        if (beatHigh && !beatWasHigh)
+        { // Rising edge
+            if (millis() - lastBeatMs > 250)
+            { // Debounce
+                float instantBpm = 60000.0 / (millis() - lastBeatMs);
+                if (instantBpm > 30 && instantBpm < 200)
                 {
-                    vTaskDelay(500 / portTICK_PERIOD_MS);
-                    attempts++;
+                    bpm = (bpm == 0) ? instantBpm : (0.8 * bpm + 0.2 * instantBpm);
+                }
+                lastBeatMs = millis();
+            }
+        }
+        beatWasHigh = beatHigh;
+
+        // --- 3. Respiration (Derived from Baseline Wander) ---
+        baselineEma = 0.004f * raw + 0.996f * baselineEma;
+        respEma = 0.05f * baselineEma + 0.95f * respEma;
+
+        static float respMin = 1e9, respMax = -1e9;
+        static unsigned long lastRespReset = 0;
+        static bool respWasHigh = false;
+
+        bool respHigh = detectPeak(respEma, respMin, respMax, lastRespReset, 0.60);
+        if (respHigh && !respWasHigh)
+        {
+            if (millis() - lastBreathMs > 1000)
+            {
+                float instantRr = 60000.0 / (millis() - lastBreathMs);
+                if (instantRr > 5 && instantRr < 60)
+                {
+                    rr = (rr == 0) ? instantRr : (0.85 * rr + 0.15 * instantRr);
+                }
+                lastBreathMs = millis();
+            }
+        }
+        respWasHigh = respHigh;
+    }
+
+    // Getters for Vitals Check
+    float getBPM() { return bpm; }
+    float getRR() { return rr; }
+    float getTemp() { return currentTemp; }
+    bool isAbnormal()
+    {
+        return (currentTemp > TEMP_HIGH_LIMIT ||
+                bpm < BPM_LOW_LIMIT || bpm > BPM_HIGH_LIMIT ||
+                rr < RR_LOW_LIMIT || rr > RR_HIGH_LIMIT);
+    }
+};
+
+// =========================================================
+// 3. CLASS: FALL DETECTOR (MPU6050 + TFLite)
+// =========================================================
+class FallMonitor
+{
+private:
+    TwoWire *i2cBus;
+    uint8_t mpuAddr = 0x68;
+    // TFLite globals
+    tflite::MicroInterpreter *interpreter = nullptr;
+    TfLiteTensor *input = nullptr;
+    TfLiteTensor *output = nullptr;
+    uint8_t *tensor_arena = nullptr;
+
+    // Buffers
+    const int TIME_STEPS = 200;
+    const int NUM_FEATURES = 6;
+    float *data_buffer = nullptr;
+    int buffer_head = 0;
+
+public:
+    bool fallDetected = false;
+    float confidence = 0.0;
+
+    void begin(TwoWire &wireRef)
+    {
+        i2cBus = &wireRef;
+        i2cBus->begin(PIN_MOTION_SDA, PIN_MOTION_SCL, 400000); // High speed I2C
+
+        // Init MPU
+        writeMPU(0x6B, 0); // Wake up
+
+        // Init TFLite
+        static tflite::MicroErrorReporter micro_error_reporter;
+        static tflite::MicroMutableOpResolver<35> resolver;
+        // ... Add ops as per your original code ...
+        resolver.AddFullyConnected();
+        resolver.AddSoftmax();
+        // (Add other ops here)
+
+        const tflite::Model *model = tflite::GetModel(fall_model);
+
+        const int kTensorArenaSize = 60 * 1024;
+        tensor_arena = (uint8_t *)ps_malloc(kTensorArenaSize); // Use PSRAM if available
+
+        static tflite::MicroInterpreter static_interpreter(
+            model, resolver, tensor_arena, kTensorArenaSize, &micro_error_reporter);
+        interpreter = &static_interpreter;
+        interpreter->AllocateTensors();
+
+        input = interpreter->input(0);
+        output = interpreter->output(0);
+
+        data_buffer = (float *)malloc(TIME_STEPS * NUM_FEATURES * sizeof(float));
+    }
+
+    void writeMPU(byte reg, byte data)
+    {
+        i2cBus->beginTransmission(mpuAddr);
+        i2cBus->write(reg);
+        i2cBus->write(data);
+        i2cBus->endTransmission();
+    }
+
+    void update()
+    {
+        // Read MPU
+        i2cBus->beginTransmission(mpuAddr);
+        i2cBus->write(0x3B);
+        i2cBus->endTransmission(false);
+        i2cBus->requestFrom(mpuAddr, (uint8_t)14);
+
+        if (i2cBus->available() == 14)
+        {
+            int16_t raw_ax = i2cBus->read() << 8 | i2cBus->read();
+            int16_t raw_ay = i2cBus->read() << 8 | i2cBus->read();
+            int16_t raw_az = i2cBus->read() << 8 | i2cBus->read();
+            i2cBus->read();
+            i2cBus->read(); // Temp
+            int16_t raw_gx = i2cBus->read() << 8 | i2cBus->read();
+            int16_t raw_gy = i2cBus->read() << 8 | i2cBus->read();
+            int16_t raw_gz = i2cBus->read() << 8 | i2cBus->read();
+
+            // Normalize & Buffer logic (Simplified for brevity)
+            // ... [Insert your normalization code here] ...
+
+            // Run Inference
+            if (buffer_head >= TIME_STEPS)
+            {
+                // Copy buffer to input->data.f
+                interpreter->Invoke();
+                if (output->data.f[0] > FALL_CONFIDENCE_THRESHOLD)
+                {
+                    fallDetected = true;
+                    confidence = output->data.f[0];
                 }
             }
+        }
+    }
 
-            if (WiFi.status() == WL_CONNECTED)
+    void reset()
+    {
+        fallDetected = false;
+        buffer_head = 0;
+    }
+};
+
+// =========================================================
+// 4. CLASS: EMERGENCY MANAGER (The Logic Glue)
+// =========================================================
+class EmergencyManager
+{
+private:
+    BioMonitor *bio;
+    FallMonitor *fall;
+    bool alarmActive = false;
+
+public:
+    EmergencyManager(BioMonitor *b, FallMonitor *f) : bio(b), fall(f) {}
+
+    void check()
+    {
+        // 1. Check for Fall
+        if (fall->fallDetected && !alarmActive)
+        {
+            Serial.println("🚨 POTENTIAL FALL DETECTED! Checking Vitals...");
+
+            // 2. Cross-Reference Vitals
+            float t = bio->getTemp();
+            float hr = bio->getBPM();
+            float rr = bio->getRR();
+
+            Serial.printf("   [VITALS] Temp: %.1f | HR: %.1f | RR: %.1f\n", t, hr, rr);
+
+            if (bio->isAbnormal())
             {
-                // --- HTTPS FIX START ---
-                WiFiClientSecure client;
-                client.setInsecure(); // Trust Railway Certificate
-                client.setTimeout(10000);
-
-                HTTPClient http;
-
-                // Use the secure client!
-                if (http.begin(client, serverUrl))
-                {
-                    http.addHeader("Content-Type", "application/json");
-
-                    String jsonPayload = "{";
-                    jsonPayload += "\"deviceId\":\"ESP32_COUGH_01\",";
-                    jsonPayload += "\"confidence\":" + String(receivedEvent.confidence, 3) + ",";
-                    jsonPayload += "\"rawScore\":" + String(receivedEvent.confidence, 3) + ",";
-                    jsonPayload += "\"audioVolume\":" + String(receivedEvent.volume, 2);
-                    jsonPayload += "}";
-
-                    int httpResponseCode = http.POST(jsonPayload);
-                    if (httpResponseCode > 0)
-                    {
-                        Serial.printf("Done! (Status: %d)\n", httpResponseCode);
-                    }
-                    else
-                    {
-                        Serial.printf("Failed. (Error: %s)\n", http.errorToString(httpResponseCode).c_str());
-                    }
-                    http.end();
-                }
-                else
-                {
-                    Serial.println("Connection Failed.");
-                }
-                // --- HTTPS FIX END ---
+                Serial.println("🚨 FALL CONFIRMED VIA VITALS! (Abnormal Readings)");
+                alarmActive = true;
+                sendAlert("FALL_CONFIRMED_CRITICAL");
             }
             else
             {
-                Serial.println("Failed (No Wi-Fi).");
+                Serial.println("⚠️ Fall Detected but Vitals Stable. Low Priority Alert.");
+                sendAlert("FALL_DETECTED_STABLE");
+                alarmActive = true; // Still alert, but maybe different level
             }
-            Serial.println("------------------------------------------------");
         }
     }
-}
 
-// -------------------------------------------------------------------------
-// TASK 2: AI LISTENER (Fixed for 0% on Silence)
-// -------------------------------------------------------------------------
-void audio_inference_task(void *parameter)
-{
-    if (input == nullptr)
+    void sendAlert(String type)
     {
-        Serial.println("❌ FATAL: Model failed to load.");
-        vTaskDelete(NULL);
-        return;
+        if (WiFi.status() == WL_CONNECTED)
+        {
+            WiFiClientSecure client;
+            client.setInsecure();
+            HTTPClient http;
+            if (http.begin(client, SERVER_URL))
+            {
+                http.addHeader("Content-Type", "application/json");
+                String json = "{\"type\":\"" + type + "\", \"bpm\":" + String(bio->getBPM()) + "}";
+                http.POST(json);
+                http.end();
+            }
+        }
     }
+};
 
-    size_t bytes_read = 0;
-    static unsigned long last_alert_time = 0;
-    static unsigned long last_dot_time = 0;
+// =========================================================
+// 5. GLOBAL OBJECTS
+// =========================================================
+BioMonitor bioMonitor;
+FallMonitor fallMonitor;
+EmergencyManager emergency(&bioMonitor, &fallMonitor);
 
-    const i2s_config_t i2s_config = {
-        .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),
-        .sample_rate = SAMPLE_RATE,
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
-        .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
-        .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB),
-        .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-        .dma_buf_count = 4,
-        .dma_buf_len = 1024,
-        .use_apll = false,
-        .fixed_mclk = 0};
-    const i2s_pin_config_t pin_config = {
-        .bck_io_num = I2S_SCK,
-        .ws_io_num = I2S_WS,
-        .data_out_num = I2S_PIN_NO_CHANGE,
-        .data_in_num = I2S_SD};
+// Secondary I2C Bus for MPU6050
+TwoWire I2C_Motion = TwoWire(1);
 
-    if (i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL) != ESP_OK)
-        return;
-    i2s_set_pin(I2S_PORT, &pin_config);
-
-    Serial.println("🎤  System Ready. Listening...");
+// =========================================================
+// 6. COUGH DETECTION TASK (Runs on Core 0)
+// =========================================================
+// We keep this as a FreeRTOS task because audio sampling must not be interrupted.
+void TaskCough(void *pvParameters)
+{
+    // ... [Insert your Setup code for I2S and TFLite Audio here] ...
+    // Note: Ensure you use the I2S pins: SCK 41, WS 42, SD 2
 
     while (true)
     {
-        i2s_read(I2S_PORT, raw_audio_buffer, kAudioBufferSize * sizeof(int16_t), &bytes_read, portMAX_DELAY);
-
-        int8_t *input_data = input->data.int8;
-        float avg_vol = 0;
-
-        for (int i = 0; i < input->bytes; i++)
-        {
-            int16_t sample = raw_audio_buffer[i * 2];
-            int32_t amplified = sample * 8;
-            if (amplified > 32767)
-                amplified = 32767;
-            if (amplified < -32768)
-                amplified = -32768;
-            input_data[i] = (int8_t)(amplified >> 8);
-            if (i % 100 == 0)
-                avg_vol += abs(amplified);
-        }
-        avg_vol /= (input->bytes / 100);
-
-        TfLiteStatus invoke_status = interpreter->Invoke();
-        if (invoke_status != kTfLiteOk)
-            continue;
-
-        float cough_score = 0;
-        if (output->type == kTfLiteInt8)
-        {
-            float scale = output->params.scale;
-            int zero_point = output->params.zero_point;
-            cough_score = (output->data.int8[1] - zero_point) * scale;
-        }
-        else
-        {
-            cough_score = output->data.f[1];
-        }
-
-        // --- 🛠️ 0% FIX START ---
-        // If volume is low, force score to 0.0
-        if (avg_vol < 300)
-        {
-            cough_score = 0.0;
-
-            // Heartbeat
-            if (millis() - last_dot_time > 2000)
-            {
-                Serial.print(".");
-                last_dot_time = millis();
-            }
-        }
-        // --- 0% FIX END ---
-
-        else
-        {
-            if (cough_score > COUGH_THRESHOLD && (millis() - last_alert_time > 5000))
-            {
-                Serial.println("\n");
-                Serial.println("🚨  COUGH DETECTED!");
-                Serial.printf("    Confidence: %.1f%%  |  Volume: %d\n", cough_score * 100, (int)avg_vol);
-
-                CoughEvent event;
-                event.confidence = cough_score;
-                event.volume = avg_vol;
-                event.timestamp = millis();
-                xQueueSend(coughQueue, &event, 0);
-                last_alert_time = millis();
-            }
-            else if (avg_vol > 500)
-            {
-                Serial.println();
-                Serial.printf("🔊  Noise Detected (Vol: %d, Cough Prob: %.1f%%)\n", (int)avg_vol, cough_score * 100);
-            }
-        }
-
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        // ... [Insert your Audio Loop Code here] ...
+        // If cough detected -> sendAlert("COUGH");
+        vTaskDelay(10);
     }
 }
 
-// -------------------------------------------------------------------------
-// SETUP
-// -------------------------------------------------------------------------
+// =========================================================
+// 7. MAIN SETUP & LOOP
+// =========================================================
 void setup()
 {
     Serial.begin(115200);
-    delay(2000);
-    Serial.println("\n\n=================================");
-    Serial.println("   AIREA MONITORING SYSTEM       ");
-    Serial.println("   Status: ONLINE                ");
-    Serial.println("=================================");
 
-    coughQueue = xQueueCreate(5, sizeof(CoughEvent));
-
-    tensor_arena = (uint8_t *)ps_malloc(kArenaSize);
-    raw_audio_buffer = (int16_t *)ps_malloc(kAudioBufferSize * sizeof(int16_t));
-
-    if (!tensor_arena || !raw_audio_buffer)
+    // 1. Connect WiFi
+    WiFi.begin(SSID_NAME, WIFI_PASS);
+    while (WiFi.status() != WL_CONNECTED)
     {
-        Serial.println("❌ Memory Error.");
-        while (1)
-            ;
+        delay(500);
+        Serial.print(".");
     }
+    Serial.println("\nWiFi Connected.");
 
-    model = tflite::GetModel(model_data);
-    static tflite::MicroInterpreter static_interpreter(model, resolver, tensor_arena, kArenaSize, &micro_error_reporter);
-    interpreter = &static_interpreter;
-    interpreter->AllocateTensors();
+    // 2. Initialize Buses
+    Wire.begin(PIN_TEMP_SDA, PIN_TEMP_SCL); // Default Wire for Temp
 
-    input = interpreter->input(0);
-    output = interpreter->output(0);
+    // 3. Initialize Modules
+    bioMonitor.begin(Wire);
+    fallMonitor.begin(I2C_Motion); // Pass the secondary Wire bus
 
-    xTaskCreatePinnedToCore(network_sender_task, "NetSender", 8192, NULL, 1, NULL, 0);
-    xTaskCreatePinnedToCore(audio_inference_task, "AudioAI", 8192, NULL, 2, NULL, 1);
+    // 4. Start Cough Task on Core 0
+    xTaskCreatePinnedToCore(
+        TaskCough, "CoughAI", 8192, NULL, 1, NULL, 0);
+
+    Serial.println("System Active.");
 }
 
-void loop() { vTaskDelay(1000); }
+void loop()
+{
+    // Run Bio and Fall updates on Core 1 (Main Loop)
+    bioMonitor.update();
+    fallMonitor.update();
+
+    // Check Logic
+    emergency.check();
+
+    // Small delay to prevent watchdog starvation
+    delay(5);
+}
