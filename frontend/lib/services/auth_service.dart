@@ -1,187 +1,101 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../config/api_config.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
-  static const String _tokenKey = 'auth_token';
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final SupabaseClient _supabase = Supabase.instance.client;
 
-  String get baseUrl => ApiConfig.baseUrl;
-
-  // Register (email + password)
-  Future<Map<String, dynamic>> register(String email, String password) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': email, 'password': password}),
-      );
-
-      final data = json.decode(response.body);
-
-      if (response.statusCode == 201) {
-        await _storage.write(key: _tokenKey, value: data['token']);
-        return {'success': true, 'data': data};
-      } else {
-        return {'success': false, 'message': data['message'] ?? 'Registration failed'};
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Network error'};
-    }
-  }
-
-  // Login (email + password)
+  // --- Login Adapters ---
   Future<Map<String, dynamic>> login(String email, String password) async {
+    return _login(email, password);
+  }
+
+  Future<Map<String, dynamic>> doctorLogin(
+      String email, String password) async {
+    return _login(email, password);
+  }
+
+  Future<Map<String, dynamic>> _login(String email, String password) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': email, 'password': password}),
+      final AuthResponse res = await _supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
       );
-
-      final data = json.decode(response.body);
-
-      if (response.statusCode == 200) {
-        await _storage.write(key: _tokenKey, value: data['token']);
-        return {'success': true, 'data': data};
-      } else {
-        return {'success': false, 'message': data['message'] ?? 'Invalid credentials'};
-      }
+      if (res.user != null) return {'success': true, 'data': res.user};
+      return {'success': false, 'message': 'Login failed'};
+    } on AuthException catch (e) {
+      return {'success': false, 'message': e.message};
     } catch (e) {
-      return {'success': false, 'message': 'Network error'};
+      return {'success': false, 'message': 'An unexpected error occurred'};
     }
   }
 
-  // Logout
+  // --- Registration Adapters ---
+  Future<Map<String, dynamic>> register(String email, String password) async {
+    return _register(email, password, 'patient');
+  }
+
+  Future<Map<String, dynamic>> doctorRegister(
+      String email, String password) async {
+    return _register(email, password, 'doctor');
+  }
+
+  Future<Map<String, dynamic>> _register(
+      String email, String password, String role) async {
+    try {
+      final res = await _supabase.auth.signUp(
+        email: email,
+        password: password,
+        data: {'role': role},
+      );
+      if (res.user != null) return {'success': true, 'data': res.user};
+      return {'success': false, 'message': 'Registration failed'};
+    } on AuthException catch (e) {
+      return {'success': false, 'message': e.message};
+    }
+  }
+
+  // --- Forgot Password ---
+  // Accepts userType to prevent crashes, even if Supabase doesn't strictly need it
+  Future<Map<String, dynamic>> requestPasswordReset(String email,
+      [String? userType]) async {
+    try {
+      await _supabase.auth.signInWithOtp(email: email, shouldCreateUser: false);
+      return {'success': true, 'message': 'Code sent to $email'};
+    } on AuthException catch (e) {
+      return {'success': false, 'message': e.message};
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyOtp(String email, String token,
+      [String? userType]) async {
+    try {
+      final res = await _supabase.auth
+          .verifyOTP(type: OtpType.email, token: token, email: email);
+      if (res.session != null) return {'success': true, 'message': 'Verified!'};
+      return {'success': false, 'message': 'Invalid code'};
+    } on AuthException catch (e) {
+      return {'success': false, 'message': e.message};
+    }
+  }
+
+  // This fixes the error in reset_password_screen.dart
+  Future<Map<String, dynamic>> resetPassword(
+      String email, String otp, String newPassword,
+      [String? userType]) async {
+    try {
+      // User is already logged in by verifyOtp, so we just update the user
+      await _supabase.auth.updateUser(UserAttributes(password: newPassword));
+      return {'success': true, 'message': 'Password updated successfully!'};
+    } on AuthException catch (e) {
+      return {'success': false, 'message': e.message};
+    }
+  }
+
+  // Helper for the new screen
+  Future<Map<String, dynamic>> updatePassword(String newPassword) async {
+    return resetPassword("", "", newPassword);
+  }
+
   Future<void> logout() async {
-    await _storage.delete(key: _tokenKey);
-  }
-
-  // Check if logged in
-  Future<bool> isLoggedIn() async {
-    final token = await _storage.read(key: _tokenKey);
-    return token != null;
-  }
-
-  // Get token
-  Future<String?> getToken() async {
-    return await _storage.read(key: _tokenKey);
-  }
-
-  // ========== Password Reset ==========
-
-  // Request password reset OTP
-  Future<Map<String, dynamic>> requestPasswordReset(String email, String userType) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/forgot-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': email, 'userType': userType}),
-      );
-
-      final data = json.decode(response.body);
-
-      if (response.statusCode == 200) {
-        return {'success': true, 'message': data['message']};
-      } else {
-        return {'success': false, 'message': data['message'] ?? 'Failed to send reset code'};
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Network error'};
-    }
-  }
-
-  // Verify OTP code
-  Future<Map<String, dynamic>> verifyOtp(String email, String otp, String userType) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/verify-otp'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': email, 'otp': otp, 'userType': userType}),
-      );
-
-      final data = json.decode(response.body);
-
-      if (response.statusCode == 200) {
-        return {'success': true, 'message': data['message']};
-      } else {
-        return {'success': false, 'message': data['message'] ?? 'Invalid verification code'};
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Network error'};
-    }
-  }
-
-  // Reset password with OTP
-  Future<Map<String, dynamic>> resetPassword(String email, String otp, String newPassword, String userType) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/reset-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': email,
-          'otp': otp,
-          'newPassword': newPassword,
-          'userType': userType,
-        }),
-      );
-
-      final data = json.decode(response.body);
-
-      if (response.statusCode == 200) {
-        return {'success': true, 'message': data['message']};
-      } else {
-        return {'success': false, 'message': data['message'] ?? 'Failed to reset password'};
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Network error'};
-    }
-  }
-
-  // ========== Doctor Authentication ==========
-
-  // Doctor Register (email + password)
-  Future<Map<String, dynamic>> doctorRegister(String email, String password) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/doctor/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': email, 'password': password}),
-      );
-
-      final data = json.decode(response.body);
-
-      if (response.statusCode == 201) {
-        await _storage.write(key: _tokenKey, value: data['token']);
-        return {'success': true, 'data': data};
-      } else {
-        return {'success': false, 'message': data['message'] ?? 'Registration failed'};
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Network error'};
-    }
-  }
-
-  // Doctor Login (email + password)
-  Future<Map<String, dynamic>> doctorLogin(String email, String password) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/doctor/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': email, 'password': password}),
-      );
-
-      final data = json.decode(response.body);
-
-      if (response.statusCode == 200) {
-        await _storage.write(key: _tokenKey, value: data['token']);
-        return {'success': true, 'data': data};
-      } else {
-        return {'success': false, 'message': data['message'] ?? 'Invalid credentials'};
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Network error'};
-    }
+    await _supabase.auth.signOut();
   }
 }

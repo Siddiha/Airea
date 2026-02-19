@@ -68,7 +68,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     if (result['success']) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password reset successfully! Please login.')),
+        const SnackBar(
+            content: Text('Password reset successfully! Please login.')),
       );
       // Pop all the way back to login page
       Navigator.of(context).popUntil((route) => route.isFirst);
