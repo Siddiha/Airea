@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'doctor_remove_patient_screen.dart';
-import 'doctor_patient_removed_success_screen.dart'; // Import the new screen
+import 'doctor_patient_removed_success_screen.dart'; 
 
 class DoctorManagePatientsScreen extends StatefulWidget {
   const DoctorManagePatientsScreen({super.key});
