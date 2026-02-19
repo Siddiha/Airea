@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'doctor_patient_removed_success_screen.dart';
 
 class DoctorRemovePatientScreen extends StatelessWidget {
   const DoctorRemovePatientScreen({super.key});

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+
 class DoctorAllergicConditionsScreen extends StatelessWidget {
   const DoctorAllergicConditionsScreen({super.key});
 
