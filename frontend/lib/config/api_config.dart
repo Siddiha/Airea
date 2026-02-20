@@ -7,7 +7,8 @@ class ApiConfig {
   // ========================================
 
   // Production URL (Railway deployment)
-  static const String _productionUrl = 'https://airea-production.up.railway.app/api';
+  static const String _productionUrl =
+      'https://airea-production.up.railway.app/api';
 
   // Set to true to use production backend, false for local development
   static const bool useProduction = true;
@@ -54,10 +55,22 @@ class ApiConfig {
   static String get coughEventUrl => '$baseUrl$coughEventEndpoint';
   static String get deviceUrl => '$baseUrl$deviceEndpoint';
 
-  // Device-specific data and statistics
+  // Device-specific data and statistics (DEPRECATED - use summary endpoint)
   static String deviceCoughUrl(String deviceId) =>
       '$baseUrl/cough/device/$deviceId';
 
+  // NEW: Daily summary endpoint (replaces old stats endpoints)
+  static String dailySummaryUrl(String deviceId, String date) =>
+      '$baseUrl/summary/daily/$deviceId?date=$date';
+
+  // DEPRECATED: Old stats endpoint - backend doesn't implement these
+  // Use dailySummaryUrl instead
   static String deviceStatsUrl(String deviceId, String period) =>
-      '$baseUrl/cough/stats/$deviceId/$period';
+      '$baseUrl/summary/daily/$deviceId?date=${_getTodayDate()}';
+
+  // Helper to get today's date in YYYY-MM-DD format
+  static String _getTodayDate() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
 }

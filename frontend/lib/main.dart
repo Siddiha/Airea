@@ -1,15 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // <--- ADD THIS IMPORT
 import 'config/app_theme.dart';
 import 'screens/welcome_page.dart';
 import 'screens/patient_profile_frame.dart';
 // Import for testing summary screens
 import 'screens/summary_screens_test.dart';
 
-void main() {
+Future<void> main() async {
+  // <--- Changed to 'Future<void>' and 'async'
   WidgetsFlutterBinding.ensureInitialized();
 
-  SystemChrome.setPreferredOrientations([
+  // 1. Initialize Supabase
+  // REPLACE these values with your actual keys from Supabase Dashboard -> Project Settings -> API
+  await Supabase.initialize(
+    url: 'https://tzlosvcspgnmtcmjjlut.supabase.co',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6bG9zdmNzcGdubXRjbWpqbHV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0OTU2MzIsImV4cCI6MjA4MjA3MTYzMn0.1zwveXDzxwyEtezTJgXHx0BrzzfrpkvaDWCjrFI_0E0',
+  );
+
+  // 2. Lock Orientation
+  await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
@@ -23,7 +34,7 @@ class AireaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AIREA - Smart Respiratory Monitor',
+      title: 'Airea',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme(),
       home: const WelcomePage(),

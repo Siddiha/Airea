@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'patient_homescreen.dart';
+import 'package:airea_cough_monitor/models/patient_allergy.dart';
 
 class PatientAccountCreated extends StatelessWidget {
-  const PatientAccountCreated({super.key});
+  const PatientAccountCreated({
+    super.key,
+    required this.allergies,
+  });
+
+  final List<AllergyEntry> allergies;
 
   @override
   Widget build(BuildContext context) {

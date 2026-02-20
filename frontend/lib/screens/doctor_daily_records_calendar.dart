@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart'; 
 import '../config/app_theme.dart'; 
-import 'doctor_daily_summary_detail.dart';
+import 'daily_summary_detail_screen_new.dart';
+import '../repositories/summary_repository.dart';
 
 class DoctorDailyRecordsCalendar extends StatefulWidget {
   const DoctorDailyRecordsCalendar({super.key});
@@ -90,12 +91,15 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
                               _focusedDay = focusedDay; 
                             });
                             
-                            // Navigate to detail screen
+                            // Navigate to API-powered detail screen
+                            print('📱 Navigating with ApiSummaryRepository'); // DEBUG
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => DoctorDailySummaryDetail(
-                                  date: selectedDay, 
+                                builder: (context) => DailySummaryDetailScreenNew(
+                                  selectedDate: selectedDay,
+                                  deviceId: 'ESP32_COUGH_01',
+                                  repository: ApiSummaryRepository(),
                                 ),
                               ),
                             );

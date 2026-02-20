@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../config/api_config.dart';
 import '../config/app_theme.dart';
+import '../repositories/summary_repository.dart';
 import '../services/summary_service.dart';
 import '../widgets/custom_calendar_widget.dart';
-import 'patient_daily_summary_detail.dart';
+import 'daily_summary_detail_screen_new.dart';
 
 class PatientDailyCalendar extends StatefulWidget {
   final SummaryService summaryService;
@@ -88,12 +90,14 @@ class _PatientDailyCalendarState extends State<PatientDailyCalendar> {
   }
 
   void _navigateToSummaryDetail(BuildContext context, DateTime date) {
+    // Use same API-powered detail screen as doctor so patient gets real summary data
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PatientDailySummaryDetail(
+        builder: (context) => DailySummaryDetailScreenNew(
           selectedDate: date,
-          summaryService: widget.summaryService,
+          deviceId: ApiConfig.defaultDeviceId,
+          repository: ApiSummaryRepository(),
         ),
       ),
     );
