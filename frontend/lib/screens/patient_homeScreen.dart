@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'patient_notifications.dart';
 import 'patient_profile_frame.dart';
 import 'patient_connect_device_option.dart';
-//import 'patient_connect_doctor_option.dart';
-//import 'patient_summary_page.dart';
 import 'patient_summary_overview.dart';
 import 'cough_analyzer_screen.dart';
 import '../services/api_service.dart';
@@ -23,17 +21,16 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   final ApiService _apiService = ApiService();
   final String _deviceId = ApiConfig.defaultDeviceId;
 
-  int spo2 = 98;
-  String spo2Status = "Normal";
+  // Live Database Variables
+  double temperature = 0.0;
+  String temperatureStatus = "Loading...";
 
-  int heartRate = 72;
-  String heartRateStatus = "Normal";
+  int heartRate = 0;
+  String heartRateStatus = "Loading...";
+  bool leadsAreOff = false;
 
-  double temperature = 34.0;
-  String temperatureStatus = "Normal";
-
-  int coughCount = 600;
-  String coughStatus = "High";
+  int coughCount = 0;
+  String coughStatus = "Loading...";
 
   int _selectedIndex = 0;
   Timer? _refreshTimer;
@@ -41,9 +38,14 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   @override
   void initState() {
     super.initState();
+    // Fetch immediately on load
     _loadCoughData();
+    _loadVitalsData();
+
+    // Refresh every 10 seconds
     _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       _loadCoughData();
+      _loadVitalsData();
     });
   }
 
@@ -52,6 +54,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     _refreshTimer?.cancel();
     super.dispose();
   }
+
+  // --- DATA FETCHING ---
 
   Future<void> _loadCoughData() async {
     try {
@@ -64,13 +68,38 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       }
     } catch (e) {
       print('Error loading cough data: $e');
+      if (mounted) setState(() => coughStatus = "No data");
+    }
+  }
+
+  Future<void> _loadVitalsData() async {
+    try {
+      final vitals = await _apiService.getLatestVitals(_deviceId);
+      if (mounted && vitals != null) {
+        setState(() {
+          temperature = vitals.temp;
+          heartRate = vitals.bpm;
+          leadsAreOff = vitals.leadsOff;
+
+          // Medical Logic for Statuses
+          temperatureStatus = _getTemperatureStatus(temperature);
+          heartRateStatus = leadsAreOff
+              ? "Leads Disconnected"
+              : _getHeartRateStatus(heartRate);
+        });
+      }
+    } catch (e) {
+      print('Error loading vitals: $e');
       if (mounted) {
         setState(() {
-          coughStatus = "No data";
+          temperatureStatus = "Offline";
+          heartRateStatus = "Offline";
         });
       }
     }
   }
+
+  // --- STATUS HELPERS ---
 
   String _getCoughStatus(int count) {
     if (count == 0) return "No coughs";
@@ -80,20 +109,32 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     return "High";
   }
 
-  Color _getCoughStatusColor(String status) {
-    switch (status) {
-      case "No coughs":
-      case "Low":
-      case "Normal":
-        return const Color(0xFF4CAF50);
-      case "Moderate":
-        return Colors.orange;
-      case "High":
-        return const Color(0xFFE53935);
-      default:
-        return Colors.grey;
-    }
+  String _getTemperatureStatus(double temp) {
+    if (temp == 0.0) return "No Data";
+    if (temp < 35.0) return "Low (Hypothermia)";
+    if (temp > 37.5) return "High (Fever)";
+    return "Normal";
   }
+
+  String _getHeartRateStatus(int bpm) {
+    if (bpm == 0) return "No Data";
+    if (bpm < 60) return "Low (Bradycardia)";
+    if (bpm > 100) return "High (Tachycardia)";
+    return "Normal";
+  }
+
+  Color _getStatusColor(String status) {
+    if (status.contains("Normal") || status == "No coughs" || status == "Low") {
+      return const Color(0xFF4CAF50); // Green
+    } else if (status.contains("Moderate") || status.contains("Leads")) {
+      return Colors.orange; // Orange
+    } else if (status.contains("High") || status.contains("Low (")) {
+      return const Color(0xFFE53935); // Red
+    }
+    return Colors.grey;
+  }
+
+  // --- UI BUILDERS ---
 
   @override
   Widget build(BuildContext context) {
@@ -106,68 +147,45 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
                 _buildHeader(),
                 const SizedBox(height: 20),
-
-                // Live vitals title
                 const Text(
                   "Live vitals",
                   style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.black87,
-                  ),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.black87),
                 ),
                 const SizedBox(height: 12),
-
-                // Vitals Grid - exactly like the design
-                // Vitals Grid - Temperature and Heart Rate side by side
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: _buildTemperatureCard(),
-                    ),
+                    Expanded(child: _buildTemperatureCard()),
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildHeartRateCard(),
-                    ),
+                    Expanded(child: _buildHeartRateCard()),
                   ],
                 ),
                 const SizedBox(height: 12),
-
-                // Cough Count Card
                 _buildCoughCountCard(),
                 const SizedBox(height: 12),
-
-                // Connect with device
                 _buildConnectionCard(
                   title: "Connect with a\ndevice",
                   onTap: () {
-                    print("Connect Device Clicked");
                     Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const PatientConnectDeviceOption(),
-                      ),
-                    );
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) =>
+                                const PatientConnectDeviceOption()));
                   },
                 ),
                 const SizedBox(height: 10),
-
-                // Connect with doctor
                 _buildConnectionCard(
                   title: "Connect with a\ndoctor",
                   onTap: () {
-                    print("Connect Doctor Clicked");
-
                     Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const PatientContactDoctor(),
-                      ),
-                    );
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const PatientContactDoctor()));
                   },
                 ),
                 const SizedBox(height: 16),
@@ -183,169 +201,48 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   Widget _buildHeader() {
     return Row(
       children: [
-        // Profile icon
         GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PatientProfileFrame()),
-            );
-          },
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const PatientProfileFrame())),
           child: Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.black87, width: 2),
-            ),
-            child: const Icon(
-              Icons.person_outline,
-              color: Colors.black87,
-              size: 26,
-            ),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.black87, width: 2)),
+            child: const Icon(Icons.person_outline,
+                color: Colors.black87, size: 26),
           ),
         ),
         const SizedBox(width: 12),
-        // Greeting
-        const Text(
-          "Hello user !",
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
+        const Text("Hello user !",
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
         const Spacer(),
-        // Notification bell with red dot
         GestureDetector(
-          onTap: () {
-            print("Notifications Clicked");
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PatientNotifications()),
-            );
-          },
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: Stack(
-              children: [
-                const Icon(
-                  Icons.notifications_outlined,
-                  color: Colors.black87,
-                  size: 26,
-                ),
-                Positioned(
-                  right: 2,
-                  top: 2,
-                  child: Container(
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const PatientNotifications())),
+          child: Stack(
+            children: [
+              const Icon(Icons.notifications_outlined,
+                  color: Colors.black87, size: 26),
+              Positioned(
+                right: 2,
+                top: 2,
+                child: Container(
                     width: 8,
                     height: 8,
                     decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+                        color: Colors.red, shape: BoxShape.circle)),
+              ),
+            ],
           ),
         ),
       ],
     );
   }
-
-  // Widget _buildSpO2Card() {
-  //   return Container(
-  //     padding: const EdgeInsets.all(14),
-  //     decoration: BoxDecoration(
-  //       color: Colors.white,
-  //       borderRadius: BorderRadius.circular(12),
-  //       boxShadow: [
-  //         BoxShadow(
-  //           color: Colors.grey.withValues(alpha: 0.15),
-  //           blurRadius: 8,
-  //           offset: const Offset(0, 2),
-  //         ),
-  //       ],
-  //     ),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         // O2 Icon with bubble
-  //         Row(
-  //           children: [
-  //             Stack(
-  //               clipBehavior: Clip.none,
-  //               children: [
-  //                 const Text(
-  //                   "O",
-  //                   style: TextStyle(
-  //                     fontSize: 18,
-  //                     fontWeight: FontWeight.w600,
-  //                     color: Colors.black54,
-  //                   ),
-  //                 ),
-  //                 const Positioned(
-  //                   right: -8,
-  //                   bottom: 0,
-  //                   child: Text(
-  //                     "2",
-  //                     style: TextStyle(
-  //                       fontSize: 11,
-  //                       fontWeight: FontWeight.w600,
-  //                       color: Colors.black54,
-  //                     ),
-  //                   ),
-  //                 ),
-  //                 Positioned(
-  //                   left: 18,
-  //                   top: -4,
-  //                   child: Container(
-  //                     width: 12,
-  //                     height: 12,
-  //                     decoration: BoxDecoration(
-  //                       shape: BoxShape.circle,
-  //                       border: Border.all(
-  //                         color: Colors.blue.shade300,
-  //                         width: 1.5,
-  //                       ),
-  //                     ),
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //           ],
-  //         ),
-  //         const SizedBox(height: 10),
-  //         // Status and Value
-  //         Text(
-  //           spo2Status,
-  //           style: const TextStyle(
-  //             color: Color(0xFF4CAF50),
-  //             fontWeight: FontWeight.w600,
-  //             fontSize: 15,
-  //           ),
-  //         ),
-  //         Text(
-  //           "$spo2%",
-  //           style: const TextStyle(
-  //             fontSize: 22,
-  //             fontWeight: FontWeight.bold,
-  //             color: Color(0xFF4CAF50),
-  //           ),
-  //         ),
-  //         const SizedBox(height: 4),
-  //         Text(
-  //           "SpO2",
-  //           style: TextStyle(
-  //             color: Colors.grey.shade500,
-  //             fontSize: 11,
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
 
   Widget _buildTemperatureCard() {
     return Container(
@@ -355,58 +252,36 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color:
-                Colors.grey.withValues(alpha: 0.3), // Changed from 0.15 to 0.3
-            blurRadius: 10, // Increased from 8 to 10
-            offset: const Offset(0, 3), // Increased from 2 to 3
-          ),
+              color: Colors.grey.withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 3))
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Thermometer Icon
           SizedBox(
-            height: 86,
-            child: Icon(
-              Icons.thermostat_outlined,
-              size: 50,
-              color: Colors.grey.shade600,
-            ),
-          ),
-
+              height: 86,
+              child: Icon(Icons.thermostat_outlined,
+                  size: 50, color: Colors.grey.shade600)),
           const SizedBox(height: 10),
-          Text(
-            "Temperature Rate",
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 15,
-            ),
-          ),
+          Text("Temperature",
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 15)),
           const SizedBox(height: 4),
           Text(
-            "${temperature.toStringAsFixed(0)}°C",
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF4CAF50),
-            ),
+            temperature == 0.0 ? "--" : "${temperature.toStringAsFixed(1)}°C",
+            style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: _getStatusColor(temperatureStatus)),
           ),
           const SizedBox(height: 4),
           Text(
             temperatureStatus,
-            style: const TextStyle(
-              color: Color(0xFF4CAF50),
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
-          ),
-          Text(
-            "Temperature",
             style: TextStyle(
-              color: Colors.grey.shade500,
-              fontSize: 1,
-            ),
+                color: _getStatusColor(temperatureStatus),
+                fontWeight: FontWeight.w600,
+                fontSize: 13),
           ),
         ],
       ),
@@ -421,50 +296,40 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color:
-                Colors.grey.withValues(alpha: 0.3), // Changed from 0.15 to 0.3
-            blurRadius: 10, // Increased from 8 to 10
-            offset: const Offset(0, 3), // Increased from 2 to 3
-          ),
+              color: Colors.grey.withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 3))
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ECG Line Drawing
           SizedBox(
             height: 80,
             width: double.infinity,
             child: CustomPaint(
-              painter: ECGLinePainter(),
-              size: const Size(double.infinity, 80),
-            ),
+                painter:
+                    ECGLinePainter(isFlatline: leadsAreOff || heartRate == 0),
+                size: const Size(double.infinity, 80)),
           ),
           const SizedBox(height: 8),
+          Text("Heart Rate",
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 15)),
+          const SizedBox(height: 8),
           Text(
-            "Heart Rate",
+            (heartRate == 0 || leadsAreOff) ? "--" : "$heartRate BPM",
             style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 15,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "$heartRate BPM",
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF4CAF50),
-            ),
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: _getStatusColor(heartRateStatus)),
           ),
           const SizedBox(height: 4),
           Text(
             heartRateStatus,
-            style: const TextStyle(
-              color: Color(0xFF4CAF50),
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
+            style: TextStyle(
+                color: _getStatusColor(heartRateStatus),
+                fontWeight: FontWeight.w600,
+                fontSize: 12),
           ),
         ],
       ),
@@ -472,8 +337,6 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   }
 
   Widget _buildCoughCountCard() {
-    final statusColor = _getCoughStatusColor(coughStatus);
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
@@ -481,11 +344,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color:
-                Colors.grey.withValues(alpha: 0.3), // Changed from 0.15 to 0.3
-            blurRadius: 10, // Increased from 8 to 10
-            offset: const Offset(0, 3), // Increased from 2 to 3
-          ),
+              color: Colors.grey.withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 3))
         ],
       ),
       child: Row(
@@ -494,67 +355,44 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "Cough Count",
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 13,
-                ),
-              ),
+              Text("Cough Count",
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
               const SizedBox(height: 2),
-              Text(
-                coughCount.toString(),
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: statusColor,
-                ),
-              ),
-              Text(
-                coughStatus,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: statusColor,
-                ),
-              ),
+              Text(coughCount.toString(),
+                  style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: _getStatusColor(coughStatus))),
+              Text(coughStatus,
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: _getStatusColor(coughStatus))),
             ],
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.push(
+            onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => CoughAnalyzerScreen(deviceId: _deviceId),
-                ),
-              );
-            },
+                    builder: (_) => CoughAnalyzerScreen(deviceId: _deviceId))),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4DB6AC),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
+                  borderRadius: BorderRadius.circular(20)),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               elevation: 0,
             ),
-            child: const Text(
-              "View Cough Trends",
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: const Text("View Cough Trends",
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildConnectionCard({
-    required String title,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildConnectionCard(
+      {required String title, required VoidCallback onTap}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
@@ -562,43 +400,32 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color:
-                Colors.grey.withValues(alpha: 0.3), // Changed from 0.15 to 0.3
-            blurRadius: 10, // Increased from 8 to 10
-            offset: const Offset(0, 3), // Increased from 2 to 3
-          ),
+              color: Colors.grey.withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 3))
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Color(0xFF4CAF50),
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              height: 1.3,
-            ),
-          ),
+          Text(title,
+              style: const TextStyle(
+                  color: Color(0xFF4CAF50),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  height: 1.3)),
           ElevatedButton(
             onPressed: onTap,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4DB6AC),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
+                  borderRadius: BorderRadius.circular(20)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               elevation: 0,
             ),
-            child: const Text(
-              "Connect",
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: const Text("Connect",
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -611,11 +438,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color:
-                Colors.grey.withValues(alpha: 0.3), // Changed from 0.15 to 0.3
-            blurRadius: 10, // Increased from 8 to 10
-            offset: const Offset(0, 3), // Increased from 2 to 3
-          ),
+              color: Colors.grey.withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 3))
         ],
       ),
       child: SafeArea(
@@ -625,44 +450,33 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(
-                icon: Icons.home,
-                label: "Home",
-                isSelected: _selectedIndex == 0,
-                onTap: () {
-                  setState(() => _selectedIndex = 0);
-                },
-              ),
+                  icon: Icons.home,
+                  label: "Home",
+                  isSelected: _selectedIndex == 0,
+                  onTap: () => setState(() => _selectedIndex = 0)),
               _buildNavItem(
-                icon: Icons.sensors,
-                label: "Device",
-                isSelected: _selectedIndex == 1,
-                onTap: () {
-                  print("Device Tab Clicked");
-                  setState(() => _selectedIndex = 1);
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const PatientConnectDeviceOption(),
-                    ),
-                  );
-                },
-              ),
+                  icon: Icons.sensors,
+                  label: "Device",
+                  isSelected: _selectedIndex == 1,
+                  onTap: () {
+                    setState(() => _selectedIndex = 1);
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) =>
+                                const PatientConnectDeviceOption()));
+                  }),
               _buildNavItem(
-                icon: Icons.menu_book_outlined,
-                label: "Trends &\nsummary",
-                isSelected: _selectedIndex == 2,
-                onTap: () {
-                  print("Trends Tab Clicked");
-                  setState(() => _selectedIndex = 2);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PatientSummaryOverview(),
-                    ),
-                  );
-                },
-              ),
+                  icon: Icons.menu_book_outlined,
+                  label: "Trends &\nsummary",
+                  isSelected: _selectedIndex == 2,
+                  onTap: () {
+                    setState(() => _selectedIndex = 2);
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => PatientSummaryOverview()));
+                  }),
             ],
           ),
         ),
@@ -670,12 +484,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     );
   }
 
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildNavItem(
+      {required IconData icon,
+      required String label,
+      required bool isSelected,
+      required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
@@ -684,21 +497,16 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: isSelected ? Colors.black87 : Colors.grey,
-              size: 24,
-            ),
+            Icon(icon,
+                color: isSelected ? Colors.black87 : Colors.grey, size: 24),
             const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 10,
-                color: isSelected ? Colors.black87 : Colors.grey,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
+            Text(label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 10,
+                    color: isSelected ? Colors.black87 : Colors.grey,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal)),
           ],
         ),
       ),
@@ -706,54 +514,46 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   }
 }
 
-// Static ECG Line Painter - matches the design exactly
+// Updated ECG Painter to draw a flatline if leads are disconnected
 class ECGLinePainter extends CustomPainter {
+  final bool isFlatline;
+  ECGLinePainter({this.isFlatline = false});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.grey.shade400
+      ..color = isFlatline ? Colors.red.shade400 : Colors.grey.shade400
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
     final path = Path();
-    final width = size.width;
-    final height = size.height;
-    final centerY = height / 2;
+    final centerY = size.height / 2;
 
-    // Start from left
     path.moveTo(0, centerY);
 
-    // Flat line
-    path.lineTo(width * 0.15, centerY);
-
-    // Small P wave
-    path.lineTo(width * 0.18, centerY - 5);
-    path.lineTo(width * 0.22, centerY);
-
-    // Flat
-    path.lineTo(width * 0.28, centerY);
-
-    // QRS Complex - the main spike
-    path.lineTo(width * 0.30, centerY + 5); // Q dip
-    path.lineTo(width * 0.35, centerY - 35); // R spike up
-    path.lineTo(width * 0.40, centerY + 10); // S dip
-    path.lineTo(width * 0.45, centerY); // back to baseline
-
-    // Flat
-    path.lineTo(width * 0.55, centerY);
-
-    // T wave
-    path.lineTo(width * 0.60, centerY - 10);
-    path.lineTo(width * 0.68, centerY);
-
-    // Flat to end
-    path.lineTo(width, centerY);
-
+    if (isFlatline) {
+      path.lineTo(size.width, centerY); // Draw a straight line
+    } else {
+      final width = size.width;
+      path.lineTo(width * 0.15, centerY);
+      path.lineTo(width * 0.18, centerY - 5);
+      path.lineTo(width * 0.22, centerY);
+      path.lineTo(width * 0.28, centerY);
+      path.lineTo(width * 0.30, centerY + 5);
+      path.lineTo(width * 0.35, centerY - 35);
+      path.lineTo(width * 0.40, centerY + 10);
+      path.lineTo(width * 0.45, centerY);
+      path.lineTo(width * 0.55, centerY);
+      path.lineTo(width * 0.60, centerY - 10);
+      path.lineTo(width * 0.68, centerY);
+      path.lineTo(width, centerY);
+    }
     canvas.drawPath(path, paint);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant ECGLinePainter oldDelegate) =>
+      oldDelegate.isFlatline != isFlatline;
 }
