@@ -30,16 +30,14 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
   CoughStatistics? _hourlyStats;
   List<CoughEvent> _recentEvents = [];
 
+  // NEW: Store the exact count for the last 60 minutes
+  int _currentHourlyFrequency = 0;
+
   Timer? _pollingTimer;
 
   List<CoughEvent> _cleanRecentEvents(List<CoughEvent> events) {
-    // 1. Convert to a mutable list so we can sort it
     final allEvents = events.toList();
-
-    // 2. Sort so the NEWEST dates are at the TOP
     allEvents.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-
-    // 3. Take the top 5 to show on screen
     return allEvents.take(5).toList();
   }
 
@@ -56,14 +54,12 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
     super.dispose();
   }
 
-  /// Start polling for new data every 5 seconds
   void _startPolling() {
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _refreshData();
     });
   }
 
-  /// Load initial data from backend
   Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
@@ -74,9 +70,17 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
       final stats = await _apiService.getHourlyStatistics(widget.deviceId);
       final events = await _apiService.getCoughEvents(widget.deviceId);
 
+      // --- CUSTOM FREQUENCY CALCULATION ---
+      // Count exactly how many coughs happened in the last 60 minutes
+      final now = DateTime.now();
+      final oneHourAgo = now.subtract(const Duration(hours: 1));
+      final hourlyCount =
+          events.where((e) => e.timestamp.isAfter(oneHourAgo)).length;
+
       setState(() {
         _hourlyStats = stats;
         _recentEvents = _cleanRecentEvents(events);
+        _currentHourlyFrequency = hourlyCount; // Store our custom integer
         _isLoading = false;
       });
 
@@ -90,16 +94,22 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
     }
   }
 
-  /// Refresh data without showing loading indicator
   Future<void> _refreshData() async {
     try {
       final stats = await _apiService.getHourlyStatistics(widget.deviceId);
       final events = await _apiService.getCoughEvents(widget.deviceId);
 
+      // --- CUSTOM FREQUENCY CALCULATION ---
+      final now = DateTime.now();
+      final oneHourAgo = now.subtract(const Duration(hours: 1));
+      final hourlyCount =
+          events.where((e) => e.timestamp.isAfter(oneHourAgo)).length;
+
       if (mounted) {
         setState(() {
           _hourlyStats = stats;
           _recentEvents = _cleanRecentEvents(events);
+          _currentHourlyFrequency = hourlyCount; // Update live
         });
       }
 
@@ -109,7 +119,6 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
     }
   }
 
-  /// Generate fake data for testing
   Future<void> _generateFakeData() async {
     setState(() {
       _isGeneratingData = true;
@@ -209,10 +218,8 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
       );
     }
 
-    // DIRECT INTEGER MAPPING:
-    // This perfectly binds the exact number of coughs to an integer.
-    // If there are 7 coughs, displayFrequency becomes exactly 7.
-    int displayFrequency = _hourlyStats?.totalCoughs ?? 0;
+    // USE OUR CUSTOM 60-MINUTE INTEGER
+    int displayFrequency = _currentHourlyFrequency;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -338,7 +345,7 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        // Clean integer output matching the exact cough count
+                        // Clean integer output exactly matching the last 60 minutes
                         'Cough\nfrequency\n$displayFrequency/hour',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
