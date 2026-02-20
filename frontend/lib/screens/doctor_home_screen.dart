@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'doctor_notification.dart';
+import 'doctor_profile_frame.dart';
 import 'doctor_patient_info.dart';
+import 'doctor_patient_info_screen.dart';
 
 class DoctorHomeScreen extends StatelessWidget {
   const DoctorHomeScreen({super.key});
@@ -7,139 +10,155 @@ class DoctorHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[200],
+      backgroundColor: const Color(0xFFEDEFF0),
 
-  
+      // Bottom Navigation Bar
+           bottomNavigationBar: Container(
+                 height: 60,
+                  color: Colors.white,
+                   child: const Column(
+                 mainAxisAlignment: MainAxisAlignment.center,
+                   children: [
+                       Icon(Icons.home),
+                       Text("Home"),
+                   ],
+                 ),
+              ),
 
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      body: SafeArea(
         child: Column(
           children: [
+            const SizedBox(height: 20),
 
-            const SizedBox(height: 30),
+            // Top Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // 👤 Profile Navigation
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const DoctorProfileFrame(),
+                        ),
+                      );
+                    },
+                    child: const Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor: Colors.white,
+                          child: Icon(Icons.person, color: Colors.black),
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          "Hello user !",
+                          style: TextStyle(fontSize: 17),
+                        ),
+                      ],
+                    ),
+                  ),
 
-            // Greeting Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 25,
-                      child: Icon(Icons.person, size: 30),
-                    ),
-                    SizedBox(width: 10),
-                    Text(
-                      "Hello User!",
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ],
-                ),
-                Icon(Icons.notifications_none, size: 28),
-              ],
+                  //  Notification Navigation
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none, size: 26),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const DoctorNotificationScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 50),
 
-            // 🔹 Total Patients Card (Clickable)
+            //  Total Patients (Bigger Card)
             GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const DoctorPatientInfo(),
+                    builder: (_) => const DoctorPatientInfo(),
                   ),
                 );
               },
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 25),
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 6,
-                      offset: Offset(0, 4),
-                    )
-                  ],
-                ),
-                child: const Column(
-                  children: [
-                    Text(
-                      "Total number of patients",
-                      style: TextStyle(fontSize: 18),
-                    ),
-                    SizedBox(height: 10),
-                    Text(
-                      "23",
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
+              child: _bigCard(
+                "Total number of patients",
+                "23",
               ),
             ),
 
-            const SizedBox(height: 25),
+            const SizedBox(height: 30),
 
-            // Connect to Patient Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 25),
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 6,
-                    offset: Offset(0, 4),
-                  )
-                ],
-              ),
-              child: const Column(
-                children: [
-                  Text(
-                    "Connect to a patient",
-                    style: TextStyle(fontSize: 18),
+            //  Connect Patient (Bigger Card)
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        const DoctorPatientInfoScreen(),
                   ),
-                  SizedBox(height: 10),
-                  Icon(Icons.add, size: 28, color: Colors.green),
-                ],
+                );
+              },
+              child: _bigCard(
+                "Connect to a patient",
+                "+",
               ),
             ),
           ],
         ),
       ),
+    );
+  }
 
- bottomNavigationBar: SafeArea(
-  top: false,
-  child: Container(
-    color: Colors.white,
-    padding: const EdgeInsets.only(top: 6, bottom: 8),
-    child: InkWell(
-      onTap: () {
-        // If already on Home, do nothing
-      },
-      child: const Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.home, size: 26),
-          SizedBox(height: 2),
-          Text(
-            "Home",
-            style: TextStyle(fontSize: 12),
-          ),
-        ],
+  // Bigger Card Widget
+  Widget _bigCard(String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        height: 140, // Increased size
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: const Color(0xFFDDE3E4),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18, // bigger title
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 28, // bigger number
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  ),
-),
-);
+    );
   }
 }
