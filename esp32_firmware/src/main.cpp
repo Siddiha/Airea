@@ -41,8 +41,13 @@
 // =========================================================
 const char *ssid = "Dialog 4G 437";
 const char *password = "20040920";
+
 const char *vitalsUrl = "https://airea-production.up.railway.app/api/vitals/event";
 const char *coughUrl = "https://airea-production.up.railway.app/api/cough/event";
+
+// Use your local IP address instead (replace 192.168.X.X with your actual IP)
+// const char *vitalsUrl = "http://192.168.8.150:8080/api/vitals/event";
+// const char *coughUrl = "http://192.168.8.150:8080/api/cough/event";
 
 #define SAMPLE_RATE 16000
 const int kAudioBufferSize = 32000; // 2 Seconds
