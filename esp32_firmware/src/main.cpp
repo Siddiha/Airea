@@ -51,7 +51,7 @@ const char *coughUrl = "https://airea-production.up.railway.app/api/cough/event"
 
 #define SAMPLE_RATE 16000
 const int kAudioBufferSize = 32000; // 2 Seconds
-#define COUGH_THRESHOLD 0.90
+#define COUGH_THRESHOLD 0.85
 
 // =========================================================
 // 3. GLOBALS & QUEUES

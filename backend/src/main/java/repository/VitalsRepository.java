@@ -7,4 +7,7 @@ import java.util.UUID;
 
 @Repository
 public interface VitalsRepository extends JpaRepository<VitalsEvent, UUID> {
+
+    Optional<VitalsEvent> findFirstByDeviceIdOrderByCreatedAtDesc(String deviceId);
+}
 }

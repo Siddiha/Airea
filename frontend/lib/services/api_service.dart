@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../config/api_config.dart'; // ← Add this import!
+import '../config/api_config.dart';
 import '../models/cough_event.dart';
 import '../models/cough_statistics.dart';
 import '../models/device.dart';
@@ -8,8 +8,6 @@ import '../models/device.dart';
 class ApiService {
   // Use configuration instead of hardcoded URL
   static String get baseUrl => ApiConfig.baseUrl;
-  // Look for a line similar to this and update it:
-  //static const String baseUrl = 'http://10.0.2.2:8080/api';
 
   /// Health check
   Future<bool> checkHealth() async {
@@ -76,21 +74,20 @@ class ApiService {
   /// Get hourly statistics (using summary endpoint)
   Future<CoughStatistics> getHourlyStatistics(String deviceId) async {
     try {
-      // Use current hour's data from summary endpoint
       final now = DateTime.now();
-      final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      
+      final dateStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
       final response = await http.get(
         Uri.parse('$baseUrl/summary/daily/$deviceId?date=$dateStr'),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        // Map summary data to CoughStatistics format
         return CoughStatistics(
           totalCoughs: data['totalCoughs'] ?? 0,
-          dryCoughs: 0, // Not tracked in current system
-          wetCoughs: 0, // Not tracked in current system
+          dryCoughs: 0,
+          wetCoughs: 0,
           unknownCoughs: data['totalCoughs'] ?? 0,
           averageConfidence: (data['avgConfidence'] ?? 0.0).toDouble(),
           coughsPerHour: (data['coughFrequency'] ?? 0.0).toDouble(),
@@ -110,19 +107,19 @@ class ApiService {
   Future<CoughStatistics> getTodayStatistics(String deviceId) async {
     try {
       final now = DateTime.now();
-      final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      
+      final dateStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
       final response = await http.get(
         Uri.parse('$baseUrl/summary/daily/$deviceId?date=$dateStr'),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        // Map summary data to CoughStatistics format
         return CoughStatistics(
           totalCoughs: data['totalCoughs'] ?? 0,
-          dryCoughs: 0, // Not tracked in current system
-          wetCoughs: 0, // Not tracked in current system
+          dryCoughs: 0,
+          wetCoughs: 0,
           unknownCoughs: data['totalCoughs'] ?? 0,
           averageConfidence: (data['avgConfidence'] ?? 0.0).toDouble(),
           coughsPerHour: (data['coughFrequency'] ?? 0.0).toDouble(),
@@ -142,20 +139,19 @@ class ApiService {
   Future<CoughStatistics> getWeeklyStatistics(String deviceId) async {
     try {
       final now = DateTime.now();
-      final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      
+      final dateStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
       final response = await http.get(
         Uri.parse('$baseUrl/summary/daily/$deviceId?date=$dateStr'),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        // Map summary data to CoughStatistics format
-        // For weekly, we're showing today's data as placeholder
         return CoughStatistics(
           totalCoughs: data['totalCoughs'] ?? 0,
-          dryCoughs: 0, // Not tracked in current system
-          wetCoughs: 0, // Not tracked in current system
+          dryCoughs: 0,
+          wetCoughs: 0,
           unknownCoughs: data['totalCoughs'] ?? 0,
           averageConfidence: (data['avgConfidence'] ?? 0.0).toDouble(),
           coughsPerHour: (data['coughFrequency'] ?? 0.0).toDouble(),
@@ -236,7 +232,8 @@ class ApiService {
   }
 
   /// Generate dummy cough data for testing
-  Future<Map<String, dynamic>> generateDummyData(String deviceId, {int count = 20}) async {
+  Future<Map<String, dynamic>> generateDummyData(String deviceId,
+      {int count = 20}) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/cough/generate-dummy/$deviceId?count=$count'),
@@ -246,11 +243,45 @@ class ApiService {
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
-        throw Exception('Failed to generate dummy data: ${response.statusCode}');
+        throw Exception(
+            'Failed to generate dummy data: ${response.statusCode}');
       }
     } catch (e) {
       print('Error generating dummy data: $e');
       rethrow;
     }
+  }
+
+  Future<VitalsData?> getLatestVitals(String deviceId) async {
+    try {
+      // REMOVED the extra /api from the path below
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/vitals/latest/$deviceId'),
+      );
+
+      if (response.statusCode == 200) {
+        return VitalsData.fromJson(json.decode(response.body));
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching vitals: $e');
+      return null;
+    }
+  }
+}
+
+class VitalsData {
+  final double temp;
+  final int bpm;
+  final bool leadsOff;
+
+  VitalsData({required this.temp, required this.bpm, required this.leadsOff});
+
+  factory VitalsData.fromJson(Map<String, dynamic> json) {
+    return VitalsData(
+      temp: (json['temp'] ?? 0.0).toDouble(),
+      bpm: (json['bpm'] ?? 0).toInt(),
+      leadsOff: json['leadsOff'] ?? true,
+    );
   }
 }
