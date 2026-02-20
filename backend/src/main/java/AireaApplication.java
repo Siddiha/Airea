@@ -42,6 +42,7 @@ public class AireaApplication {
         System.out.println("🚀 Airea Backend Server Started Successfully!");
         System.out.println("📡 API Available at: http://localhost:8080/api");
         System.out.println("❤️  Health Check: http://localhost:8080/api/cough/health");
+        System.out.println("❤️  Health Check: http://localhost:8080/api/vitals/event");
         System.out.println("🔒 Using environment variables for database connection");
     }
 }
