@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/summary_record.dart';
 import '../models/daily_summary_detail_model.dart';
+import '../models/weekly_summary_detail_model.dart';
 import '../utils/dummy_data_generator.dart';
 import '../config/api_config.dart';
 
@@ -18,6 +19,10 @@ abstract class SummaryRepository {
   // New method for detailed summary
   Future<DailySummaryDetailModel> getDailySummaryDetail(
       String deviceId, DateTime date);
+
+  // New method for weekly detailed summary
+  Future<WeeklySummaryDetailModel> getWeeklySummaryDetail(
+      String deviceId, DateTime weekStart);
 }
 
 /// Dummy implementation - generates Lorem Ipsum data
@@ -115,6 +120,14 @@ class DummySummaryRepository implements SummaryRepository {
     throw UnimplementedError(
         'Dummy repository does not support detailed summaries');
   }
+
+  @override
+  Future<WeeklySummaryDetailModel> getWeeklySummaryDetail(
+      String deviceId, DateTime weekStart) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    throw UnimplementedError(
+        'Dummy repository does not support weekly detailed summaries');
+  }
 }
 
 /// API implementation - calls Spring Boot backend
@@ -182,5 +195,38 @@ class ApiSummaryRepository implements SummaryRepository {
       DateTime startDate, DateTime endDate) async {
     // Not implemented for now
     throw UnimplementedError();
+  }
+
+  @override
+  Future<WeeklySummaryDetailModel> getWeeklySummaryDetail(
+      String deviceId, DateTime weekStart) async {
+    try {
+      // Format date as yyyy-MM-dd (matches backend ISO date)
+      final dateStr =
+          '${weekStart.year.toString().padLeft(4, '0')}-${weekStart.month.toString().padLeft(2, '0')}-${weekStart.day.toString().padLeft(2, '0')}';
+      final url = Uri.parse(ApiConfig.weeklySummaryUrl(deviceId, dateStr));
+
+      print('Making Weekly API call: $url');
+
+      final response = await http.get(url).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw Exception('Request timeout - backend may not be running');
+        },
+      );
+
+      print('Weekly API Response: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        print('Weekly total coughs: ${jsonData['coughSummary']?['totalCoughs']}');
+        return WeeklySummaryDetailModel.fromJson(jsonData);
+      } else {
+        throw Exception('Failed to load weekly summary: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching weekly summary: $e');
+      rethrow;
+    }
   }
 }

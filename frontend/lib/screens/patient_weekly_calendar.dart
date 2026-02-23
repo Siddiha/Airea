@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
+import '../config/api_config.dart';
 import '../services/summary_service.dart';
+import '../repositories/summary_repository.dart';
 import '../widgets/custom_calendar_widget.dart';
-import 'patient_weekly_summary_detail.dart';
+import 'weekly_summary_detail_screen_new.dart';
 
 class PatientWeeklyCalendar extends StatefulWidget {
   final SummaryService summaryService;
@@ -91,10 +93,10 @@ class _PatientWeeklyCalendarState extends State<PatientWeeklyCalendar> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PatientWeeklySummaryDetail(
+        builder: (context) => WeeklySummaryDetailScreenNew(
           weekStart: weekStart,
-          weekEnd: weekEnd,
-          summaryService: widget.summaryService,
+          deviceId: ApiConfig.defaultDeviceId,
+          repository: ApiSummaryRepository(),
         ),
       ),
     );
