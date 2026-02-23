@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'doctor_home_screen.dart';
 
 class DoctorNotificationScreen extends StatelessWidget {
   const DoctorNotificationScreen({super.key});
@@ -42,15 +43,26 @@ class DoctorNotificationScreen extends StatelessWidget {
             ),
 
             // Bottom home
-            const Positioned(
+            Positioned(
               bottom: 20,
               left: 0,
               right: 0,
-              child: Column(
-                children: [
-                  Icon(Icons.home, size: 28),
-                  Text("Home"),
-                ],
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const DoctorHomeScreen(),
+                    ),
+                    (route) => false,
+                  );
+                },
+                child: const Column(
+                  children: [
+                    Icon(Icons.home, size: 28),
+                    Text("Home"),
+                  ],
+                ),
               ),
             ),
           ],
