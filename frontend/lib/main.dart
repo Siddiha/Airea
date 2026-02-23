@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // <--- ADD THIS IMPORT
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/app_theme.dart';
+import 'screens/splash_screen.dart';
 import 'screens/welcome_page.dart';
 import 'screens/patient_profile_frame.dart';
+import 'screens/patient_homescreen.dart';
+import 'screens/doctor_home_screen.dart';
 // Import for testing summary screens
 import 'screens/summary_screens_test.dart';
 
@@ -37,7 +40,13 @@ class AireaApp extends StatelessWidget {
       title: 'Airea',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme(),
-      home: const WelcomePage(),
+      home: const SplashScreen(),
+      routes: {
+        '/splash': (context) => const SplashScreen(),
+        '/welcome': (context) => const WelcomePage(),
+        '/patient_home': (context) => const PatientHomeScreen(),
+        '/doctor_home': (context) => const DoctorHomeScreen(),
+      },
     );
   }
 }
