@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'connection_success_screen.dart'; // UPDATED IMPORT
+import 'connection_success_screen.dart';
 
 class AireaSetupScreen extends StatefulWidget {
   const AireaSetupScreen({super.key});
@@ -17,6 +17,14 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
 
   bool _isConnecting = false;
   Timer? _pollingTimer;
+  String? _initialLastSeen; // We store the "old" timestamp here
+
+  @override
+  void initState() {
+    super.initState();
+    // Capture the current state of the board before we start
+    _fetchInitialState();
+  }
 
   @override
   void dispose() {
@@ -26,10 +34,29 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
     super.dispose();
   }
 
+  // 1. Get the "Old" Timestamp so we don't accidentally auto-connect
+  Future<void> _fetchInitialState() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'https://airea-production.up.railway.app/api/board/status/airea_board_001'),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _initialLastSeen = data['lastSeen']; // Save the stale time
+        });
+      }
+    } catch (e) {
+      // If fails (e.g. no internet), just assume no previous record
+      _initialLastSeen = null;
+    }
+  }
+
   // Poll your Spring Boot backend to see if the device came online
   void _startPollingBackend() {
     int attempts = 0;
-    const int maxAttempts = 15; // 30 seconds total timeout
+    const int maxAttempts = 15; // 30 seconds timeout
 
     _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
       attempts++;
@@ -43,11 +70,19 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
 
-          if (data['status'] == 'online') {
-            timer.cancel(); // Stop checking
+          String currentStatus = data['status'];
+          String currentLastSeen = data['lastSeen'] ?? "";
+
+          // --- SMART CHECK ---
+          // Success ONLY if:
+          // 1. Status is "online"
+          // 2. The timestamp has CHANGED (meaning it's a fresh connection)
+          bool isFreshConnection = (currentLastSeen != _initialLastSeen);
+
+          if (currentStatus == 'online' && isFreshConnection) {
+            timer.cancel();
 
             if (mounted) {
-              // 1. Show success message
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Board Connected Successfully!'),
@@ -55,7 +90,6 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
                 ),
               );
 
-              // 2. Navigate to the NEW Success Screen
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
@@ -68,7 +102,6 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
         debugPrint('Polling attempt $attempts: Waiting for board...');
       }
 
-      // Handle Timeout if the board never connects
       if (attempts >= maxAttempts) {
         timer.cancel();
         if (mounted) {
@@ -77,8 +110,7 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                  'Connection timed out. Please check your Wi-Fi password and try again.'),
+              content: Text('Connection timed out. Please try again.'),
               backgroundColor: Colors.redAccent,
             ),
           );
@@ -101,10 +133,10 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
       _isConnecting = true;
     });
 
-    // 1. Start asking Spring Boot if the device is online yet
+    // 2. Start asking Spring Boot if the device is online yet
     _startPollingBackend();
 
-    // 2. Send the credentials to the board
+    // 3. Send the credentials to the board
     try {
       final url = Uri.parse('http://192.168.4.1/wifisave');
       await http.post(
@@ -115,7 +147,6 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
         },
       ).timeout(const Duration(seconds: 5));
     } catch (e) {
-      // Normal behavior: board reboots and drops connection
       debugPrint('Credentials sent. ESP32 is rebooting its Wi-Fi chip.');
     }
   }
@@ -210,7 +241,7 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
                       ),
               ),
             ),
-            // MANUAL NAVIGATION LINK
+            // We can keep the manual link as a backup
             const SizedBox(height: 20),
             Center(
               child: TextButton(
