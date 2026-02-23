@@ -44,7 +44,7 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
     if (result['success']) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => DoctorHomeScreen()),
+        MaterialPageRoute(builder: (context) => const DoctorHomeScreen()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

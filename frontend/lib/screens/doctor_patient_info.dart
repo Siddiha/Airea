@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'doctor_patient_info_screen.dart'; // import doctor_patient_info_screen
+import 'option_connect_patient.dart';
+import 'doctor_home_screen.dart';
 
 class DoctorPatientInfo extends StatelessWidget {
   const DoctorPatientInfo({super.key});
@@ -16,7 +17,7 @@ class DoctorPatientInfo extends StatelessWidget {
               top: 40,
               left: 20,
               child: Text(
-                "Registered Patient",
+                "Registered Patient's ",
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
@@ -62,8 +63,7 @@ class DoctorPatientInfo extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const DoctorPatientInfoScreen(),
+                          builder: (context) => const OptionConnectPatient(),
                         ),
                       );
                     },
@@ -97,15 +97,26 @@ class DoctorPatientInfo extends StatelessWidget {
             ),
 
             // Bottom Home
-            const Positioned(
+            Positioned(
               bottom: 20,
               left: 0,
               right: 0,
-              child: Column(
-                children: [
-                  Icon(Icons.home, size: 28),
-                  Text("Home"),
-                ],
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const DoctorHomeScreen(),
+                    ),
+                    (route) => false,
+                  );
+                },
+                child: const Column(
+                  children: [
+                    Icon(Icons.home, size: 28),
+                    Text("Home"),
+                  ],
+                ),
               ),
             ),
           ],

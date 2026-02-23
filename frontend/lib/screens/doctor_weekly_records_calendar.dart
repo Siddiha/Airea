@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'doctor_weekly_summary_detail.dart';
+import 'weekly_summary_detail_screen_new.dart';
+import '../repositories/summary_repository.dart';
+import '../config/api_config.dart';
 
 class DoctorWeeklyRecordsCalendar extends StatefulWidget {
   const DoctorWeeklyRecordsCalendar({super.key});
@@ -26,37 +28,17 @@ class _DoctorWeeklyRecordsCalendarState extends State<DoctorWeeklyRecordsCalenda
       _rangeEnd = endOfWeek;
     });
 
-    // Navigate to detail screen with formatted string
-    String rangeString = _getDateRangeString(startOfWeek, endOfWeek);
-    
+    // Navigate to new weekly summary detail screen
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => DoctorWeeklySummaryDetail(
-          dateText: rangeString,
+        builder: (context) => WeeklySummaryDetailScreenNew(
+          weekStart: startOfWeek,
+          deviceId: ApiConfig.defaultDeviceId,
+          repository: ApiSummaryRepository(),
         ),
       ),
     );
-  }
-
-  String _getDateRangeString(DateTime start, DateTime end) {
-    String suffix(int day) {
-      if (day >= 11 && day <= 13) return 'th';
-      switch (day % 10) {
-        case 1: return 'st';
-        case 2: return 'nd';
-        case 3: return 'rd';
-        default: return 'th';
-      }
-    }
-    
-    // List of month names
-    const List<String> months = [
-      "", "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
-    ];
-
-    return "${start.day}${suffix(start.day)} - ${end.day}${suffix(end.day)} ${months[start.month]}, ${start.year}";
   }
 
   @override

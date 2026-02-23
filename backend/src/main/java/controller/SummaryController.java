@@ -1,6 +1,7 @@
 package controller;
 
 import dto.DailySummaryResponse;
+import dto.WeeklySummaryResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,21 @@ public class SummaryController {
             return ResponseEntity.ok(summary);
         } catch (Exception e) {
             System.err.println("Error generating daily summary: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/weekly/{deviceId}")
+    public ResponseEntity<WeeklySummaryResponse> getWeeklySummary(
+            @PathVariable String deviceId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart
+    ) {
+        try {
+            WeeklySummaryResponse summary = summaryService.generateWeeklySummary(deviceId, weekStart);
+            return ResponseEntity.ok(summary);
+        } catch (Exception e) {
+            System.err.println("Error generating weekly summary: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }

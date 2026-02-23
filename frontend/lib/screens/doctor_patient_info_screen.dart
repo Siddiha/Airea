@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'option_connect_patient.dart';
+import 'doctor_home_screen.dart';
 
 class DoctorPatientInfoScreen extends StatelessWidget {
   const DoctorPatientInfoScreen({super.key});
@@ -16,7 +17,7 @@ class DoctorPatientInfoScreen extends StatelessWidget {
               top: 40,
               left: 20,
               child: Text(
-                "Registered Patient",
+                "Registered Patient's",
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
@@ -29,7 +30,7 @@ class DoctorPatientInfoScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  //text outside box 
+                  //text outside box
                   const Text(
                     "No any patients\nconnected !",
                     textAlign: TextAlign.center,
@@ -41,58 +42,69 @@ class DoctorPatientInfoScreen extends StatelessWidget {
                   const SizedBox(height: 25),
 
                   // Grey Box
-                GestureDetector(
-                            onTap: () {
-                       Navigator.push(
-                         context,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
                         MaterialPageRoute(
-                        builder: (context) => const OptionConnectPatient(),
+                          builder: (context) => const OptionConnectPatient(),
                         ),
                       );
                     },
                     child: Container(
-                           width: 280,
-                          height: 220,
-                         decoration: BoxDecoration(
-                            color: const Color(0xFFDDE3E4),
-                             borderRadius: BorderRadius.circular(16),
-                          ),
-                           child: const Column(
-                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                           CircleAvatar(
-                         radius: 40,
-                       backgroundColor: Colors.green,
+                      width: 280,
+                      height: 220,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDDE3E4),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircleAvatar(
+                            radius: 40,
+                            backgroundColor: Colors.green,
                             child: Icon(
-                          Icons.add,
-                             size: 45,
-                            color: Colors.white,
+                              Icons.add,
+                              size: 45,
+                              color: Colors.white,
                             ),
                           ),
-                           SizedBox(height: 20),
+                          SizedBox(height: 20),
                           Text(
-                                 "Press to\nconnect with\n a patient",
-                          textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 14),
+                            "Press to\nconnect with\n a patient",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ],
                       ),
-                  ],
-                   ),
-                 ),
-                ),
+                    ),
+                  ),
                 ],
               ),
             ),
 
             // Bottom Home
-            const Positioned(
+            Positioned(
               bottom: 20,
               left: 0,
               right: 0,
-              child: Column(
-                children: [
-                  Icon(Icons.home, size: 28),
-                  Text("Home"),
-                ],
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const DoctorHomeScreen(),
+                    ),
+                    (route) => false,
+                  );
+                },
+                child: const Column(
+                  children: [
+                    Icon(Icons.home, size: 28),
+                    Text("Home"),
+                  ],
+                ),
               ),
             ),
           ],
