@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'edit_doctor_details.dart';
 
 class DoctorProfileFrame extends StatelessWidget {
   const DoctorProfileFrame({super.key});
@@ -7,20 +8,42 @@ class DoctorProfileFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFEDEFF0),
+
+      // Bottom Home Button
+      bottomNavigationBar: GestureDetector(
+        onTap: () {
+          Navigator.pop(context); // Go back to Home
+        },
+        child: Container(
+          height: 60,
+          color: Colors.white,
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.home),
+              Text("Home"),
+            ],
+          ),
+        ),
+      ),
+
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Profile",
-                  style: TextStyle(fontSize: 22)),
+              const Text("Profile", style: TextStyle(fontSize: 22)),
               const SizedBox(height: 30),
-              _btn("Edit additional details"),
+
+              // 🔹 Edit Additional Details Button
+              _btn(context, "Edit additional details"),
+
               const SizedBox(height: 15),
-              _btn("Manage connected patients"),
+              _btn(context, "Manage connected patients"),
+
               const SizedBox(height: 15),
-              _btn("Logout"),
+              _btn(context, "Logout"),
             ],
           ),
         ),
@@ -28,7 +51,7 @@ class DoctorProfileFrame extends StatelessWidget {
     );
   }
 
-  Widget _btn(String text) {
+  Widget _btn(BuildContext context, String text) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF5DA092),
@@ -37,7 +60,16 @@ class DoctorProfileFrame extends StatelessWidget {
           borderRadius: BorderRadius.circular(25),
         ),
       ),
-      onPressed: () {},
+      onPressed: () {
+        if (text == "Edit additional details") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const EditDoctorDetails(),
+            ),
+          );
+        }
+      },
       child: Text(text),
     );
   }
