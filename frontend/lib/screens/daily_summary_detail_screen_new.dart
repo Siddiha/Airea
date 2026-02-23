@@ -169,13 +169,30 @@ class _DailySummaryDetailScreenNewState extends State<DailySummaryDetailScreenNe
                 _buildMainStatsCard(summary),
                 const SizedBox(height: 20),
 
+                // Vitals Summary Section (NEW)
+                _buildVitalsSummarySection(summary.vitalsSummary),
+                const SizedBox(height: 20),
+
                 // Hourly Distribution Chart
                 _buildHourlyChart(summary),
                 const SizedBox(height: 20),
+                
+                // Vitals Trend Chart (NEW - Combined multi-line)
+                if (summary.vitalsSummary != null && summary.vitalsSummary!.hasVitalsData) ...[
+                  _buildVitalsTrendChart(summary.vitalsSummary!),
+                  const SizedBox(height: 20),
+                ],
 
                 // Statistics Grid
                 _buildStatisticsGrid(summary),
                 const SizedBox(height: 20),
+                
+                // Vitals Anomalies (NEW)
+                if (summary.vitalsSummary != null && 
+                    summary.vitalsSummary!.anomalies.isNotEmpty) ...[
+                  _buildVitalsAnomaliesSection(summary.vitalsSummary!.anomalies),
+                  const SizedBox(height: 20),
+                ],
 
                 // Patterns
                 if (summary.patterns.isNotEmpty) ...[
@@ -298,13 +315,21 @@ class _DailySummaryDetailScreenNewState extends State<DailySummaryDetailScreenNe
                     .reduce((a, b) => a > b ? a : b) * 1.2,
                 barTouchData: BarTouchData(
                   enabled: true,
+                  handleBuiltInTouches: true,
                   touchTooltipData: BarTouchTooltipData(
+                    fitInsideHorizontally: true,
+                    fitInsideVertically: true,
+                    tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    tooltipMargin: 8,
                     getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      final hour = group.x;
+                      final hourStr = hour.toString().padLeft(2, '0');
                       return BarTooltipItem(
-                        '${group.x}:00\n${rod.toY.toInt()} coughs',
+                        '$hourStr:00\n${rod.toY.toInt()} coughs',
                         const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
                       );
                     },
@@ -829,6 +854,855 @@ class _DailySummaryDetailScreenNewState extends State<DailySummaryDetailScreenNe
         return const Color(0xFFC8E6C9);
       default:
         return const Color(0xFFBBDEFB);
+    }
+  }
+
+  // ==================== VITALS SECTION ====================
+
+  Widget _buildVitalsSummarySection(VitalsSummaryModel? vitalsSummary) {
+    if (vitalsSummary == null || !vitalsSummary.hasVitalsData) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(
+              Icons.monitor_heart_outlined,
+              size: 48,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No Vitals Recorded',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No vitals data was recorded for this day.\nEnsure your device is properly connected.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[500],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE3F2FD),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.monitor_heart,
+                  color: Color(0xFF1E88E5),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Vitals Summary',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A1A2E),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getVitalsSeverityColor(vitalsSummary.vitalsSeverityScore).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _getVitalsSeverityLabel(vitalsSummary.vitalsSeverityScore),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _getVitalsSeverityColor(vitalsSummary.vitalsSeverityScore),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Vitals Cards Grid
+          _buildVitalsCardsGrid(vitalsSummary),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVitalsCardsGrid(VitalsSummaryModel vitals) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildVitalCard(
+                title: 'Heart Rate',
+                icon: Icons.favorite,
+                color: const Color(0xFFE53935),
+                vital: vitals.heartRate,
+                unit: 'bpm',
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildVitalCard(
+                title: 'Temperature',
+                icon: Icons.thermostat,
+                color: const Color(0xFFFF7043),
+                vital: vitals.temperature,
+                unit: '°C',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildVitalCard(
+          title: 'Respiratory Rate',
+          icon: Icons.air,
+          color: const Color(0xFF42A5F5),
+          vital: vitals.respiratoryRate,
+          unit: 'breaths/min',
+          isFullWidth: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVitalCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required SingleVitalSummaryModel? vital,
+    required String unit,
+    bool isFullWidth = false,
+  }) {
+    if (vital == null || vital.readingCount == 0) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: Colors.grey[400], size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No data',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[500],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final statusColor = _getVitalStatusColor(vital.status);
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: statusColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: statusColor.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  vital.status,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: statusColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Flexible(
+                child: Text(
+                  vital.average.toStringAsFixed(1),
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  unit,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              _buildMinMaxLabel('Min', vital.min),
+              _buildMinMaxLabel('Max', vital.max),
+              Text(
+                '${vital.readingCount} readings',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey[500],
+                ),
+              ),
+            ],
+          ),
+          if (vital.statusMessage.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              vital.statusMessage,
+              style: TextStyle(
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
+                color: statusColor,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMinMaxLabel(String label, double? value) {
+    return Text(
+      '$label: ${value != null ? value.toStringAsFixed(1) : '--'}',
+      style: TextStyle(
+        fontSize: 10,
+        color: Colors.grey[600],
+      ),
+    );
+  }
+
+  Color _getVitalStatusColor(String status) {
+    switch (status.toUpperCase()) {
+      case 'NORMAL':
+        return const Color(0xFF43A047);
+      case 'ELEVATED':
+      case 'LOW':
+        return const Color(0xFFFB8C00);
+      case 'HIGH':
+      case 'VERY_LOW':
+        return const Color(0xFFE53935);
+      case 'CRITICAL':
+        return const Color(0xFF8E24AA);
+      default:
+        return const Color(0xFF78909C);
+    }
+  }
+
+  Color _getVitalsSeverityColor(int score) {
+    if (score >= 7) return const Color(0xFFE53935);
+    if (score >= 4) return const Color(0xFFFB8C00);
+    return const Color(0xFF43A047);
+  }
+
+  String _getVitalsSeverityLabel(int score) {
+    if (score >= 7) return 'High Risk';
+    if (score >= 4) return 'Moderate';
+    return 'Normal';
+  }
+
+  Widget _buildVitalsTrendChart(VitalsSummaryModel vitalsSummary) {
+    final hourlyData = vitalsSummary.hourlyVitals;
+    if (hourlyData.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3E5F5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.show_chart,
+                  color: Color(0xFF8E24AA),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Vitals Trend (24h)',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A1A2E),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Legend
+          Wrap(
+            spacing: 16,
+            runSpacing: 8,
+            children: [
+              _buildChartLegendItem('Heart Rate', const Color(0xFFE53935)),
+              _buildChartLegendItem('Temperature', const Color(0xFFFF7043)),
+              _buildChartLegendItem('Respiratory', const Color(0xFF42A5F5)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 200,
+            child: _buildMultiLineChart(hourlyData),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChartLegendItem(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 3,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMultiLineChart(List<VitalsHourlyDataModel> hourlyData) {
+    // Normalize values for combined chart display
+    // HR: typically 60-100, normalize to 0-100
+    // Temp: typically 36-38, normalize to 0-100
+    // RR: typically 12-20, normalize to 0-100
+    
+    List<FlSpot> hrSpots = [];
+    List<FlSpot> tempSpots = [];
+    List<FlSpot> rrSpots = [];
+
+    for (var data in hourlyData) {
+      final hour = data.hour.toDouble();
+      
+      if (data.avgHeartRate != null) {
+        // Normalize HR (40-140 range to 0-100)
+        final normalizedHR = ((data.avgHeartRate! - 40) / 100) * 100;
+        hrSpots.add(FlSpot(hour, normalizedHR.clamp(0, 100)));
+      }
+      
+      if (data.avgTemperature != null) {
+        // Normalize Temp (35-40 range to 0-100)
+        final normalizedTemp = ((data.avgTemperature! - 35) / 5) * 100;
+        tempSpots.add(FlSpot(hour, normalizedTemp.clamp(0, 100)));
+      }
+      
+      if (data.avgRespiratoryRate != null) {
+        // Normalize RR (8-30 range to 0-100)
+        final normalizedRR = ((data.avgRespiratoryRate! - 8) / 22) * 100;
+        rrSpots.add(FlSpot(hour, normalizedRR.clamp(0, 100)));
+      }
+    }
+
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: 25,
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: Colors.grey[200]!,
+              strokeWidth: 1,
+            );
+          },
+        ),
+        titlesData: FlTitlesData(
+          leftTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 4,
+              getTitlesWidget: (value, meta) {
+                final hour = value.toInt();
+                if (hour % 4 == 0 && hour <= 24) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      '${hour.toString().padLeft(2, '0')}:00',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        minX: 0,
+        maxX: 24,
+        minY: 0,
+        maxY: 100,
+        lineBarsData: [
+          // Heart Rate Line
+          if (hrSpots.isNotEmpty)
+            LineChartBarData(
+              spots: hrSpots,
+              isCurved: true,
+              color: const Color(0xFFE53935),
+              barWidth: 2,
+              isStrokeCapRound: true,
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (spot, percent, barData, index) {
+                  return FlDotCirclePainter(
+                    radius: 4,
+                    color: const Color(0xFFE53935),
+                    strokeWidth: 1,
+                    strokeColor: Colors.white,
+                  );
+                },
+              ),
+              belowBarData: BarAreaData(show: false),
+            ),
+          // Temperature Line
+          if (tempSpots.isNotEmpty)
+            LineChartBarData(
+              spots: tempSpots,
+              isCurved: true,
+              color: const Color(0xFFFF7043),
+              barWidth: 2,
+              isStrokeCapRound: true,
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (spot, percent, barData, index) {
+                  return FlDotCirclePainter(
+                    radius: 4,
+                    color: const Color(0xFFFF7043),
+                    strokeWidth: 1,
+                    strokeColor: Colors.white,
+                  );
+                },
+              ),
+              belowBarData: BarAreaData(show: false),
+            ),
+          // Respiratory Rate Line
+          if (rrSpots.isNotEmpty)
+            LineChartBarData(
+              spots: rrSpots,
+              isCurved: true,
+              color: const Color(0xFF42A5F5),
+              barWidth: 2,
+              isStrokeCapRound: true,
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (spot, percent, barData, index) {
+                  return FlDotCirclePainter(
+                    radius: 4,
+                    color: const Color(0xFF42A5F5),
+                    strokeWidth: 1,
+                    strokeColor: Colors.white,
+                  );
+                },
+              ),
+              belowBarData: BarAreaData(show: false),
+            ),
+        ],
+        lineTouchData: LineTouchData(
+          enabled: true,
+          handleBuiltInTouches: true,
+          touchSpotThreshold: 20,
+          getTouchedSpotIndicator: (LineChartBarData barData, List<int> spotIndexes) {
+            return spotIndexes.map((index) {
+              return TouchedSpotIndicatorData(
+                const FlLine(
+                  color: Colors.grey,
+                  strokeWidth: 1,
+                  dashArray: [5, 5],
+                ),
+                FlDotData(
+                  show: true,
+                  getDotPainter: (spot, percent, barData, index) {
+                    return FlDotCirclePainter(
+                      radius: 6,
+                      color: barData.color ?? Colors.blue,
+                      strokeWidth: 2,
+                      strokeColor: Colors.white,
+                    );
+                  },
+                ),
+              );
+            }).toList();
+          },
+          touchTooltipData: LineTouchTooltipData(
+            fitInsideHorizontally: true,
+            fitInsideVertically: true,
+            tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            tooltipMargin: 10,
+            getTooltipItems: (touchedSpots) {
+              return touchedSpots.map((spot) {
+                String label;
+                String value;
+                Color lineColor;
+                
+                if (spot.barIndex == 0) {
+                  // Denormalize HR
+                  final hr = (spot.y / 100 * 100) + 40;
+                  label = 'Heart Rate';
+                  value = '${hr.toStringAsFixed(0)} bpm';
+                  lineColor = const Color(0xFFE53935);
+                } else if (spot.barIndex == 1) {
+                  // Denormalize Temp
+                  final temp = (spot.y / 100 * 5) + 35;
+                  label = 'Temperature';
+                  value = '${temp.toStringAsFixed(1)} °C';
+                  lineColor = const Color(0xFFFF7043);
+                } else {
+                  // Denormalize RR
+                  final rr = (spot.y / 100 * 22) + 8;
+                  label = 'Respiratory';
+                  value = '${rr.toStringAsFixed(0)} /min';
+                  lineColor = const Color(0xFF42A5F5);
+                }
+                
+                return LineTooltipItem(
+                  '$label\n$value',
+                  TextStyle(
+                    color: lineColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                );
+              }).toList();
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVitalsAnomaliesSection(List<VitalsAnomalyModel>? anomalies) {
+    if (anomalies == null || anomalies.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEBEE),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.warning_amber,
+                  color: Color(0xFFE53935),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Vitals Alerts',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A1A2E),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEBEE),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${anomalies.length} alert${anomalies.length > 1 ? 's' : ''}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFE53935),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...anomalies.take(5).map((anomaly) => _buildVitalsAnomalyItem(anomaly)),
+          if (anomalies.length > 5)
+            Center(
+              child: Text(
+                '+${anomalies.length - 5} more alerts',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVitalsAnomalyItem(VitalsAnomalyModel anomaly) {
+    final severityColor = _getAnomalySeverityColor(anomaly.severity);
+    final iconData = _getAnomalyIcon(anomaly.type);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: severityColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: severityColor.withOpacity(0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: severityColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(iconData, color: severityColor, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        anomaly.condition.isEmpty ? 'Anomaly Detected' : anomaly.condition,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: severityColor,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: severityColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        anomaly.severity.isEmpty ? 'INFO' : anomaly.severity,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: severityColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  anomaly.message,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                if (anomaly.value != 0) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Value: ${anomaly.value.toStringAsFixed(1)}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[500],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getAnomalySeverityColor(String severity) {
+    switch (severity.toUpperCase()) {
+      case 'SEVERE':
+      case 'CRITICAL':
+        return const Color(0xFFD32F2F);
+      case 'HIGH':
+        return const Color(0xFFE53935);
+      case 'MODERATE':
+        return const Color(0xFFFB8C00);
+      case 'LOW':
+        return const Color(0xFFFDD835);
+      default:
+        return const Color(0xFF78909C);
+    }
+  }
+
+  IconData _getAnomalyIcon(String type) {
+    switch (type.toUpperCase()) {
+      case 'HEART_RATE':
+        return Icons.favorite;
+      case 'TEMPERATURE':
+        return Icons.thermostat;
+      case 'RESPIRATORY_RATE':
+        return Icons.air;
+      default:
+        return Icons.warning;
     }
   }
 }

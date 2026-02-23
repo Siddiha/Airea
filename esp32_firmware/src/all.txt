@@ -1,40 +1,55 @@
 #include <Arduino.h>
-#include <driver/i2s.h>
+#include <Wire.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include <WiFiClientSecure.h> // Required for Railway HTTPS
-#include "cough_model.h"
+#include <WiFiClientSecure.h>
+#include <driver/i2s.h>
 
 // --- FREERTOS INCLUDES ---
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
-// --- WI-FI CREDENTIALS ---
-const char *ssid = "Dialog 4G 437";
-const char *password = "20040920";
-
-// --- SERVER URL ---
-const char *serverUrl = "https://airea-production.up.railway.app/api/cough/event";
-
-// --- TENSORFLOW INCLUDES ---
+// --- TFLITE INCLUDES ---
 #include "tensorflow/lite/micro/all_ops_resolver.h"
 #include "tensorflow/lite/micro/micro_error_reporter.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 
-// --- PIN DEFINITIONS (ESP32-S3) ---
-#define I2S_WS 5
-#define I2S_SD 6
-#define I2S_SCK 4
+// --- YOUR MODELS & LIBRARIES ---
+#include "cough_model.h"
+#include "Protocentral_MAX30205.h"
+
+// =========================================================
+// 1. PIN DEFINITIONS
+// =========================================================
+// Vitals
+#define PIN_TEMP_SDA 17
+#define PIN_TEMP_SCL 18
+// ECG pins 1, 6, and 7 are no longer used
+
+// Audio
+#define I2S_WS 42
+#define I2S_SD 2
+#define I2S_SCK 41
 #define I2S_PORT I2S_NUM_0
 
-// --- AUDIO SETTINGS ---
+// =========================================================
+// 2. NETWORK & CONFIGURATION
+// =========================================================
+const char *ssid = "Dialog 4G 437";
+const char *password = "20040920";
+
+const char *vitalsUrl = "https://airea-production.up.railway.app/api/vitals/event";
+const char *coughUrl = "https://airea-production.up.railway.app/api/cough/event";
+
 #define SAMPLE_RATE 16000
 const int kAudioBufferSize = 32000; // 2 Seconds
-#define COUGH_THRESHOLD 0.90
+#define COUGH_THRESHOLD 0.80
 
-// --- QUEUE STRUCTURE ---
+// =========================================================
+// 3. GLOBALS & QUEUES
+// =========================================================
 struct CoughEvent
 {
     float confidence;
@@ -43,7 +58,7 @@ struct CoughEvent
 };
 QueueHandle_t coughQueue;
 
-// --- GLOBALS ---
+// TFLite Globals
 const int kArenaSize = 200 * 1024;
 uint8_t *tensor_arena;
 int16_t *raw_audio_buffer;
@@ -55,47 +70,79 @@ tflite::MicroInterpreter *interpreter;
 TfLiteTensor *input = nullptr;
 TfLiteTensor *output = nullptr;
 
-// -------------------------------------------------------------------------
-// TASK 1: NETWORK SENDER (Fixed for Railway HTTPS)
-// -------------------------------------------------------------------------
+// =========================================================
+// 4. CLASS: BIO SENSORS (Temp Only)
+// =========================================================
+class BioMonitor
+{
+private:
+    MAX30205 tempSensor;
+
+public:
+    float currentTemp = 0.0;
+
+    // Hardcoded to true since ECG is disabled
+    bool leadsAreOff = true;
+
+    void begin()
+    {
+        // ✅ Start I2C EXACTLY ONCE here for Temperature
+        Wire.begin(PIN_TEMP_SDA, PIN_TEMP_SCL, 100000);
+        delay(100);
+
+        if (!tempSensor.scanAvailableSensors())
+        {
+            Serial.println("⚠️ Temp Sensor not found! Check wiring.");
+        }
+        else
+        {
+            Serial.println("✅ MAX30205 Temp Sensor Ready!");
+        }
+    }
+
+    void update()
+    {
+        // --- Temperature (1s interval) ---
+        static unsigned long lastTempRead = 0;
+        if (millis() - lastTempRead > 1000)
+        {
+            currentTemp = tempSensor.getTemperature();
+            lastTempRead = millis();
+        }
+
+        // ECG update logic has been completely removed
+    }
+
+    // Hardcoded to return 0 since ECG is disabled
+    float getBPM() { return 0.0; }
+    float getRR() { return 0.0; }
+    float getTemp() { return currentTemp; }
+};
+
+BioMonitor bioMonitor;
+
+// =========================================================
+// 5. TASK: COUGH NETWORK SENDER
+// =========================================================
 void network_sender_task(void *parameter)
 {
     CoughEvent receivedEvent;
-
     while (true)
     {
         if (xQueueReceive(coughQueue, &receivedEvent, portMAX_DELAY) == pdTRUE)
         {
-
-            Serial.println();
-            Serial.print("☁️  [Cloud] Uploading Event... ");
-
-            if (WiFi.status() != WL_CONNECTED)
-            {
-                Serial.print("(Connecting Wi-Fi)... ");
-                WiFi.begin(ssid, password);
-                int attempts = 0;
-                while (WiFi.status() != WL_CONNECTED && attempts < 20)
-                {
-                    vTaskDelay(500 / portTICK_PERIOD_MS);
-                    attempts++;
-                }
-            }
+            Serial.print("\n☁️  [Cloud] Uploading Cough Event... ");
 
             if (WiFi.status() == WL_CONNECTED)
             {
-                // --- HTTPS FIX START ---
                 WiFiClientSecure client;
-                client.setInsecure(); // Trust Railway Certificate
+                client.setInsecure();
                 client.setTimeout(10000);
-
                 HTTPClient http;
 
-                // Use the secure client!
-                if (http.begin(client, serverUrl))
+                if (http.begin(client, coughUrl))
                 {
                     http.addHeader("Content-Type", "application/json");
-
                     String jsonPayload = "{";
                     jsonPayload += "\"deviceId\":\"ESP32_COUGH_01\",";
                     jsonPayload += "\"confidence\":" + String(receivedEvent.confidence, 3) + ",";
@@ -114,11 +161,6 @@ void network_sender_task(void *parameter)
                     }
                     http.end();
                 }
-                else
-                {
-                    Serial.println("Connection Failed.");
-                }
-                // --- HTTPS FIX END ---
             }
             else
             {
@@ -129,9 +171,9 @@ void network_sender_task(void *parameter)
     }
 }
 
-// -------------------------------------------------------------------------
-// TASK 2: AI LISTENER (Fixed for 0% on Silence)
-// -------------------------------------------------------------------------
+// =========================================================
+// 6. TASK: AUDIO INFERENCE (Cough AI)
+// =========================================================
 void audio_inference_task(void *parameter)
 {
     if (input == nullptr)
@@ -156,6 +198,7 @@ void audio_inference_task(void *parameter)
         .dma_buf_len = 1024,
         .use_apll = false,
         .fixed_mclk = 0};
+
     const i2s_pin_config_t pin_config = {
         .bck_io_num = I2S_SCK,
         .ws_io_num = I2S_WS,
@@ -166,7 +209,7 @@ void audio_inference_task(void *parameter)
         return;
     i2s_set_pin(I2S_PORT, &pin_config);
 
-    Serial.println("🎤  System Ready. Listening...");
+    Serial.println("🎤  Microphone Ready. AI Listening...");
 
     while (true)
     {
@@ -189,97 +232,138 @@ void audio_inference_task(void *parameter)
         }
         avg_vol /= (input->bytes / 100);
 
-        TfLiteStatus invoke_status = interpreter->Invoke();
-        if (invoke_status != kTfLiteOk)
+        if (interpreter->Invoke() != kTfLiteOk)
             continue;
 
-        float cough_score = 0;
-        if (output->type == kTfLiteInt8)
-        {
-            float scale = output->params.scale;
-            int zero_point = output->params.zero_point;
-            cough_score = (output->data.int8[1] - zero_point) * scale;
-        }
-        else
-        {
-            cough_score = output->data.f[1];
-        }
+        float cough_score = (output->type == kTfLiteInt8) ? (output->data.int8[1] - output->params.zero_point) * output->params.scale : output->data.f[1];
 
-        // --- 🛠️ 0% FIX START ---
-        // If volume is low, force score to 0.0
         if (avg_vol < 300)
         {
             cough_score = 0.0;
-
-            // Heartbeat
             if (millis() - last_dot_time > 2000)
             {
                 Serial.print(".");
                 last_dot_time = millis();
             }
         }
-        // --- 0% FIX END ---
-
         else
         {
             if (cough_score > COUGH_THRESHOLD && (millis() - last_alert_time > 5000))
             {
-                Serial.println("\n");
-                Serial.println("🚨  COUGH DETECTED!");
+                Serial.println("\n🚨  COUGH DETECTED!");
                 Serial.printf("    Confidence: %.1f%%  |  Volume: %d\n", cough_score * 100, (int)avg_vol);
 
-                CoughEvent event;
-                event.confidence = cough_score;
-                event.volume = avg_vol;
-                event.timestamp = millis();
+                CoughEvent event = {cough_score, avg_vol, millis()};
                 xQueueSend(coughQueue, &event, 0);
                 last_alert_time = millis();
             }
             else if (avg_vol > 500)
             {
-                Serial.println();
-                Serial.printf("🔊  Noise Detected (Vol: %d, Cough Prob: %.1f%%)\n", (int)avg_vol, cough_score * 100);
+                Serial.printf("\n🔊  Noise Detected (Vol: %d, Cough Prob: %.1f%%)\n", (int)avg_vol, cough_score * 100);
             }
         }
-
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
 
-// -------------------------------------------------------------------------
-// SETUP
-// -------------------------------------------------------------------------
+// =========================================================
+// 7. MAIN SETUP & LOOP
+// =========================================================
 void setup()
 {
     Serial.begin(115200);
     delay(2000);
     Serial.println("\n\n=================================");
     Serial.println("   AIREA MONITORING SYSTEM       ");
-    Serial.println("   Status: ONLINE                ");
+    Serial.println("   Status: COMPETITION MODE      ");
     Serial.println("=================================");
 
+    // 1. Wi-Fi Setup
+    Serial.print("Connecting to WiFi...");
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.println("\n✅ WiFi Connected.");
+
+    // 2. Queue & Memory Initialization
     coughQueue = xQueueCreate(5, sizeof(CoughEvent));
 
     tensor_arena = (uint8_t *)ps_malloc(kArenaSize);
+    if (!tensor_arena)
+        tensor_arena = (uint8_t *)malloc(kArenaSize);
+
     raw_audio_buffer = (int16_t *)ps_malloc(kAudioBufferSize * sizeof(int16_t));
+    if (!raw_audio_buffer)
+        raw_audio_buffer = (int16_t *)malloc(kAudioBufferSize * sizeof(int16_t));
 
     if (!tensor_arena || !raw_audio_buffer)
     {
-        Serial.println("❌ Memory Error.");
+        Serial.println("❌ CRITICAL: Memory Allocation Failed.");
         while (1)
             ;
     }
 
+    // 3. TFLite Initialization
     model = tflite::GetModel(model_data);
     static tflite::MicroInterpreter static_interpreter(model, resolver, tensor_arena, kArenaSize, &micro_error_reporter);
     interpreter = &static_interpreter;
     interpreter->AllocateTensors();
-
     input = interpreter->input(0);
     output = interpreter->output(0);
 
+    // 4. BioMonitor Start
+    bioMonitor.begin();
+
+    // 5. Start FreeRTOS Tasks
     xTaskCreatePinnedToCore(network_sender_task, "NetSender", 8192, NULL, 1, NULL, 0);
-    xTaskCreatePinnedToCore(audio_inference_task, "AudioAI", 8192, NULL, 2, NULL, 1);
+    xTaskCreatePinnedToCore(audio_inference_task, "AudioAI", 8192, NULL, 2, NULL, 0);
 }
 
-void loop() { vTaskDelay(1000); }
+void loop()
+{
+    // Hardware Sensors
+    bioMonitor.update();
+
+    // Push Vitals to Backend (Every 5 Seconds)
+    static unsigned long lastVitalsSync = 0;
+    if (millis() - lastVitalsSync > 5000)
+    {
+        if (WiFi.status() == WL_CONNECTED)
+        {
+            WiFiClientSecure client;
+            client.setInsecure();
+            HTTPClient http;
+            if (http.begin(client, vitalsUrl))
+            {
+                http.addHeader("Content-Type", "application/json");
+
+                // 1. Fetch RAW readings directly from the hardware
+                float currentTemp = bioMonitor.getTemp();
+                float currentBpm = bioMonitor.getBPM(); // Now locked at 0.0
+                float currentRr = bioMonitor.getRR();   // Now locked at 0.0
+                bool leadsOff = bioMonitor.leadsAreOff; // Now locked at true
+
+                // 2. Construct the JSON string
+                String json = "{\"deviceId\":\"ESP32_COUGH_01\", ";
+                json += "\"type\":\"VITALS_UPDATE\", ";
+                json += "\"temp\":" + String(currentTemp) + ", ";
+                json += "\"bpm\":" + String(currentBpm) + ", ";
+                json += "\"rr\":" + String(currentRr) + ", ";
+                json += "\"leadsOff\":" + String(leadsOff ? "true" : "false") + "}";
+
+                int response = http.POST(json);
+                if (response > 0)
+                {
+                    Serial.println("🌐 Vitals Synced: " + json);
+                }
+                http.end();
+            }
+        }
+        lastVitalsSync = millis();
+    }
+
+    delay(10);
+}

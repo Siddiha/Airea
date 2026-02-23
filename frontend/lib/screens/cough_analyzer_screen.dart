@@ -7,7 +7,6 @@ import '../models/cough_event.dart';
 import '../models/cough_statistics.dart';
 import '../services/api_service.dart';
 import 'device_screen.dart';
-// import 'patient_summary_page.dart';
 
 class CoughAnalyzerScreen extends StatefulWidget {
   final String deviceId;
@@ -31,16 +30,14 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
   CoughStatistics? _hourlyStats;
   List<CoughEvent> _recentEvents = [];
 
+  // NEW: Store the exact count for the last 60 minutes
+  int _currentHourlyFrequency = 0;
+
   Timer? _pollingTimer;
 
   List<CoughEvent> _cleanRecentEvents(List<CoughEvent> events) {
-    // 1. Convert to a mutable list so we can sort it
     final allEvents = events.toList();
-
-    // 2. Sort so the NEWEST (2026 dates) are at the TOP
     allEvents.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-
-    // 3. Take the top 3 (or 5) to show on screen
     return allEvents.take(5).toList();
   }
 
@@ -57,14 +54,12 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
     super.dispose();
   }
 
-  /// Start polling for new data every 5 seconds
   void _startPolling() {
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _refreshData();
     });
   }
 
-  /// Load initial data from backend
   Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
@@ -72,15 +67,20 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
     });
 
     try {
-      // Fetch statistics for the last hour
       final stats = await _apiService.getHourlyStatistics(widget.deviceId);
-
-      // Fetch recent cough events
       final events = await _apiService.getCoughEvents(widget.deviceId);
+
+      // --- CUSTOM FREQUENCY CALCULATION ---
+      // Count exactly how many coughs happened in the last 60 minutes
+      final now = DateTime.now();
+      final oneHourAgo = now.subtract(const Duration(hours: 1));
+      final hourlyCount =
+          events.where((e) => e.timestamp.isAfter(oneHourAgo)).length;
 
       setState(() {
         _hourlyStats = stats;
         _recentEvents = _cleanRecentEvents(events);
+        _currentHourlyFrequency = hourlyCount; // Store our custom integer
         _isLoading = false;
       });
 
@@ -94,30 +94,31 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
     }
   }
 
-  /// Refresh data without showing loading indicator
   Future<void> _refreshData() async {
     try {
-      // Fetch new statistics
       final stats = await _apiService.getHourlyStatistics(widget.deviceId);
-
-      // Fetch new events
       final events = await _apiService.getCoughEvents(widget.deviceId);
+
+      // --- CUSTOM FREQUENCY CALCULATION ---
+      final now = DateTime.now();
+      final oneHourAgo = now.subtract(const Duration(hours: 1));
+      final hourlyCount =
+          events.where((e) => e.timestamp.isAfter(oneHourAgo)).length;
 
       if (mounted) {
         setState(() {
           _hourlyStats = stats;
           _recentEvents = _cleanRecentEvents(events);
+          _currentHourlyFrequency = hourlyCount; // Update live
         });
       }
 
       print('🔄 Data refreshed');
     } catch (e) {
       print('❌ Error refreshing data: $e');
-      // Don't update error message during background refresh
     }
   }
 
-  /// Generate fake data for testing (single event)
   Future<void> _generateFakeData() async {
     setState(() {
       _isGeneratingData = true;
@@ -128,7 +129,6 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
           await _apiService.generateDummyData(widget.deviceId, count: 1);
       print('✅ Generated ${result['eventsCreated']} fake cough event');
 
-      // Refresh data after generation
       await _loadData();
 
       if (mounted) {
@@ -218,7 +218,8 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
       );
     }
 
-    final coughsPerHour = _hourlyStats?.coughsPerHour.toInt() ?? 0;
+    // USE OUR CUSTOM 60-MINUTE INTEGER
+    int displayFrequency = _currentHourlyFrequency;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -344,7 +345,8 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        'Cough\nfrequency\n$coughsPerHour/hour',
+                        // Clean integer output exactly matching the last 60 minutes
+                        'Cough\nfrequency\n$displayFrequency/hour',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 26,
@@ -384,7 +386,7 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
 
                 const SizedBox(height: 10),
 
-                // Cough events list (clean + short, like the mock)
+                // Cough events list
                 if (_recentEvents.isEmpty)
                   const Center(
                     child: Padding(
@@ -454,7 +456,6 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
               );
               break;
             case 1:
-              // Navigate to Device Screen
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
@@ -464,7 +465,6 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
               break;
             case 2:
               // Navigate to Trends & Summary
-              // TODO: Implement PatientSummaryPage
               break;
           }
         },
@@ -491,25 +491,6 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
   Widget _buildCoughEventCard(CoughEvent event) {
     final timeFormat = DateFormat('HH:mm');
     final formattedTime = timeFormat.format(event.timestamp.toLocal());
-
-    // Color cardColor;
-    // String label;
-
-    // switch (event.coughType.toLowerCase()) {
-    //   case 'dry':
-    //     cardColor = Colors.orange.shade100;
-    //     label = 'Dry Cough';
-    //     break;
-    //   case 'wet':
-    //     cardColor = Colors.cyan.shade100;
-    //     label = 'Wet Cough';
-    //     break;
-    //   // ADD THIS CASE!
-    //   case 'unknown':
-    //   default:
-    //     cardColor = Colors.red.shade50; // Light Red for Alert
-    //     label = 'Cough Alert'; // Professional Label
-    // }
 
     final Color cardColor = Colors.red.shade50;
     final String label = "Cough Alert";

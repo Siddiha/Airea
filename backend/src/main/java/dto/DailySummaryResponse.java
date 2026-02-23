@@ -11,6 +11,8 @@ import java.util.List;
 public class DailySummaryResponse {
     private String date;
     private String deviceId;
+    
+    // Cough data
     private int totalCoughs;
     private double coughFrequency;
     private double avgConfidence;
@@ -21,6 +23,11 @@ public class DailySummaryResponse {
     private int peakHour;
     private List<HourlyDistribution> hourlyDistribution;
     private List<CoughPattern> patterns;
+    
+    // Vitals data (NEW)
+    private VitalsSummary vitalsSummary;
+    
+    // Combined health assessment
     private int severityScore;
     private String severityLevel;
     private String healthStatus;
