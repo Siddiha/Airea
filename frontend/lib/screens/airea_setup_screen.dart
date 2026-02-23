@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'device_screen.dart'; // Make sure this path is correct for your project
+import 'device_screen.dart'; // Ensure this points to your existing DeviceScreen file
 
 class AireaSetupScreen extends StatefulWidget {
   const AireaSetupScreen({super.key});
@@ -12,6 +12,7 @@ class AireaSetupScreen extends StatefulWidget {
 }
 
 class _AireaSetupScreenState extends State<AireaSetupScreen> {
+  // Controllers for the text input fields
   final TextEditingController _ssidController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -29,25 +30,27 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
   // Poll your Spring Boot backend to see if the device came online
   void _startPollingBackend() {
     int attempts = 0;
-    const int maxAttempts =
-        15; // 15 attempts * 2 seconds = 30 seconds total timeout
+    // 15 attempts * 2 seconds = 30 seconds total timeout before giving up
+    const int maxAttempts = 15;
 
     _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
       attempts++;
 
       try {
-        // TODO: Replace this URL with your actual Spring Boot Railway endpoint
+        // --- CRITICAL UPDATE ---
+        // 1. Domain: "airea-production.up.railway.app" (From your screenshot)
+        // 2. Path: "/api/board/status/..." (Matches your fixed Java Controller)
         final response = await http.get(
           Uri.parse(
-              'https://your-airea-app.up.railway.app/api/device/status/airea_board_001'),
+              'https://airea-production.up.railway.app/api/board/status/airea_board_001'),
         );
 
         if (response.statusCode == 200) {
-          // Parse the JSON to ensure the status is actually "online"
           final data = jsonDecode(response.body);
 
+          // Check if the board has successfully updated its status to 'online'
           if (data['status'] == 'online') {
-            timer.cancel(); // Stop checking!
+            timer.cancel(); // Stop checking
 
             if (mounted) {
               // 1. Show success message
@@ -67,11 +70,12 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
           }
         }
       } catch (e) {
-        // Backend hasn't updated yet or isn't reachable, we just wait for the next tick.
+        // Backend hasn't updated yet or isn't reachable.
+        // We catch the error and just wait for the next timer tick.
         debugPrint('Polling attempt $attempts: Waiting for board...');
       }
 
-      // Handle Timeout if the board never connects
+      // Handle Timeout if the board never connects after 30 seconds
       if (attempts >= maxAttempts) {
         timer.cancel();
         if (mounted) {
@@ -108,7 +112,7 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
     // 1. Start asking Spring Boot if the device is online yet
     _startPollingBackend();
 
-    // 2. Send the credentials to the board
+    // 2. Send the credentials to the board via the local "Hidden API"
     try {
       final url = Uri.parse('http://192.168.4.1/wifisave');
       await http.post(
@@ -119,9 +123,9 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
         },
       ).timeout(const Duration(seconds: 5));
     } catch (e) {
-      // This catch block is EXPECTED to trigger!
-      // When the ESP32 receives the credentials, it instantly drops its "Airea-Setup" network
-      // to connect to your home Wi-Fi, which abruptly cuts off the HTTP response to your phone.
+      // This catch block is EXPECTED behavior!
+      // When the ESP32 receives the credentials, it instantly reboots to connect
+      // to your home Wi-Fi, which abruptly cuts the connection to the phone.
       debugPrint('Credentials sent. ESP32 is rebooting its Wi-Fi chip.');
     }
   }

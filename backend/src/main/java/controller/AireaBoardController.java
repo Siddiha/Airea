@@ -10,13 +10,14 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/board/status") // Changed endpoint to /api/board
+@RequestMapping("/api/board") // <--- CHANGED: Removed "/status" from here
 @CrossOrigin(origins = "*")
 public class AireaBoardController {
 
     @Autowired
     private AireaBoardRepository boardRepository;
 
+    // Resulting URL: POST /api/board/status
     @PostMapping("/status")
     public ResponseEntity<String> updateBoardStatus(@RequestBody AireaBoard payload) {
         Optional<AireaBoard> existingBoard = boardRepository.findByHardwareId(payload.getHardwareId());
@@ -33,6 +34,7 @@ public class AireaBoardController {
         return ResponseEntity.ok("Board status updated successfully.");
     }
 
+    // Resulting URL: GET /api/board/status/{hardwareId}
     @GetMapping("/status/{hardwareId}")
     public ResponseEntity<AireaBoard> getBoardStatus(@PathVariable String hardwareId) {
         return boardRepository.findByHardwareId(hardwareId)

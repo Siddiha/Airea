@@ -3,7 +3,7 @@
 #include <HTTPClient.h>
 
 // TODO: Replace with your actual Railway Spring Boot URL
-const String SPRING_BOOT_URL = "https://your-airea-app.up.railway.app/api/board/status";
+const String SPRING_BOOT_URL = "https://airea-production.up.railway.app/api/board/status";
 
 void notifyBackendOnline()
 {
