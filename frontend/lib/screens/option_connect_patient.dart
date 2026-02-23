@@ -1,5 +1,7 @@
+import 'package:airea_cough_monitor/screens/doctor_home_screen.dart';
 import 'package:flutter/material.dart';
 import 'connect_with_patient.dart';
+
 
 class OptionConnectPatient extends StatelessWidget {
   const OptionConnectPatient({super.key});
@@ -65,7 +67,13 @@ class OptionConnectPatient extends StatelessWidget {
                     elevation: 5,
                   ),
                   onPressed: () {
-                    Navigator.pop(context); // Go back
+                       Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                               builder: (context) => const DoctorHomeScreen(),
+                             ),
+                       );
+                   
                   },
                   child: const Text(
                     "No",
