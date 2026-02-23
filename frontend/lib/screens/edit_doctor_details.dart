@@ -49,7 +49,7 @@ class EditDoctorDetails extends StatelessWidget {
                       ),
                     ),
                     onPressed: () {
-                    
+                      Navigator.pop(context);
                     },
                     child: const Text("Confirm"),
                   ),
