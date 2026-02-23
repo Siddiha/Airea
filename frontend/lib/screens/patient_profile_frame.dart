@@ -3,6 +3,7 @@ import 'patient_homeScreen.dart';
 import 'device_screen.dart';
 import 'patient_edit_emergency_contact.dart';
 import 'patient_edit_medical_details.dart';
+import 'patient_logout.dart';
 import 'patient_view_past_medical_reports.dart';
 
 // 1. Import your new setup screen
@@ -44,7 +45,7 @@ class PatientProfileFrame extends StatelessWidget {
               _buildMenuButton(
                   context, 'Connect Airea Device', const AireaSetupScreen()),
 
-              _buildMenuButton(context, 'Log out', null),
+              _buildMenuButton(context, 'Log out', const PatientLogoutScreen()),
             ],
           ),
         ),
