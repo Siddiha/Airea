@@ -1,6 +1,6 @@
-package com.airea.backend.repository;
+package repository;
 
-import com.airea.backend.model.AireaBoard;
+import model.AireaBoard;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
