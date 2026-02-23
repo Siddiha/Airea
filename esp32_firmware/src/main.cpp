@@ -20,7 +20,7 @@ void notifyBackendOnline()
 
         // We can pass the device's new IP address and a unique ID to the backend
         String deviceIP = WiFi.localIP().toString();
-        String payload = "{\"deviceId\": \"airea_board_001\", \"status\": \"online\", \"ipAddress\": \"" + deviceIP + "\"}";
+        String payload = "{\"hardwareId\": \"airea_board_001\", \"status\": \"online\", \"ipAddress\": \"" + deviceIP + "\"}";
 
         int httpResponseCode = http.POST(payload);
 

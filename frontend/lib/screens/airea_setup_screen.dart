@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'device_screen.dart'; // Ensure this points to your existing DeviceScreen file
+import 'connection_success_screen.dart';
 
 class AireaSetupScreen extends StatefulWidget {
   const AireaSetupScreen({super.key});
@@ -12,12 +12,19 @@ class AireaSetupScreen extends StatefulWidget {
 }
 
 class _AireaSetupScreenState extends State<AireaSetupScreen> {
-  // Controllers for the text input fields
   final TextEditingController _ssidController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   bool _isConnecting = false;
   Timer? _pollingTimer;
+  String? _initialLastSeen; // We store the "old" timestamp here
+
+  @override
+  void initState() {
+    super.initState();
+    // Capture the current state of the board before we start
+    _fetchInitialState();
+  }
 
   @override
   void dispose() {
@@ -27,19 +34,34 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
     super.dispose();
   }
 
+  // 1. Get the "Old" Timestamp so we don't accidentally auto-connect
+  Future<void> _fetchInitialState() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'https://airea-production.up.railway.app/api/board/status/airea_board_001'),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _initialLastSeen = data['lastSeen']; // Save the stale time
+        });
+      }
+    } catch (e) {
+      // If fails (e.g. no internet), just assume no previous record
+      _initialLastSeen = null;
+    }
+  }
+
   // Poll your Spring Boot backend to see if the device came online
   void _startPollingBackend() {
     int attempts = 0;
-    // 15 attempts * 2 seconds = 30 seconds total timeout before giving up
-    const int maxAttempts = 15;
+    const int maxAttempts = 15; // 30 seconds timeout
 
     _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
       attempts++;
 
       try {
-        // --- CRITICAL UPDATE ---
-        // 1. Domain: "airea-production.up.railway.app" (From your screenshot)
-        // 2. Path: "/api/board/status/..." (Matches your fixed Java Controller)
         final response = await http.get(
           Uri.parse(
               'https://airea-production.up.railway.app/api/board/status/airea_board_001'),
@@ -48,12 +70,19 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
 
-          // Check if the board has successfully updated its status to 'online'
-          if (data['status'] == 'online') {
-            timer.cancel(); // Stop checking
+          String currentStatus = data['status'];
+          String currentLastSeen = data['lastSeen'] ?? "";
+
+          // --- SMART CHECK ---
+          // Success ONLY if:
+          // 1. Status is "online"
+          // 2. The timestamp has CHANGED (meaning it's a fresh connection)
+          bool isFreshConnection = (currentLastSeen != _initialLastSeen);
+
+          if (currentStatus == 'online' && isFreshConnection) {
+            timer.cancel();
 
             if (mounted) {
-              // 1. Show success message
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Board Connected Successfully!'),
@@ -61,21 +90,18 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
                 ),
               );
 
-              // 2. Navigate to the Device Screen
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const DeviceScreen()),
+                MaterialPageRoute(
+                    builder: (context) => const ConnectionSuccessScreen()),
               );
             }
           }
         }
       } catch (e) {
-        // Backend hasn't updated yet or isn't reachable.
-        // We catch the error and just wait for the next timer tick.
         debugPrint('Polling attempt $attempts: Waiting for board...');
       }
 
-      // Handle Timeout if the board never connects after 30 seconds
       if (attempts >= maxAttempts) {
         timer.cancel();
         if (mounted) {
@@ -84,8 +110,7 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                  'Connection timed out. Please check your Wi-Fi password and try again.'),
+              content: Text('Connection timed out. Please try again.'),
               backgroundColor: Colors.redAccent,
             ),
           );
@@ -102,17 +127,16 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
       return;
     }
 
-    // Hide the keyboard
     FocusScope.of(context).unfocus();
 
     setState(() {
       _isConnecting = true;
     });
 
-    // 1. Start asking Spring Boot if the device is online yet
+    // 2. Start asking Spring Boot if the device is online yet
     _startPollingBackend();
 
-    // 2. Send the credentials to the board via the local "Hidden API"
+    // 3. Send the credentials to the board
     try {
       final url = Uri.parse('http://192.168.4.1/wifisave');
       await http.post(
@@ -123,9 +147,6 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
         },
       ).timeout(const Duration(seconds: 5));
     } catch (e) {
-      // This catch block is EXPECTED behavior!
-      // When the ESP32 receives the credentials, it instantly reboots to connect
-      // to your home Wi-Fi, which abruptly cuts the connection to the phone.
       debugPrint('Credentials sent. ESP32 is rebooting its Wi-Fi chip.');
     }
   }
@@ -207,7 +228,7 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
                           ),
                           SizedBox(width: 16),
                           Text(
-                            'Connecting to Board...',
+                            'Connecting...',
                             style: TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.w500),
                           ),
@@ -218,6 +239,23 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
                         style: TextStyle(
                             fontSize: 18, fontWeight: FontWeight.w500),
                       ),
+              ),
+            ),
+            // We can keep the manual link as a backup
+            const SizedBox(height: 20),
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const ConnectionSuccessScreen()),
+                  );
+                },
+                child: const Text(
+                  "Device is already connected? Click here.",
+                  style: TextStyle(color: Colors.grey),
+                ),
               ),
             ),
           ],

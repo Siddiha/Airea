@@ -7,17 +7,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId; // <--- IMPORT ADDED HERE
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/board") // <--- CHANGED: Removed "/status" from here
+@RequestMapping("/api/board")
 @CrossOrigin(origins = "*")
 public class AireaBoardController {
 
     @Autowired
     private AireaBoardRepository boardRepository;
 
-    // Resulting URL: POST /api/board/status
     @PostMapping("/status")
     public ResponseEntity<String> updateBoardStatus(@RequestBody AireaBoard payload) {
         Optional<AireaBoard> existingBoard = boardRepository.findByHardwareId(payload.getHardwareId());
@@ -28,13 +28,14 @@ public class AireaBoardController {
             boardToSave.setIpAddress(payload.getIpAddress());
         }
 
-        boardToSave.setLastSeen(LocalDateTime.now());
+        // <--- FIXED: Forces time to Sri Lanka (UTC+5:30)
+        boardToSave.setLastSeen(LocalDateTime.now(ZoneId.of("Asia/Colombo")));
+        
         boardRepository.save(boardToSave);
 
         return ResponseEntity.ok("Board status updated successfully.");
     }
 
-    // Resulting URL: GET /api/board/status/{hardwareId}
     @GetMapping("/status/{hardwareId}")
     public ResponseEntity<AireaBoard> getBoardStatus(@PathVariable String hardwareId) {
         return boardRepository.findByHardwareId(hardwareId)
