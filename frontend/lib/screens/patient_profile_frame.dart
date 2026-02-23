@@ -5,7 +5,8 @@ import 'patient_edit_emergency_contact.dart';
 import 'patient_edit_medical_details.dart';
 import 'patient_view_past_medical_reports.dart';
 
-
+// 1. Import your new setup screen
+import 'airea_setup_screen.dart';
 
 class PatientProfileFrame extends StatelessWidget {
   const PatientProfileFrame({super.key});
@@ -24,19 +25,26 @@ class PatientProfileFrame extends StatelessWidget {
               const Text(
                 'Profile',
                 style: TextStyle(
-                  fontSize: 32, 
-                  fontWeight: FontWeight.bold, 
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
                   color: Colors.black,
                 ),
               ),
               const SizedBox(height: 35),
-              
-              // Pass the label and the class name (or null if not created yet)
-              _buildMenuButton(context, 'Edit medical details', EditMedicalInfo()), 
-              _buildMenuButton(context, 'Edit emergency contact', EditEmergencyInfo()),
-              _buildMenuButton(context, 'View medical reports', ViewReportsScreen()),
+
+              _buildMenuButton(
+                  context, 'Edit medical details', const EditMedicalInfo()),
+              _buildMenuButton(
+                  context, 'Edit emergency contact', const EditEmergencyInfo()),
+              _buildMenuButton(
+                  context, 'View medical reports', const ViewReportsScreen()),
               _buildMenuButton(context, 'View allergic conditions', null),
-              _buildMenuButton(context, 'Log out', null), // Example: LogoutPage()
+
+              // 2. Add the Connect Device button here
+              _buildMenuButton(
+                  context, 'Connect Airea Device', const AireaSetupScreen()),
+
+              _buildMenuButton(context, 'Log out', null),
             ],
           ),
         ),
@@ -54,7 +62,6 @@ class PatientProfileFrame extends StatelessWidget {
               );
               break;
             case 1:
-              // Navigate to Device Screen
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
@@ -63,7 +70,6 @@ class PatientProfileFrame extends StatelessWidget {
               );
               break;
             case 2:
-              // Navigate to Trends & Summary
               // TODO: Implement PatientSummaryPage
               break;
           }
@@ -88,22 +94,22 @@ class PatientProfileFrame extends StatelessWidget {
     );
   }
 
-  /// Helper method that accepts the button text and the destination class
-  Widget _buildMenuButton(BuildContext context, String title, Widget? destinationPage) {
+  Widget _buildMenuButton(
+      BuildContext context, String title, Widget? destinationPage) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18.0),
       child: SizedBox(
         width: double.infinity,
         height: 55,
         child: ElevatedButton(
-          onPressed: destinationPage == null 
-            ? () {}
-            : () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => destinationPage),
-                );
-              },
+          onPressed: destinationPage == null
+              ? () {}
+              : () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => destinationPage),
+                  );
+                },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF66A399),
             foregroundColor: Colors.white,
