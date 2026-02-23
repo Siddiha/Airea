@@ -63,6 +63,10 @@ class ApiConfig {
   static String dailySummaryUrl(String deviceId, String date) =>
       '$baseUrl/summary/daily/$deviceId?date=$date';
 
+  // NEW: Weekly summary endpoint
+  static String weeklySummaryUrl(String deviceId, String weekStart) =>
+      '$baseUrl/summary/weekly/$deviceId?weekStart=$weekStart';
+
   // DEPRECATED: Old stats endpoint - backend doesn't implement these
   // Use dailySummaryUrl instead
   static String deviceStatsUrl(String deviceId, String period) =>
