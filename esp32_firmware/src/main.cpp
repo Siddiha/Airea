@@ -44,7 +44,7 @@ void setup()
     Serial.println("Starting Airea Device...");
 
     WiFiManager wm;
-    // wm.resetSettings(); // Keep this commented out for production
+    wm.resetSettings(); // Keep this commented out for production
 
     bool res = wm.autoConnect("Airea-Setup");
 

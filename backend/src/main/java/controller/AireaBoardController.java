@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/board") // Changed endpoint to /api/board
+@RequestMapping("/api/board/status") // Changed endpoint to /api/board
 @CrossOrigin(origins = "*")
 public class AireaBoardController {
 
