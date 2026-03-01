@@ -1,18 +1,17 @@
 /*
-  ESP32 + AD8232
+  Airea Custom PCB: ESP32-S3 + AD8232
   - ECG waveform (raw + smoothed)
-  - Heart Rate (BPM) via simple adaptive-threshold peak detection
+  - Heart Rate (BPM) via adaptive-threshold peak detection
   - Respiratory Rate (RR) via ECG-derived respiration (baseline wander)
-
-  Wiring:
-  AD8232 3.3V  -> ESP32 3V3
-  AD8232 GND   -> ESP32 GND
-  AD8232 OUTPUT-> ESP32 GPIO 34 (ADC1)
 */
 
 #include <Arduino.h>
 
-constexpr int ECG_PIN = 34;
+// --- AIREA PCB PIN DEFINITIONS ---
+constexpr int ECG_PIN = 1;       // AD8232 OUTPUT pin
+constexpr int ECG_LO_PLUS = 6;   // AD8232 LO+ pin
+constexpr int ECG_LO_MINUS = 7;  // AD8232 LO- pin
+
 constexpr int BAUD = 115200;
 
 // Sampling
@@ -34,16 +33,12 @@ static unsigned long lastRangeResetMs = 0;
 constexpr unsigned long REFRACTORY_MS = 250; // avoid double counts
 
 // ---- Respiration extraction (slow baseline) ----
-// 1) baseline = very slow EMA of the raw ECG (captures drift)
-// 2) respSignal = another EMA to smooth baseline further
 static float baselineEma = 0.0f;
 static float respEma = 0.0f;
 
 // These alphas control “how slow” the breathing extraction is.
-// Smaller alpha => slower / smoother.
-// For ~0.1–0.5 Hz breathing (6–30 bpm), these work well.
 constexpr float BASELINE_ALPHA = 0.004f;   // baseline wander extractor
-constexpr float RESP_ALPHA     = 0.05f;   // extra smoothing
+constexpr float RESP_ALPHA     = 0.05f;    // extra smoothing
 
 // Resp peak detection (RR)
 static bool respWasAbove = false;
@@ -63,6 +58,10 @@ void setup() {
   Serial.begin(BAUD);
   delay(500);
 
+  // Initialize the "Leads Off" detection pins (Optional to use later)
+  pinMode(ECG_LO_PLUS, INPUT);
+  pinMode(ECG_LO_MINUS, INPUT);
+
   analogReadResolution(12);        // 0..4095
   analogSetAttenuation(ADC_11db);  // ~3.3V range
 
@@ -73,12 +72,15 @@ void setup() {
 void loop() {
   static unsigned long lastSampleUs = 0;
   unsigned long nowUs = micros();
+  
+  // Non-blocking microsecond timer for precise 250Hz sampling
   if (nowUs - lastSampleUs < SAMPLE_INTERVAL_US) return;
   lastSampleUs += SAMPLE_INTERVAL_US;
 
   unsigned long nowMs = millis();
 
   // -------- Read ECG --------
+  // Note: We are ignoring LO+/LO- checks here to guarantee data flow
   int raw = analogRead(ECG_PIN);
 
   // Fast smoothing for ECG display + BPM detection
