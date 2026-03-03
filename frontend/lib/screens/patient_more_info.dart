@@ -1,19 +1,34 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
-//import 'patient_contact.dart';
+import '../models/registration_data.dart';
+import 'patient_contact_page.dart';
 
 class PatientMoreInfo extends StatefulWidget {
-  const PatientMoreInfo({super.key});
+  final RegistrationData registrationData;
+
+  const PatientMoreInfo({
+    super.key,
+    required this.registrationData,
+  });
 
   @override
   State<PatientMoreInfo> createState() => _PatientMoreInfoState();
 }
 
 class _PatientMoreInfoState extends State<PatientMoreInfo> {
-  final _fullNameController = TextEditingController();
-  final _dobController = TextEditingController();
-  final _addressController = TextEditingController();
-  String _selectedGender = 'Male';
+  late TextEditingController _fullNameController;
+  late TextEditingController _dobController;
+  late TextEditingController _addressController;
+  late String _selectedGender;
+
+  @override
+  void initState() {
+    super.initState();
+    _fullNameController = TextEditingController(text: widget.registrationData.fullName ?? '');
+    _dobController = TextEditingController(text: widget.registrationData.dateOfBirth ?? '');
+    _addressController = TextEditingController(text: widget.registrationData.address ?? '');
+    _selectedGender = widget.registrationData.gender ?? 'Male';
+  }
 
   @override
   void dispose() {
@@ -21,6 +36,35 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
     _dobController.dispose();
     _addressController.dispose();
     super.dispose();
+  }
+
+  void _handleContinue() {
+    final fullName = _fullNameController.text.trim();
+    final dob = _dobController.text.trim();
+    final address = _addressController.text.trim();
+
+    if (fullName.isEmpty || dob.isEmpty || address.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
+    // Update registration data with personal information
+    final updatedData = widget.registrationData.copyWith(
+      fullName: fullName,
+      dateOfBirth: dob,
+      gender: _selectedGender,
+      address: address,
+    );
+
+    // Navigate to contact page
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ContactInputScreen(registrationData: updatedData),
+      ),
+    );
   }
 
   @override
@@ -160,9 +204,7 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
+                  onPressed: _handleContinue,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryTeal,
                     foregroundColor: Colors.white,

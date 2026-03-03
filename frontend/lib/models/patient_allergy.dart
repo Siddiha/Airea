@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 /// Model class representing a single allergy or medical condition entry.
 /// Stores all data the user enters and supports immutable updates via [copyWith].
 class AllergyEntry {

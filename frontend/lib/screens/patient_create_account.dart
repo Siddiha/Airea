@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
-import '../services/auth_service.dart';
-import 'patient_homescreen.dart';
+import '../models/registration_data.dart';
+import 'patient_more_info.dart';
 
 class PatientCreateAccount extends StatefulWidget {
   const PatientCreateAccount({super.key});
@@ -14,7 +14,6 @@ class _PatientCreateAccountState extends State<PatientCreateAccount> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _authService = AuthService();
   bool _isLoading = false;
 
   @override
@@ -25,7 +24,7 @@ class _PatientCreateAccountState extends State<PatientCreateAccount> {
     super.dispose();
   }
 
-  Future<void> _handleSignup() async {
+  void _handleContinue() {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
@@ -52,23 +51,18 @@ class _PatientCreateAccountState extends State<PatientCreateAccount> {
       return;
     }
 
-    setState(() => _isLoading = true);
+    // Create registration data and navigate to next screen
+    final registrationData = RegistrationData(
+      email: email,
+      password: password,
+    );
 
-    final result = await _authService.register(email, password);
-
-    setState(() => _isLoading = false);
-
-    if (result['success']) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => PatientHomeScreen()),
-        (route) => false,
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'])),
-      );
-    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PatientMoreInfo(registrationData: registrationData),
+      ),
+    );
   }
 
   @override
@@ -161,7 +155,7 @@ class _PatientCreateAccountState extends State<PatientCreateAccount> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _handleSignup,
+                  onPressed: _isLoading ? null : _handleContinue,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryTeal,
                     foregroundColor: Colors.white,
@@ -180,7 +174,7 @@ class _PatientCreateAccountState extends State<PatientCreateAccount> {
                           ),
                         )
                       : const Text(
-                          'Sign Up',
+                          'Continue',
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                 ),

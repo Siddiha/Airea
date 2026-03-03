@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
-// Adjust these imports to match your actual folder structure
 import '../models/medical_report_model.dart';
+import '../models/registration_data.dart';
+import 'patient_allergies_entry.dart';
 
 class UploadReportsScreen extends StatefulWidget {
-  const UploadReportsScreen({Key? key}) : super(key: key);
+  final RegistrationData? registrationData;
+
+  const UploadReportsScreen({
+    Key? key,
+    this.registrationData,
+  }) : super(key: key);
 
   @override
   State<UploadReportsScreen> createState() => _UploadReportsScreenState();
@@ -14,6 +20,7 @@ class UploadReportsScreen extends StatefulWidget {
 class _UploadReportsScreenState extends State<UploadReportsScreen> {
   final MedicalReportService _reportService = MedicalReportService();
   bool _isUploading = false;
+  List<String> _uploadedFilePaths = [];
 
   Future<void> _pickAndSaveFiles() async {
     setState(() => _isUploading = true);
@@ -40,23 +47,30 @@ class _UploadReportsScreenState extends State<UploadReportsScreen> {
           // OOAD Factory Logic
           if (extension == '.pdf') {
             newDoc = PdfMedicalReport(
-              id: id, fileName: fileName, dateAdded: DateTime.now(), filePath: filePath,
+              id: id,
+              fileName: fileName,
+              dateAdded: DateTime.now(),
+              filePath: filePath,
             );
           } else if (['.jpg', '.jpeg', '.png'].contains(extension)) {
             newDoc = ImageMedicalReport(
-              id: id, fileName: fileName, dateAdded: DateTime.now(), filePath: filePath,
+              id: id,
+              fileName: fileName,
+              dateAdded: DateTime.now(),
+              filePath: filePath,
             );
           }
 
           if (newDoc != null) {
             _reportService.addReport(newDoc);
+            _uploadedFilePaths.add(filePath);
             addedCount++;
           }
         }
 
         if (mounted && addedCount > 0) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$addedCount file(s) added! Press Next to view.')),
+            SnackBar(content: Text('$addedCount file(s) added!')),
           );
         }
       }
@@ -65,6 +79,21 @@ class _UploadReportsScreenState extends State<UploadReportsScreen> {
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
+  }
+
+  void _handleContinue() {
+    // Update registration data with medical report paths
+    final updatedData = widget.registrationData!.copyWith(
+      medicalReportPaths: _uploadedFilePaths,
+    );
+
+    // Navigate to allergies page
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PatientAllergies(registrationData: updatedData),
+      ),
+    );
   }
 
   @override
@@ -111,9 +140,7 @@ class _UploadReportsScreenState extends State<UploadReportsScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
+                  onPressed: _handleContinue,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0D214F),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),

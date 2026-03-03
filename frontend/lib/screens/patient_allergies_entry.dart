@@ -1,19 +1,32 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../models/patient_allergy.dart';
+import '../models/registration_data.dart';
 import 'patient_edit_allergy.dart';
 import 'patient_account_created.dart';
 
 class PatientAllergies extends StatefulWidget {
-  const PatientAllergies({super.key});
+  final RegistrationData? registrationData;
+
+  const PatientAllergies({
+    super.key,
+    this.registrationData,
+  });
 
   @override
   State<PatientAllergies> createState() => _PatientAllergiesState();
 }
 
 class _PatientAllergiesState extends State<PatientAllergies> {
-  final List<AllergyEntry> _allergies = [];
+  late List<AllergyEntry> _allergies;
   final TextEditingController _nameController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with existing allergies from registration data if available
+    _allergies = widget.registrationData?.allergies ?? [];
+  }
 
   @override
   void dispose() {
@@ -55,12 +68,17 @@ class _PatientAllergiesState extends State<PatientAllergies> {
     }
   }
 
-  // ── Navigate to account created screen ──
+  // ── Complete registration and navigate to account created screen ──
   void _completeRegistration() {
+    // Update registration data with allergies
+    final updatedData = widget.registrationData!.copyWith(
+      allergies: _allergies,
+    );
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => PatientAccountCreated(allergies: _allergies),
+        builder: (_) => PatientAccountCreated(registrationData: updatedData),
       ),
     );
   }
@@ -166,7 +184,7 @@ class _PatientAllergiesState extends State<PatientAllergies> {
 
               const SizedBox(height: 16),
 
-              // ── Complete Registration button ──
+              // ── Finish button ──
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -181,7 +199,7 @@ class _PatientAllergiesState extends State<PatientAllergies> {
                     elevation: 0,
                   ),
                   child: const Text(
-                    'Complete Registration',
+                    'Finish',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
