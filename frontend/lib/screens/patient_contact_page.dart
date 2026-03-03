@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import '../models/patient_contact.dart'; 
+import '../models/patient_contact.dart';
+import '../models/registration_data.dart';
+import 'patient_upload_past_medical.dart';
 
 class ContactInputScreen extends StatefulWidget {
-  //final String title; 
-  final PatientContact? existingContact; 
+  final RegistrationData? registrationData;
+  final PatientContact? existingContact;
 
   const ContactInputScreen({
-    super.key, 
-    //required this.title, 
+    super.key,
+    this.registrationData,
     this.existingContact,
   });
 
@@ -23,8 +25,10 @@ class _ContactInputScreenState extends State<ContactInputScreen> {
   void initState() {
     super.initState();
     // Pre-fill controllers if existing data is passed, otherwise empty
-    _relationController = TextEditingController(text: widget.existingContact?.relationship ?? "");
-    _phoneController = TextEditingController(text: widget.existingContact?.contactNumber ?? "");
+    _relationController =
+        TextEditingController(text: widget.existingContact?.relationship ?? "");
+    _phoneController =
+        TextEditingController(text: widget.existingContact?.contactNumber ?? "");
   }
 
   @override
@@ -32,6 +36,36 @@ class _ContactInputScreenState extends State<ContactInputScreen> {
     _relationController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  void _handleContinue() {
+    final relationship = _relationController.text.trim();
+    final contactNumber = _phoneController.text.trim();
+
+    if (relationship.isEmpty || contactNumber.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
+    final contact = PatientContact(
+      relationship: relationship,
+      contactNumber: contactNumber,
+    );
+
+    // Update registration data with emergency contact
+    final updatedData = widget.registrationData!.copyWith(
+      emergencyContact: contact,
+    );
+
+    // Navigate to upload medical reports page
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UploadReportsScreen(registrationData: updatedData),
+      ),
+    );
   }
 
   @override
@@ -68,16 +102,8 @@ class _ContactInputScreenState extends State<ContactInputScreen> {
                       backgroundColor: const Color(0xFF132348),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
-                    onPressed: () {
-                      if (_relationController.text.isNotEmpty) {
-                        final entry = PatientContact(
-                          relationship: _relationController.text,
-                          contactNumber: _phoneController.text,
-                        );
-                        Navigator.pop(context, entry);
-                      }
-                    },
-                    child: const Text("Confirm", style: TextStyle(color: Colors.white, fontSize: 18)),
+                    onPressed: _handleContinue,
+                    child: const Text("Continue", style: TextStyle(color: Colors.white, fontSize: 18)),
                   ),
                 ),
               ),
