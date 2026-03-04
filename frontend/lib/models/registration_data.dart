@@ -1,5 +1,6 @@
 import 'package:airea_cough_monitor/models/patient_allergy.dart';
 import 'package:airea_cough_monitor/models/patient_contact.dart';
+import 'package:airea_cough_monitor/models/patient_medical_info.dart';
 
 /// Model to hold all registration data across the multi-step signup flow
 class RegistrationData {
@@ -16,6 +17,9 @@ class RegistrationData {
   // Emergency Contact
   final PatientContact? emergencyContact;
 
+  // Medical details collected at signup (age, height, weight, etc.)
+  final PatientMedicalDetails? medicalDetails;
+
   // Medical Reports (file paths)
   final List<String> medicalReportPaths;
 
@@ -30,6 +34,7 @@ class RegistrationData {
     this.gender,
     this.address,
     this.emergencyContact,
+    this.medicalDetails,
     this.medicalReportPaths = const [],
     this.allergies = const [],
   });
@@ -43,6 +48,7 @@ class RegistrationData {
     String? gender,
     String? address,
     PatientContact? emergencyContact,
+    PatientMedicalDetails? medicalDetails,
     List<String>? medicalReportPaths,
     List<AllergyEntry>? allergies,
   }) {
@@ -54,6 +60,7 @@ class RegistrationData {
       gender: gender ?? this.gender,
       address: address ?? this.address,
       emergencyContact: emergencyContact ?? this.emergencyContact,
+      medicalDetails: medicalDetails ?? this.medicalDetails,
       medicalReportPaths: medicalReportPaths ?? this.medicalReportPaths,
       allergies: allergies ?? this.allergies,
     );
@@ -72,6 +79,16 @@ class RegistrationData {
           ? {
               'relationship': emergencyContact!.relationship,
               'contactNumber': emergencyContact!.contactNumber,
+            }
+          : null,
+      'medicalDetails': medicalDetails != null
+          ? {
+              'age': medicalDetails!.age,
+              'height': medicalDetails!.height,
+              'weight': medicalDetails!.weight,
+              'gender': medicalDetails!.gender,
+              'habbits': medicalDetails!.habbits,
+              'workingEnvironment': medicalDetails!.workingEnvironment,
             }
           : null,
       'medicalReports': medicalReportPaths,

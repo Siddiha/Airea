@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../models/registration_data.dart';
 import '../services/auth_service.dart';
+import '../services/profile_service.dart';
 import 'patient_homescreen.dart';
 import 'patient_create_account.dart';
 import 'patient_login_page.dart';
@@ -51,9 +52,11 @@ class _PatientAccountCreatedState extends State<PatientAccountCreated> {
       );
 
       if (result['success']) {
-        // If registration is successful, you could save additional user data here
-        // For example, save name, DOB, etc. to a user profile service
+        // If registration is successful we can also persist other profile info locally
         print('User registered successfully');
+        if (widget.registrationData?.medicalDetails != null) {
+          await ProfileService.saveMedicalDetails(widget.registrationData!.medicalDetails!);
+        }
         setState(() {
           _isLoading = false;
           _success = true;
