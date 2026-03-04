@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import '../models/medical_report_model.dart';
 import '../models/registration_data.dart';
+import '../services/profile_service.dart';
 import 'patient_allergies_entry.dart';
 
 class UploadReportsScreen extends StatefulWidget {
@@ -81,7 +82,10 @@ class _UploadReportsScreenState extends State<UploadReportsScreen> {
     }
   }
 
-  void _handleContinue() {
+  void _handleContinue() async {
+    // Save medical report paths locally for later access from profile screen
+    await ProfileService.saveMedicalReports(_uploadedFilePaths);
+
     // Update registration data with medical report paths
     final updatedData = widget.registrationData!.copyWith(
       medicalReportPaths: _uploadedFilePaths,

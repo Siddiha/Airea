@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/patient_contact.dart';
 import '../models/registration_data.dart';
+import '../services/profile_service.dart';
 import 'patient_upload_past_medical.dart';
 
 class ContactInputScreen extends StatefulWidget {
@@ -38,7 +39,7 @@ class _ContactInputScreenState extends State<ContactInputScreen> {
     super.dispose();
   }
 
-  void _handleContinue() {
+  Future<void> _handleContinue() async {
     final relationship = _relationController.text.trim();
     final contactNumber = _phoneController.text.trim();
 
@@ -53,6 +54,9 @@ class _ContactInputScreenState extends State<ContactInputScreen> {
       relationship: relationship,
       contactNumber: contactNumber,
     );
+
+    // Save locally for later access from profile screen
+    await ProfileService.saveEmergencyContact(contact);
 
     // Update registration data with emergency contact
     final updatedData = widget.registrationData!.copyWith(

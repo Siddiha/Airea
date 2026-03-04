@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../models/registration_data.dart';
+import '../models/patient_medical_info.dart';
 import 'patient_contact_page.dart';
 
 class PatientMoreInfo extends StatefulWidget {
@@ -21,6 +22,13 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
   late TextEditingController _addressController;
   late String _selectedGender;
 
+  // extra medical inputs
+  late TextEditingController _ageController;
+  late TextEditingController _heightController;
+  late TextEditingController _weightController;
+  late TextEditingController _habitsController;
+  late TextEditingController _workingEnvironmentController;
+
   @override
   void initState() {
     super.initState();
@@ -28,6 +36,14 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
     _dobController = TextEditingController(text: widget.registrationData.dateOfBirth ?? '');
     _addressController = TextEditingController(text: widget.registrationData.address ?? '');
     _selectedGender = widget.registrationData.gender ?? 'Male';
+
+    // prefill for new medical fields if present
+    final med = widget.registrationData.medicalDetails;
+    _ageController = TextEditingController(text: med?.age.toString() ?? '');
+    _heightController = TextEditingController(text: med?.height.toString() ?? '');
+    _weightController = TextEditingController(text: med?.weight.toString() ?? '');
+    _habitsController = TextEditingController(text: med?.habbits ?? '');
+    _workingEnvironmentController = TextEditingController(text: med?.workingEnvironment ?? '');
   }
 
   @override
@@ -35,6 +51,11 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
     _fullNameController.dispose();
     _dobController.dispose();
     _addressController.dispose();
+    _ageController.dispose();
+    _heightController.dispose();
+    _weightController.dispose();
+    _habitsController.dispose();
+    _workingEnvironmentController.dispose();
     super.dispose();
   }
 
@@ -49,13 +70,31 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
       );
       return;
     }
+    // ensure medical numeric values are valid
+    final age = int.tryParse(_ageController.text) ?? 0;
+    if (age <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid age')),
+      );
+      return;
+    }
 
     // Update registration data with personal information
+    final PatientMedicalDetails medDetails = PatientMedicalDetails(
+      age: int.tryParse(_ageController.text) ?? 0,
+      height: int.tryParse(_heightController.text) ?? 0,
+      weight: int.tryParse(_weightController.text) ?? 0,
+      gender: _selectedGender,
+      habbits: _habitsController.text,
+      workingEnvironment: _workingEnvironmentController.text,
+    );
+
     final updatedData = widget.registrationData.copyWith(
       fullName: fullName,
       dateOfBirth: dob,
       gender: _selectedGender,
       address: address,
+      medicalDetails: medDetails,
     );
 
     // Navigate to contact page
@@ -197,6 +236,66 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
                   prefixIcon: const Icon(Icons.location_on_outlined),
                 ),
                 maxLines: 3,
+              ),
+
+              const SizedBox(height: 24),
+              // ── Medical details that were previously missing ──
+              TextField(
+                controller: _ageController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Age',
+                  hintText: 'Enter your age',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _heightController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Height (cm)',
+                  hintText: 'Enter your height',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _weightController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Weight (kg)',
+                  hintText: 'Enter your weight',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _habitsController,
+                decoration: InputDecoration(
+                  labelText: 'Do you smoke or use tobacco?',
+                  hintText: 'Yes / No / Prefer not to say',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _workingEnvironmentController,
+                decoration: InputDecoration(
+                  labelText: 'Working environment',
+                  hintText: 'e.g. Office / Outdoors / Factory',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
               const SizedBox(height: 32),
 
