@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../models/patient_allergy.dart';
 import '../models/registration_data.dart';
+import '../services/profile_service.dart';
 import 'patient_edit_allergy.dart';
 import 'patient_account_created.dart';
 
@@ -69,7 +70,10 @@ class _PatientAllergiesState extends State<PatientAllergies> {
   }
 
   // ── Complete registration and navigate to account created screen ──
-  void _completeRegistration() {
+  void _completeRegistration() async {
+    // Save allergies locally for later access from profile screen
+    await ProfileService.saveAllergies(_allergies);
+
     // Update registration data with allergies
     final updatedData = widget.registrationData!.copyWith(
       allergies: _allergies,
