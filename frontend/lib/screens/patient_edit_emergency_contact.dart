@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/patient_contact.dart'; 
+import '../models/patient_contact.dart';
+import '../services/profile_service.dart';
 import 'patient_profile_frame.dart';
 
 class EditEmergencyInfo extends StatefulWidget {
@@ -23,9 +24,20 @@ class _ContactInputScreenState extends State<EditEmergencyInfo> {
   @override
   void initState() {
     super.initState();
-    // Pre-fill controllers if existing data is passed, otherwise empty
-    _relationController = TextEditingController(text: widget.existingContact?.relationship ?? "");
-    _phoneController = TextEditingController(text: widget.existingContact?.contactNumber ?? "");
+    // Pre-fill controllers if existing data is passed, otherwise try loading from storage
+    _relationController = TextEditingController();
+    _phoneController = TextEditingController();
+    if (widget.existingContact != null) {
+      _relationController.text = widget.existingContact!.relationship;
+      _phoneController.text = widget.existingContact!.contactNumber;
+    } else {
+      ProfileService.loadEmergencyContact().then((c) {
+        if (c != null) {
+          _relationController.text = c.relationship;
+          _phoneController.text = c.contactNumber;
+        }
+      });
+    }
   }
 
   @override
@@ -69,18 +81,19 @@ class _ContactInputScreenState extends State<EditEmergencyInfo> {
                       backgroundColor: const Color(0xFF132348),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
-                    onPressed: () {
+                    onPressed: () async {
                       if (_relationController.text.isNotEmpty) {
                         final entry = PatientContact(
                           relationship: _relationController.text,
                           contactNumber: _phoneController.text,
                         );
+                        await ProfileService.saveEmergencyContact(entry);
                         Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PatientProfileFrame(),
-                ),
-              );
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PatientProfileFrame(),
+                          ),
+                        );
                       }
                     },
                     child: const Text("Confirm", style: TextStyle(color: Colors.white, fontSize: 18)),
