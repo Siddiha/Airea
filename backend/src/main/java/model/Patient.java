@@ -19,6 +19,9 @@ public class Patient {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "patient_code", unique = true)
+    private String patientCode;
+
     @Column(unique = true, nullable = false)
     private String email;
 
@@ -51,6 +54,18 @@ public class Patient {
 
     @Column(nullable = false)
     private Instant updatedAt;
+
+    public UUID getId() { 
+        return id; 
+    }
+
+    public String getPatientCode() { 
+        return patientCode; 
+    }
+
+    public String getEmail() {
+        return email;
+    }
 
     @PrePersist
     protected void onCreate() {

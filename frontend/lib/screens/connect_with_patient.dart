@@ -1,9 +1,77 @@
 import 'package:flutter/material.dart';
 import 'guidance_to_connect_patient.dart';
 import 'patient_connection_message.dart';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class ConnectWithPatient extends StatelessWidget {
+class ConnectWithPatient extends StatefulWidget {
   const ConnectWithPatient({super.key});
+
+  @override
+  State<ConnectWithPatient> createState() => _ConnectWithPatientState();
+}
+
+class _ConnectWithPatientState extends State<ConnectWithPatient> {
+  // 1. Controller to capture the Patient ID from the text field
+  final TextEditingController _idController = TextEditingController();
+  bool _isLoading = false;
+
+  // 2. Function to send the data to your Java backend
+  Future<void> _handleConnect() async {
+    final String patientCodeInput = _idController.text.trim();
+    const String currentDoctorCode = "D001"; // Matches your Supabase entry
+
+    if (patientCodeInput.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a Patient Code")),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final String host = kIsWeb ? "localhost" : "10.0.2.2";
+    // 1. Pointing to the new translation endpoint
+    final url = Uri.parse('http://$host:8080/api/connections/add-by-code');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "doctorCode": currentDoctorCode, 
+          "patientCode": patientCodeInput, 
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const PatientConnectionMessage()),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response.body)), // Shows "Already connected" error
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error: Ensure Spring Boot is running")),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _idController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +101,7 @@ class ConnectWithPatient extends StatelessWidget {
                  SizedBox(
                         width: 250,
                           child: TextField(
+                            controller: _idController,
                          decoration: InputDecoration(
                              hintText: "type",
                               filled: true,
@@ -42,7 +111,7 @@ class ConnectWithPatient extends StatelessWidget {
                             vertical: 14,
                          ),
                            border: OutlineInputBorder(
-                             borderRadius: BorderRadius.circular(25), // 👈 curve here
+                             borderRadius: BorderRadius.circular(25), 
                             borderSide: BorderSide.none,
                       ),
                         ),
@@ -58,19 +127,9 @@ class ConnectWithPatient extends StatelessWidget {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF5DA092),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       ),
-                      onPressed: () {
-                        Navigator.push(
-                                   context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                  const PatientConnectionMessage(),
-                                ),
-                         );
-                      },
+                      onPressed: _handleConnect, // 5. Trigger the API call
                       child: const Text("Confirm"),
                     ),
                   ),
@@ -106,7 +165,7 @@ class ConnectWithPatient extends StatelessWidget {
                            MaterialPageRoute(
                         builder: (context) => const GuidanceToConnectPatient(),
                        ),
-  );
+                        );
                       },
                       child: const Text(
                         "Guidance to connect \n with patient",

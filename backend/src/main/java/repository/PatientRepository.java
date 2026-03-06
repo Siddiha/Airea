@@ -15,4 +15,6 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     boolean existsByEmail(String email);
 
     Optional<Patient> findByDeviceId(String deviceId);
+
+    Optional<Patient> findByPatientCode(String patientCode);
 }
