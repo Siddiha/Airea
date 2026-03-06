@@ -92,6 +92,7 @@ public class FallDetectionService {
         // Step 5: Send alert if emergency confirmed and not in cooldown
         boolean alertSent = false;
         String alertSentTo = null;
+        boolean alertSkippedCooldown = false;
 
         if (isEmergency) {
             if (!isInCooldownPeriod(request.getDeviceId())) {
@@ -105,6 +106,7 @@ public class FallDetectionService {
                     fallEvent.setAlertSentAt(LocalDateTime.now(SL_ZONE));
                 }
             } else {
+                alertSkippedCooldown = true;
                 System.out.println("⏳ Alert skipped - within " + alertCooldownMinutes + " minute cooldown period");
             }
         }
@@ -130,7 +132,7 @@ public class FallDetectionService {
                 .rr(request.getRr())
                 .gForce(request.getGForce())
                 .location(locationStr)
-                .message(buildResponseMessage(isEmergency, alertSent, vitalsAnalysis))
+                .message(buildResponseMessage(isEmergency, alertSent, alertSkippedCooldown, vitalsAnalysis))
                 .build();
     }
 
@@ -348,16 +350,18 @@ public class FallDetectionService {
     /**
      * Build appropriate response message
      */
-    private String buildResponseMessage(boolean isEmergency, boolean alertSent, 
+    private String buildResponseMessage(boolean isEmergency, boolean alertSent, boolean alertSkippedCooldown,
                                         VitalsAnalysisResult analysis) {
         if (!isEmergency) {
             return "Fall recorded - Vitals within acceptable range, no emergency alert triggered";
         }
         
-        if (alertSent) {
+        if (alertSkippedCooldown) {
+            return "EMERGENCY DETECTED - Alert skipped (cooldown period active): " + analysis.getSummary();
+        } else if (alertSent) {
             return "EMERGENCY DETECTED - Alert sent to caregiver: " + analysis.getSummary();
         } else {
-            return "EMERGENCY DETECTED - Alert pending (check configuration): " + analysis.getSummary();
+            return "EMERGENCY DETECTED - Alert failed or configuration missing: " + analysis.getSummary();
         }
     }
 

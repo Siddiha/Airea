@@ -52,7 +52,7 @@ public class SmsAlertService {
         String messageBody = buildEmergencyMessage(patientName, emergencyReason,
                                                     location, temp, bpm, rr, gForce);
 
-        if (!initialized || !smsEnabled) {
+        if (!smsEnabled) {
             // Simulation mode - log what would be sent
             System.out.println("\n📱 ========== SMS SIMULATION ==========");
             System.out.println("   TO: " + toPhoneNumber);
@@ -62,9 +62,23 @@ public class SmsAlertService {
             return false; // Simulated, not actually sent
         }
 
+        if (!initialized) {
+            System.err.println("❌ Twilio is enabled but not initialized properly. Missing credentials?");
+            return false;
+        }
+
+        // Format phone number for Twilio (E.164 format)
+        // Auto-fix Sri Lankan numbers starting with 0
+        String formattedPhone = toPhoneNumber.replaceAll("\\s+", "");
+        if (formattedPhone.startsWith("0")) {
+            formattedPhone = "+94" + formattedPhone.substring(1);
+        } else if (!formattedPhone.startsWith("+")) {
+            formattedPhone = "+" + formattedPhone;
+        }
+
         try {
             Message message = Message.creator(
-                    new PhoneNumber(toPhoneNumber),
+                    new PhoneNumber(formattedPhone),
                     new PhoneNumber(twilioPhoneNumber),
                     messageBody
             ).create();
@@ -148,6 +162,6 @@ public class SmsAlertService {
      * Check if SMS service is in simulation mode
      */
     public boolean isSimulationMode() {
-        return !initialized || !smsEnabled;
+        return !smsEnabled;
     }
 }
