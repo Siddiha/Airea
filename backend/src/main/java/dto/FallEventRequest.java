@@ -1,5 +1,6 @@
 package dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,6 +11,8 @@ import lombok.NoArgsConstructor;
 public class FallEventRequest {
 
     private String deviceId;
+    
+    @JsonProperty("gForce")
     private Float gForce;
 
     // Vitals at time of fall
@@ -30,6 +33,7 @@ public class FallEventRequest {
         return deviceId;
     }
 
+    @JsonProperty("gForce")
     public Float getGForce() {
         return gForce;
     }
