@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/patient_medical_info.dart';
 import '../models/patient_contact.dart';
@@ -9,6 +10,8 @@ import '../models/patient_allergy.dart';
 /// Simple local storage for patient profile extras (medical details, emergency contact, etc.)
 /// Uses SharedPreferences so that values are persisted between app restarts.  This is
 /// intentionally lightweight; the backend is responsible for keeping real user data.
+/// 
+/// NOTE: Emergency contact is also synced to the backend database to enable SMS alerts.
 class ProfileService {
   static const _medicalKey = 'patient_medical_details';
   static const _contactKey = 'patient_emergency_contact';
@@ -42,12 +45,43 @@ class ProfileService {
   }
 
   /// Save an emergency contact entry.
+  /// Also syncs to backend database to enable SMS alerts.
   static Future<void> saveEmergencyContact(PatientContact contact) async {
+    // Save to local storage
     final prefs = await SharedPreferences.getInstance();
     prefs.setString(_contactKey, jsonEncode({
       'relationship': contact.relationship,
       'contactNumber': contact.contactNumber,
     }));
+    
+    // Sync to backend database for SMS alerts
+    await _syncEmergencyContactToDatabase(contact.contactNumber);
+  }
+
+  /// Sync emergency contact to the patients table in Supabase.
+  /// This enables the backend to send SMS alerts when abnormal vitals are detected.
+  static Future<void> _syncEmergencyContactToDatabase(String contactNumber) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+      
+      if (user == null || user.email == null) {
+        print('⚠️ No authenticated user - emergency contact not synced to database');
+        return;
+      }
+      
+      // Update the patients table with the emergency contact
+      await supabase
+          .from('patients')
+          .update({'emergency_contact': contactNumber})
+          .eq('email', user.email!);
+      
+      print('✅ Emergency contact synced to database: $contactNumber');
+    } catch (e) {
+      // Don't fail silently - log the error
+      print('❌ Failed to sync emergency contact to database: $e');
+      // Continue anyway - local storage was already saved
+    }
   }
 
   /// Load saved emergency contact, or null if none exists.
