@@ -328,12 +328,12 @@ public class FallDetectionService {
         if (sent) {
             System.out.println("✅ Emergency SMS sent successfully!");
         } else if (smsAlertService.isSimulationMode()) {
-            System.out.println("📱 SMS simulated (Twilio not configured)");
+            System.out.println("📱 SMS simulated (Twilio not configured/disabled in env variables)");
         } else {
             System.out.println("❌ Failed to send emergency SMS");
         }
 
-        return new AlertResult(sent || smsAlertService.isSimulationMode(), emergencyContact);
+        return new AlertResult(sent, emergencyContact);
     }
 
     /**
