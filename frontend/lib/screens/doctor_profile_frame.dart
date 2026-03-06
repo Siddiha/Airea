@@ -7,21 +7,22 @@ class DoctorProfileFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEDEFF0),
+      backgroundColor: const Color(0xFFF7FBFB),
 
-      // Bottom Home Button
-      bottomNavigationBar: GestureDetector(
-        onTap: () {
-          Navigator.pop(context); // Go back to Home
-        },
-        child: Container(
-          height: 60,
-          color: Colors.white,
+      // Bottom Navigation Bar
+      bottomNavigationBar: Container(
+        height: 70,
+        color: Colors.white,
+        child: GestureDetector(
+          onTap: () {
+            Navigator.pop(context);
+          },
           child: const Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.home),
-              Text("Home"),
+              Icon(Icons.home, color: Colors.black87),
+              SizedBox(height: 4),
+              Text("Home", style: TextStyle(fontSize: 12)),
             ],
           ),
         ),
@@ -29,21 +30,28 @@ class DoctorProfileFrame extends StatelessWidget {
 
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Profile", style: TextStyle(fontSize: 22)),
-              const SizedBox(height: 30),
+              const Text(
+                "Profile",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 32),
 
-              // 🔹 Edit Additional Details Button
-              _btn(context, "Edit additional details"),
+              // Edit Additional Details Button
+              _buildButton(context, "Edit additional details"),
 
-              const SizedBox(height: 15),
-              _btn(context, "Manage connected patients"),
+              const SizedBox(height: 18),
+              _buildButton(context, "Manage connected patients"),
 
-              const SizedBox(height: 15),
-              _btn(context, "Logout"),
+              const SizedBox(height: 18),
+              _buildButton(context, "Logout"),
             ],
           ),
         ),
@@ -51,26 +59,38 @@ class DoctorProfileFrame extends StatelessWidget {
     );
   }
 
-  Widget _btn(BuildContext context, String text) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF5DA092),
-        minimumSize: const Size(double.infinity, 50),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25),
+  Widget _buildButton(BuildContext context, String text) {
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF66A399),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          elevation: 2,
+          shadowColor: Colors.black.withOpacity(0.1),
+        ),
+        onPressed: () {
+          if (text == "Edit additional details") {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const EditDoctorDetails(),
+              ),
+            );
+          }
+        },
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+          ),
         ),
       ),
-      onPressed: () {
-        if (text == "Edit additional details") {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const EditDoctorDetails(),
-            ),
-          );
-        }
-      },
-      child: Text(text),
     );
   }
 }
