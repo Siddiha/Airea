@@ -7,110 +7,134 @@ class DoctorNotificationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEDEFF0),
+      backgroundColor: const Color(0xFFF7FBFB),
       body: SafeArea(
-        child: Stack(
-          children: [
-            // Title
-            const Positioned(
-              top: 30,
-              left: 20,
-              child: Text(
-                "Notifications",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-
-            // Notification list centered
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  _NotificationCard(
-                    text: "Connected with patient",
-                    time: "13:00",
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Text(
+                    "Notifications",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
-                  SizedBox(height: 18),
-                  _NotificationCard(
-                    text: "Patient1 detected with\nhigh cough",
-                    time: "12:56",
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.close, size: 24),
+                    ),
                   ),
                 ],
               ),
-            ),
-
-            // Bottom home
-            Positioned(
-              bottom: 20,
-              left: 0,
-              right: 0,
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const DoctorHomeScreen(),
-                    ),
-                    (route) => false,
-                  );
-                },
-                child: const Column(
+              const SizedBox(height: 32),
+              Expanded(
+                child: ListView(
                   children: [
-                    Icon(Icons.home, size: 28),
-                    Text("Home"),
+                    _buildNotificationCard(
+                      text: "Connected with patient",
+                      time: "13:00",
+                    ),
+                    const SizedBox(height: 16),
+                    _buildNotificationCard(
+                      text: "Patient1 detected with\nhigh cough",
+                      time: "12:56",
+                    ),
                   ],
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      ),
+
+      // Bottom Navigation Bar
+      bottomNavigationBar: Container(
+        height: 70,
+        color: Colors.white,
+        child: GestureDetector(
+          onTap: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DoctorHomeScreen(),
+              ),
+              (route) => false,
+            );
+          },
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.home, color: Colors.black87),
+              SizedBox(height: 4),
+              Text("Home", style: TextStyle(fontSize: 12)),
+            ],
+          ),
         ),
       ),
     );
   }
-}
 
-class _NotificationCard extends StatelessWidget {
-  final String text;
-  final String time;
-
-  const _NotificationCard({
-    required this.text,
-    required this.time,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildNotificationCard({
+    required String text,
+    required String time,
+  }) {
     return Container(
-      width: 260,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFDDE3E4),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
           BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            offset: Offset(0, 3),
-          )
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Flexible(
+          Expanded(
             child: Text(
               text,
-              style: const TextStyle(fontSize: 13),
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+                height: 1.4,
+              ),
             ),
           ),
+          const SizedBox(width: 12),
           Text(
             time,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 13,
               color: Colors.black54,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],

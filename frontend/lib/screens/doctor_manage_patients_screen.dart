@@ -83,7 +83,7 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF5F9EA0), 
+                                    color: const Color(0xFF66A399), 
                                     borderRadius: BorderRadius.circular(30),
                                     boxShadow: [
                                       BoxShadow(

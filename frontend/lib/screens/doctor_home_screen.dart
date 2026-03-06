@@ -10,33 +10,34 @@ class DoctorHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEDEFF0),
+      backgroundColor: const Color(0xFFF7FBFB),
 
       // Bottom Navigation Bar
-           bottomNavigationBar: Container(
-                 height: 60,
-                  color: Colors.white,
-                   child: const Column(
-                 mainAxisAlignment: MainAxisAlignment.center,
-                   children: [
-                       Icon(Icons.home),
-                       Text("Home"),
-                   ],
-                 ),
-              ),
+      bottomNavigationBar: Container(
+        height: 70,
+        color: Colors.white,
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.home, color: Colors.black87),
+            SizedBox(height: 4),
+            Text("Home", style: TextStyle(fontSize: 12)),
+          ],
+        ),
+      ),
 
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            children: [
+              const SizedBox(height: 24),
 
-            // Top Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // Top Bar
+              Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // 👤 Profile Navigation
+                  // Profile Navigation
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -46,26 +47,44 @@ class DoctorHomeScreen extends StatelessWidget {
                         ),
                       );
                     },
-                    child: const Row(
+                    child: Row(
                       children: [
-                        CircleAvatar(
-                          radius: 22,
-                          backgroundColor: Colors.white,
-                          child: Icon(Icons.person, color: Colors.black),
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFF66A399),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                         ),
-                        SizedBox(width: 10),
-                        Text(
+                        const SizedBox(width: 12),
+                        const Text(
                           "Hello user !",
-                          style: TextStyle(fontSize: 17),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
                         ),
                       ],
                     ),
                   ),
 
-                  //  Notification Navigation
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none, size: 26),
-                    onPressed: () {
+                  // Notification Navigation
+                  GestureDetector(
+                    onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -73,91 +92,110 @@ class DoctorHomeScreen extends StatelessWidget {
                         ),
                       );
                     },
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.notifications_none,
+                        size: 24,
+                        color: Colors.black87,
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
 
-            const SizedBox(height: 50),
+              const SizedBox(height: 48),
 
-            //  Total Patients (Bigger Card)
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const DoctorPatientInfo(),
-                  ),
-                );
-              },
-              child: _bigCard(
-                "Total number of patients",
-                "23",
+              // Total Patients Card
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const DoctorPatientInfo(),
+                    ),
+                  );
+                },
+                child: _buildCardWithValue(
+                  "Total number of patients",
+                  "23",
+                ),
               ),
-            ),
 
-            const SizedBox(height: 30),
+              const SizedBox(height: 32),
 
-            //  Connect Patient (Bigger Card)
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        const DoctorPatientInfoScreen(),
-                  ),
-                );
-              },
-              child: _bigCard(
-                "Connect to a patient",
-                "+",
+              // Connect Patient Card
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const DoctorPatientInfoScreen(),
+                    ),
+                  );
+                },
+                child: _buildCardWithValue(
+                  "Connect to a patient",
+                  "+",
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // Bigger Card Widget
-  Widget _bigCard(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        height: 140, // Increased size
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: const Color(0xFFDDE3E4),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 8,
-              offset: Offset(0, 4),
+  // Card Widget
+  Widget _buildCardWithValue(String title, String value) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+              height: 1.3,
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18, // bigger title
-              ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 36,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF66A399),
             ),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 28, // bigger number
-                fontWeight: FontWeight.bold,
-                color: Colors.green,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

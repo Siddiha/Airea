@@ -37,7 +37,7 @@ class DoctorRemovePatientScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF5F9EA0), 
+                    color: const Color(0xFF66A399), 
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
@@ -81,7 +81,7 @@ class DoctorRemovePatientScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF5F9EA0), 
+                    color: const Color(0xFF66A399), 
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
