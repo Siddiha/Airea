@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'edit_doctor_details.dart';
+import 'doctor_logout.dart';
 
 class DoctorProfileFrame extends StatelessWidget {
   const DoctorProfileFrame({super.key});
@@ -78,6 +79,13 @@ class DoctorProfileFrame extends StatelessWidget {
               context,
               MaterialPageRoute(
                 builder: (_) => const EditDoctorDetails(),
+              ),
+            );
+          } else if (text == "Logout") {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const DoctorLogoutScreen(),
               ),
             );
           }
