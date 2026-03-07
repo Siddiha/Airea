@@ -132,8 +132,8 @@ class PatientProfileFrame extends StatelessWidget {
               );
               break;
             case 2:
-              // TODO: Implement PatientSummaryPage              git add backend/pom.xml
-              git commit -m "feat: add Twilio SDK dependency for SMS alerts"
+              // TODO: Implement PatientSummaryPage
+              break;
           }
         },
         selectedItemColor: Colors.blue,

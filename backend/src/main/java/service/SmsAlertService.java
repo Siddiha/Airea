@@ -26,19 +26,28 @@ public class SmsAlertService {
 
     @PostConstruct
     public void init() {
-        if (smsEnabled && accountSid != null && !accountSid.isEmpty() 
-            && authToken != null && !authToken.isEmpty()) {
+        if (smsEnabled
+                && accountSid != null && !accountSid.isEmpty()
+                && authToken != null && !authToken.isEmpty()
+                && twilioPhoneNumber != null && !twilioPhoneNumber.isEmpty()) {
             try {
                 Twilio.init(accountSid, authToken);
                 initialized = true;
-                System.out.println("✅ Twilio SMS Service Initialized");
+                System.out.println("✅ Twilio SMS Service Initialized (from: " + twilioPhoneNumber + ")");
             } catch (Exception e) {
                 System.err.println("❌ Failed to initialize Twilio: " + e.getMessage());
                 initialized = false;
             }
         } else {
-            System.out.println("⚠️ SMS Alerts disabled or Twilio credentials not configured");
-            System.out.println("   To enable, set sms.alerts.enabled=true and provide Twilio credentials");
+            System.out.println("⚠️ SMS Alerts disabled or Twilio credentials not fully configured");
+            if (smsEnabled) {
+                System.out.println("   Missing: "
+                    + (accountSid == null || accountSid.isEmpty() ? "TWILIO_ACCOUNT_SID " : "")
+                    + (authToken == null || authToken.isEmpty() ? "TWILIO_AUTH_TOKEN " : "")
+                    + (twilioPhoneNumber == null || twilioPhoneNumber.isEmpty() ? "TWILIO_PHONE_NUMBER" : ""));
+            } else {
+                System.out.println("   Set SMS_ALERTS_ENABLED=true and provide all three Twilio credentials to enable");
+            }
         }
     }
 
