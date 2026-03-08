@@ -254,7 +254,7 @@ class PatientDeviceDashboard extends StatelessWidget {
             label: "Home",
             isSelected: false,
             onTap: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
               );
@@ -264,14 +264,16 @@ class PatientDeviceDashboard extends StatelessWidget {
             icon: Icons.sensors,
             label: "Device",
             isSelected: true,
-            onTap: () {},
+            onTap: () {
+              // Already on device page, do nothing
+            },
           ),
           _buildNavItem(
             icon: Icons.menu_book,
             label: "Trends &\nsummary",
             isSelected: false,
             onTap: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (_) => PatientSummaryOverview()),
               );

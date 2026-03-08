@@ -3,6 +3,8 @@ import '../config/app_theme.dart';
 import '../services/summary_service.dart';
 import 'patient_daily_calendar.dart';
 import 'patient_weekly_calendar.dart';
+import 'patient_homeScreen.dart';
+import 'patient_connect_device_option.dart';
 
 class PatientSummaryOverview extends StatelessWidget {
   final SummaryService _summaryService = SummaryService();
@@ -144,9 +146,38 @@ class PatientSummaryOverview extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(Icons.home, false),
-              _buildNavItem(Icons.wifi, false),
-              _buildNavItem(Icons.description, true),
+              _buildNavItem(
+                icon: Icons.home,
+                label: "Home",
+                isActive: false,
+                onTap: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PatientHomeScreen(),
+                    ),
+                  );
+                },
+              ),
+              _buildNavItem(
+                icon: Icons.wifi,
+                label: "Device",
+                isActive: false,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PatientConnectDeviceOption(),
+                    ),
+                  );
+                },
+              ),
+              _buildNavItem(
+                icon: Icons.description,
+                label: "Summary",
+                isActive: true,
+                onTap: () {},
+              ),
             ],
           ),
         ),
@@ -154,14 +185,33 @@ class PatientSummaryOverview extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(IconData icon, bool isActive) {
-    return IconButton(
-      icon: Icon(
-        icon,
-        color: isActive ? AppTheme.primaryTeal : Colors.grey,
-        size: 28,
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: isActive ? AppTheme.primaryTeal : Colors.grey,
+            size: 28,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: isActive ? AppTheme.primaryTeal : Colors.grey,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
       ),
-      onPressed: () {},
     );
   }
 }
