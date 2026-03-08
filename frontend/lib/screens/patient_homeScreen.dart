@@ -472,7 +472,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   isSelected: _selectedIndex == 2,
                   onTap: () {
                     setState(() => _selectedIndex = 2);
-                    Navigator.push(
+                    Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
                             builder: (_) => PatientSummaryOverview()));

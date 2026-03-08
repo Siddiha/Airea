@@ -185,13 +185,15 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildNavItem(icon: Icons.home, label: "Home", isSelected: false, onTap: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
               );},),
-          _buildNavItem(icon: Icons.sensors, label: "Device", isSelected: true, onTap: (){}),
+          _buildNavItem(icon: Icons.sensors, label: "Device", isSelected: true, onTap: () {
+            // Already on device page, do nothing
+          }),
           _buildNavItem(icon: Icons.menu_book, label: "Trends &\nsummary", isSelected: false, onTap: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (_) => PatientSummaryOverview()),
               );
