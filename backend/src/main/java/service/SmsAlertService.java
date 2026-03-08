@@ -108,31 +108,6 @@ public class SmsAlertService {
     private String buildEmergencyMessage(String patientName, String emergencyReason,
                                           String location, Float temp, Float bpm, Float rr, Float gForce) {
         StringBuilder sb = new StringBuilder();
-<<<<<<< Updated upstream
-        sb.append("AIREA ALERT! ");
-        sb.append(patientName != null ? patientName : "Unknown").append(" fell.\n");
-
-        if (gForce != null) {
-            sb.append("Impact: ").append(String.format("%.1fG\n", gForce));
-        }
-
-        sb.append("Vitals: ");
-        if (temp != null && temp > 30 && temp < 45) sb.append(String.format("%.1fC ", temp));
-        if (bpm != null && bpm > 0) sb.append(String.format("%.0fbpm ", bpm));
-        if (rr != null && rr > 0) sb.append(String.format("%.0f/m", rr));
-        sb.append("\n");
-
-        // Use only coordinates (remove Google Maps URL to avoid carrier spam filters)
-        if (location != null && !location.isEmpty()) {
-            String coordsOnly = location.split("\n")[0];
-            sb.append("Loc: ").append(coordsOnly).append("\n");
-        }
-
-        sb.append("Check patient immediately!");
-
-        // Strip non-ascii to force GSM-7 encoding (max 160 chars per segment)
-=======
-        
         // Formatting as OTP to bypass strict Sri Lankan carrier restrictions on international numbers
         sb.append("AIREA Auth OTP: ");
         sb.append("Fall Emergency! ");
@@ -145,7 +120,6 @@ public class SmsAlertService {
         sb.append("Check patient immediately. Code: 9482");
 
         // Strip non-ascii to force GSM-7 encoding
->>>>>>> Stashed changes
         return sb.toString().replaceAll("[^\\x00-\\x7F]", "");
     }
 
