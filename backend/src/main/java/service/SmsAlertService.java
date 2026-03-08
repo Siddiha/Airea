@@ -108,33 +108,28 @@ public class SmsAlertService {
     private String buildEmergencyMessage(String patientName, String emergencyReason,
                                           String location, Float temp, Float bpm, Float rr, Float gForce) {
         StringBuilder sb = new StringBuilder();
-        sb.append("AIREA EMERGENCY ALERT\n\n");
-        sb.append("Patient: ").append(patientName != null ? patientName : "Unknown").append("\n");
-        sb.append("Event: FALL DETECTED\n");
-        
+        sb.append("AIREA ALERT! ");
+        sb.append(patientName != null ? patientName : "Unknown").append(" fell.\n");
+
         if (gForce != null) {
-            sb.append("Impact: ").append(String.format("%.1fG", gForce)).append("\n");
-        }
-        
-        String cleanReason = emergencyReason != null ? emergencyReason.replace("°C", "C") : "Emergency";
-        sb.append("\nStatus: ").append(cleanReason).append("\n\n");
-
-        sb.append("Vitals at Fall:\n");
-        if (temp != null && temp > 30 && temp < 45) {
-            sb.append("- Temp: ").append(String.format("%.1fC", temp)).append("\n");
-        }
-        if (bpm != null && bpm > 0) {
-            sb.append("- Heart Rate: ").append(String.format("%.0f bpm", bpm)).append("\n");
-        }
-        if (rr != null && rr > 0) {
-            sb.append("- Resp Rate: ").append(String.format("%.0f /min", rr)).append("\n");
+            sb.append("Impact: ").append(String.format("%.1fG\n", gForce));
         }
 
-        sb.append("\nLocation:\n");
-        sb.append(location != null && !location.isEmpty() ? location : "Unknown");
-        sb.append("\n\nPlease check on the patient immediately!");
+        sb.append("Vitals: ");
+        if (temp != null && temp > 30 && temp < 45) sb.append(String.format("%.1fC ", temp));
+        if (bpm != null && bpm > 0) sb.append(String.format("%.0fbpm ", bpm));
+        if (rr != null && rr > 0) sb.append(String.format("%.0f/m", rr));
+        sb.append("\n");
 
-        // Strip non-ascii to force GSM-7 encoding which allows 160 characters per segment
+        // Use only coordinates (remove Google Maps URL to avoid carrier spam filters)
+        if (location != null && !location.isEmpty()) {
+            String coordsOnly = location.split("\n")[0];
+            sb.append("Loc: ").append(coordsOnly).append("\n");
+        }
+
+        sb.append("Check patient immediately!");
+
+        // Strip non-ascii to force GSM-7 encoding (max 160 chars per segment)
         return sb.toString().replaceAll("[^\\x00-\\x7F]", "");
     }
 
