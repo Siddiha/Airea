@@ -1,52 +1,49 @@
 package service;
 
-import com.twilio.Twilio;
-import com.twilio.rest.api.v2010.account.Message;
-import com.twilio.type.PhoneNumber;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class SmsAlertService {
 
-    @Value("${twilio.account.sid:#{null}}")
-    private String accountSid;
+    @Value("${notify.user.id:#{null}}")
+    private String notifyUserId;
 
-    @Value("${twilio.auth.token:#{null}}")
-    private String authToken;
+    @Value("${notify.api.key:#{null}}")
+    private String notifyApiKey;
 
-    @Value("${twilio.phone.number:#{null}}")
-    private String twilioPhoneNumber;
+    @Value("${notify.sender.id:NotifyDEMO}")
+    private String notifySenderId;
 
     @Value("${sms.alerts.enabled:false}")
     private boolean smsEnabled;
 
     private boolean initialized = false;
+    private final RestTemplate restTemplate = new RestTemplate();
+    private static final String NOTIFY_API_URL = "https://app.notify.lk/api/v1/send";
 
     @PostConstruct
     public void init() {
         if (smsEnabled
-                && accountSid != null && !accountSid.isEmpty()
-                && authToken != null && !authToken.isEmpty()
-                && twilioPhoneNumber != null && !twilioPhoneNumber.isEmpty()) {
-            try {
-                Twilio.init(accountSid, authToken);
-                initialized = true;
-                System.out.println("✅ Twilio SMS Service Initialized (from: " + twilioPhoneNumber + ")");
-            } catch (Exception e) {
-                System.err.println("❌ Failed to initialize Twilio: " + e.getMessage());
-                initialized = false;
-            }
+                && notifyUserId != null && !notifyUserId.isEmpty()
+                && notifyApiKey != null && !notifyApiKey.isEmpty()) {
+            initialized = true;
+            System.out.println("✅ Notify.lk SMS Service Initialized (Sender ID: " + notifySenderId + ")");
         } else {
-            System.out.println("⚠️ SMS Alerts disabled or Twilio credentials not fully configured");
+            System.out.println("⚠️ SMS Alerts disabled or Notify.lk credentials not fully configured");
             if (smsEnabled) {
-                System.out.println("   Missing: "
-                    + (accountSid == null || accountSid.isEmpty() ? "TWILIO_ACCOUNT_SID " : "")
-                    + (authToken == null || authToken.isEmpty() ? "TWILIO_AUTH_TOKEN " : "")
-                    + (twilioPhoneNumber == null || twilioPhoneNumber.isEmpty() ? "TWILIO_PHONE_NUMBER" : ""));
+                System.out.println("   Missing Notify.lk Credentials check NOTIFY_USER_ID and NOTIFY_API_KEY");
             } else {
-                System.out.println("   Set SMS_ALERTS_ENABLED=true and provide all three Twilio credentials to enable");
+                System.out.println("   Set SMS_ALERTS_ENABLED=true and provide Notify.lk credentials to enable");
             }
         }
     }
@@ -72,34 +69,60 @@ public class SmsAlertService {
         }
 
         if (!initialized) {
-            System.err.println("❌ Twilio is enabled but not initialized properly. Missing credentials?");
+            System.err.println("❌ Notify.lk SMS is enabled but not initialized properly. Missing credentials?");
             return false;
         }
 
-        // Format phone number for Twilio (E.164 format)
-        // Auto-fix Sri Lankan numbers starting with 0
-        String formattedPhone = toPhoneNumber.replaceAll("\\s+", "");
+        return sendViaNotifyLk(toPhoneNumber, messageBody);
+    }
+
+    /**
+     * Executes the HTTP request to the Notify.lk API
+     */
+    private boolean sendViaNotifyLk(String toPhoneNumber, String messageBody) {
+        // Format phone number for Notify.lk (e.g. 9471XXXXXXX)
+        String formattedPhone = toPhoneNumber.replaceAll("[^0-9]", "");
         if (formattedPhone.startsWith("0")) {
-            formattedPhone = "+94" + formattedPhone.substring(1);
-        } else if (!formattedPhone.startsWith("+")) {
-            formattedPhone = "+" + formattedPhone;
+            formattedPhone = "94" + formattedPhone.substring(1);
+        } else if (formattedPhone.startsWith("+94")) {
+            formattedPhone = formattedPhone.substring(1); // Remove '+'
+        } else if (!formattedPhone.startsWith("94")) {
+            // Assume it's a local number without '0' prefix, prepend '94'
+            formattedPhone = "94" + formattedPhone;
         }
+
 
         try {
-            Message message = Message.creator(
-                    new PhoneNumber(formattedPhone),
-                    new PhoneNumber(twilioPhoneNumber),
-                    messageBody
-            ).create();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
-            System.out.println("✅ Emergency SMS sent! SID: " + message.getSid());
-            return true;
+            Map<String, String> requestBody = new HashMap<>();
+            requestBody.put("user_id", notifyUserId);
+            requestBody.put("api_key", notifyApiKey);
+            requestBody.put("sender_id", notifySenderId);
+            requestBody.put("to", formattedPhone);
+            requestBody.put("message", messageBody);
 
+            HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);
+
+            ResponseEntity<Map> response = restTemplate.postForEntity(NOTIFY_API_URL, request, Map.class);
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                String status = (String) response.getBody().get("status");
+                if ("success".equalsIgnoreCase(status)) {
+                    System.out.println("✅ Emergency SMS sent via Notify.lk!");
+                    return true;
+                } else {
+                    System.err.println("❌ Notify.lk API returned failure: " + response.getBody());
+                }
+            } else {
+                System.err.println("❌ Failed to send SMS via Notify.lk, HTTP Status: " + response.getStatusCode());
+            }
         } catch (Exception e) {
-            System.err.println("❌ Failed to send SMS: " + e.getMessage());
+            System.err.println("❌ Exception occurred while sending SMS via Notify.lk: " + e.getMessage());
             e.printStackTrace();
-            return false;
         }
+        return false;
     }
 
     /**
@@ -108,19 +131,33 @@ public class SmsAlertService {
     private String buildEmergencyMessage(String patientName, String emergencyReason,
                                           String location, Float temp, Float bpm, Float rr, Float gForce) {
         StringBuilder sb = new StringBuilder();
-        // Formatting as OTP to bypass strict Sri Lankan carrier restrictions on international numbers
-        sb.append("AIREA Auth OTP: ");
-        sb.append("Fall Emergency! ");
-        sb.append("Patient: ").append(patientName != null ? patientName : "Unknown").append(". ");
+        
+        sb.append("🚨 AIREA EMERGENCY ALERT 🚨\n\n");
+        sb.append("Patient: ").append(patientName != null ? patientName : "Unknown").append("\n");
+        sb.append("Event: FALL DETECTED\n");
         
         if (gForce != null) {
-            sb.append("Impact: ").append(String.format("%.1fG. ", gForce));
+            sb.append("Impact: ").append(String.format("%.1fG", gForce)).append("\n");
         }
         
-        sb.append("Check patient immediately. Code: 9482");
+        sb.append("\nStatus: ").append(emergencyReason != null ? emergencyReason : "Emergency").append("\n\n");
 
-        // Strip non-ascii to force GSM-7 encoding
-        return sb.toString().replaceAll("[^\\x00-\\x7F]", "");
+        sb.append("📊 Vitals at Fall:\n");
+        if (temp != null && temp > 30 && temp < 45) {
+            sb.append("• Temp: ").append(String.format("%.1f°C", temp)).append("\n");
+        }
+        if (bpm != null && bpm > 0) {
+            sb.append("• Heart Rate: ").append(String.format("%.0f bpm", bpm)).append("\n");
+        }
+        if (rr != null && rr > 0) {
+            sb.append("• Resp Rate: ").append(String.format("%.0f /min", rr)).append("\n");
+        }
+
+        sb.append("\n📍 Location:\n");
+        sb.append(location != null && !location.isEmpty() ? location : "Unknown");
+        sb.append("\n\n⚠️ Please check on the patient immediately!");
+
+        return sb.toString();
     }
 
     /**
@@ -132,19 +169,16 @@ public class SmsAlertService {
             return false;
         }
 
-        try {
-            Message message = Message.creator(
-                    new PhoneNumber(toPhoneNumber),
-                    new PhoneNumber(twilioPhoneNumber),
-                    "AIREA Test Alert - SMS notifications are working correctly!"
-            ).create();
-
-            System.out.println("✅ Test SMS sent! SID: " + message.getSid());
-            return true;
-        } catch (Exception e) {
-            System.err.println("❌ Test SMS failed: " + e.getMessage());
-            return false;
+        String testMessage = "✅ AIREA Test Alert - SMS notifications via Notify.lk are working correctly!";
+        boolean result = sendViaNotifyLk(toPhoneNumber, testMessage);
+        
+        if (result) {
+            System.out.println("✅ Test SMS sent to " + toPhoneNumber);
+        } else {
+            System.err.println("❌ Test SMS failed to " + toPhoneNumber);
         }
+        
+        return result;
     }
 
     /**
