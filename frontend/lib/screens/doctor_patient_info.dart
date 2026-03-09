@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'option_connect_patient.dart';
 import 'doctor_home_screen.dart';
+import 'doctor_summary_screen.dart'; 
 
 class DoctorPatientInfo extends StatelessWidget {
   const DoctorPatientInfo({super.key});
@@ -113,9 +114,9 @@ class DoctorPatientInfo extends StatelessWidget {
                             Container(
                               width: 48,
                               height: 48,
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: const Color(0xFF66A399),
+                                color: Color(0xFF66A399),
                               ),
                               child: const Icon(
                                 Icons.add,
@@ -150,25 +151,61 @@ class DoctorPatientInfo extends StatelessWidget {
       // Bottom Navigation Bar
       bottomNavigationBar: Container(
         height: 70,
-        color: Colors.white,
-        child: GestureDetector(
-          onTap: () {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const DoctorHomeScreen(),
-              ),
-              (route) => false,
-            );
-          },
-          child: const Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.home, color: Colors.black87),
-              SizedBox(height: 4),
-              Text("Home", style: TextStyle(fontSize: 12)),
-            ],
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(color: Colors.black.withOpacity(0.05), width: 1),
           ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            // Home Button
+            GestureDetector(
+              onTap: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DoctorHomeScreen(),
+                  ),
+                  (route) => false,
+                );
+              },
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.home, color: Colors.black87),
+                  SizedBox(height: 4),
+                  Text("Home", style: TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+
+            // Trends & Summary Button
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DoctorSummaryScreen(),
+                  ),
+                );
+              },
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.menu_book_outlined, color: Colors.black54),
+                  SizedBox(height: 4),
+                  Text(
+                    "Trends & Summary",
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
