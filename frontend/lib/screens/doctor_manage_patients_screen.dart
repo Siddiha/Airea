@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'doctor_remove_patient_screen.dart';
 import 'doctor_patient_removed_success_screen.dart';
-import 'option_connect_patient.dart'; // 1. Added this import
+import 'option_connect_patient.dart'; 
 import '../services/doctor_patient_service.dart';
 import '../models/doctor_patient_connection.dart';
 
@@ -175,7 +175,7 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
                     MaterialPageRoute(
                       builder: (context) => const OptionConnectPatient(),
                     ),
-                  ).then((_) => _loadPatients()); // Optional: Refresh list after returning
+                  ).then((_) => _loadPatients()); 
                 },
                 child: Container(
                   width: double.infinity,
