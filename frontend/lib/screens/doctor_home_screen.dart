@@ -2,10 +2,45 @@ import 'package:flutter/material.dart';
 import 'doctor_notification.dart';
 import 'doctor_profile_frame.dart';
 import 'doctor_patient_info.dart';
-import 'doctor_patient_info_screen.dart';
+import 'doctor_connect_patient_screen.dart';
+import '../services/doctor_patient_service.dart';
 
-class DoctorHomeScreen extends StatelessWidget {
+class DoctorHomeScreen extends StatefulWidget {
   const DoctorHomeScreen({super.key});
+
+  @override
+  State<DoctorHomeScreen> createState() => _DoctorHomeScreenState();
+}
+
+class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
+  int _patientCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPatientCount();
+  }
+
+  Future<void> _loadPatientCount() async {
+    final count = await DoctorPatientService.getConnectedPatientCount();
+    if (mounted) {
+      setState(() => _patientCount = count);
+    }
+  }
+
+  Future<void> _handleConnectPatient() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const DoctorConnectPatientScreen(),
+      ),
+    );
+
+    // Refresh patient count if a patient was successfully connected
+    if (result == true) {
+      _loadPatientCount();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,7 +164,7 @@ class DoctorHomeScreen extends StatelessWidget {
                 },
                 child: _buildCardWithValue(
                   "Total number of patients",
-                  "23",
+                  _patientCount.toString(),
                 ),
               ),
 
@@ -137,14 +172,7 @@ class DoctorHomeScreen extends StatelessWidget {
 
               // Connect Patient Card
               GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const DoctorPatientInfoScreen(),
-                    ),
-                  );
-                },
+                onTap: _handleConnectPatient,
                 child: _buildCardWithValue(
                   "Connect to a patient",
                   "+",
