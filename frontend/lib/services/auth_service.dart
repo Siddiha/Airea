@@ -19,15 +19,15 @@ class AuthService {
 
   // --- Login Adapters ---
   Future<Map<String, dynamic>> login(String email, String password) async {
-    return _login(email, password);
+    return _login(email, password, 'patient');
   }
 
   Future<Map<String, dynamic>> doctorLogin(
       String email, String password) async {
-    return _login(email, password);
+    return _login(email, password, 'doctor');
   }
 
-  Future<Map<String, dynamic>> _login(String email, String password) async {
+  Future<Map<String, dynamic>> _login(String email, String password, String userRole) async {
     try {
       final AuthResponse res = await _supabase.auth.signInWithPassword(
         email: email,
@@ -35,7 +35,8 @@ class AuthService {
       );
       if (res.user != null) {
         // Save session AND credentials to device storage
-        await _saveSession(res.user!.id, email, res.user!.userMetadata?['role'] ?? 'patient', password);
+        // Use the explicitly passed userRole instead of metadata to ensure correct role is saved
+        await _saveSession(res.user!.id, email, userRole, password);
         return {'success': true, 'data': res.user};
       }
       return {'success': false, 'message': 'Login failed'};
