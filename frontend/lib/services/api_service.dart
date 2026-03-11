@@ -253,7 +253,7 @@ class ApiService {
     }
   }
 
-  /// Get alert notifications from fall events history
+  /// Get alert notifications from fall events history (deduplicated, newest first)
   Future<List<PatientNotification>> getFallAlerts(String deviceId) async {
     try {
       final response = await http.get(
@@ -262,11 +262,31 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonList = json.decode(response.body);
-        return jsonList.map((event) {
+
+        // Sort by timestamp descending so we keep the most recent of each type
+        jsonList.sort((a, b) {
+          final ta = a['timestamp']?.toString() ?? '';
+          final tb = b['timestamp']?.toString() ?? '';
+          return tb.compareTo(ta);
+        });
+
+        final seen = <String>{};
+        final result = <PatientNotification>[];
+
+        for (final event in jsonList) {
           final String level = event['emergencyLevel'] ?? 'NORMAL';
-          final bool isHighAlert = level == 'CRITICAL' || level == 'WARNING';
-          final String reason = (event['emergencyReason'] ?? '').toString().trim();
+          // Skip NORMAL/MONITORING events — only show real alerts
+          if (level == 'NORMAL' || level == 'MONITORING') continue;
+
+          final bool isHighAlert = level == 'CRITICAL';
+          final String reason =
+              (event['emergencyReason'] ?? '').toString().trim();
           final String title = reason.isNotEmpty ? reason : 'Fall detected';
+
+          // Deduplicate: skip if we've already shown this exact reason
+          if (seen.contains(title)) continue;
+          seen.add(title);
+
           final String timestamp = event['timestamp']?.toString() ?? '';
           String timeStr = '--:--';
           if (timestamp.length >= 16) {
@@ -278,12 +298,15 @@ class ApiService {
               timeStr = timestamp.substring(11, 16);
             }
           }
-          return PatientNotification(
+
+          result.add(PatientNotification(
             title: title,
             time: timeStr,
             isHighAlert: isHighAlert,
-          );
-        }).toList();
+          ));
+        }
+
+        return result;
       }
       return [];
     } catch (e) {

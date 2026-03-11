@@ -103,15 +103,47 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     }
   }
 
+  bool _criticalBannerShown = false;
+
   Future<void> _loadAlerts() async {
     try {
       final alerts = await _apiService.getFallAlerts(_deviceId);
       if (mounted) {
         setState(() => _alerts = alerts);
+        // Pop up a banner the first time we detect a CRITICAL alert
+        if (!_criticalBannerShown &&
+            alerts.any((a) => a.isHighAlert)) {
+          _criticalBannerShown = true;
+          _showCriticalBanner(alerts.firstWhere((a) => a.isHighAlert));
+        }
       }
     } catch (e) {
       print('Error loading alerts: $e');
     }
+  }
+
+  OverlayEntry? _criticalOverlay;
+
+  void _showCriticalBanner(PatientNotification alert) {
+    _criticalOverlay?.remove();
+    _criticalOverlay = OverlayEntry(
+      builder: (_) => _CriticalAlertToast(
+        alert: alert,
+        onView: () {
+          _criticalOverlay?.remove();
+          _criticalOverlay = null;
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => PatientNotifications(alerts: _alerts)));
+        },
+        onDismiss: () {
+          _criticalOverlay?.remove();
+          _criticalOverlay = null;
+        },
+      ),
+    );
+    Overlay.of(context).insert(_criticalOverlay!);
   }
 
   // --- STATUS HELPERS ---
