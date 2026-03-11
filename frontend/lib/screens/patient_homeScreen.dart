@@ -8,6 +8,7 @@ import 'patient_summary_overview.dart';
 import 'cough_analyzer_screen.dart';
 import '../services/api_service.dart';
 import '../config/api_config.dart';
+import '../models/device_model.dart';
 import 'patient_contact_doctor.dart';
 
 class PatientHomeScreen extends StatefulWidget {
@@ -32,6 +33,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   int coughCount = 0;
   String coughStatus = "Loading...";
 
+  List<PatientNotification> _alerts = [];
   int _selectedIndex = 0;
   Timer? _refreshTimer;
 
@@ -41,11 +43,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     // Fetch immediately on load
     _loadCoughData();
     _loadVitalsData();
+    _loadAlerts();
 
     // Refresh every 10 seconds
     _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       _loadCoughData();
       _loadVitalsData();
+      _loadAlerts();
     });
   }
 
@@ -96,6 +100,17 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           heartRateStatus = "Offline";
         });
       }
+    }
+  }
+
+  Future<void> _loadAlerts() async {
+    try {
+      final alerts = await _apiService.getFallAlerts(_deviceId);
+      if (mounted) {
+        setState(() => _alerts = alerts);
+      }
+    } catch (e) {
+      print('Error loading alerts: $e');
     }
   }
 
@@ -223,20 +238,33 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         const Spacer(),
         GestureDetector(
           onTap: () => Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const PatientNotifications())),
+              MaterialPageRoute(
+                  builder: (_) => PatientNotifications(alerts: _alerts))),
           child: Stack(
+            clipBehavior: Clip.none,
             children: [
               const Icon(Icons.notifications_outlined,
                   color: Colors.black87, size: 26),
-              Positioned(
-                right: 2,
-                top: 2,
-                child: Container(
-                    width: 8,
-                    height: 8,
+              if (_alerts.isNotEmpty)
+                Positioned(
+                  right: -4,
+                  top: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
                     decoration: const BoxDecoration(
-                        color: Colors.red, shape: BoxShape.circle)),
-              ),
+                        color: Colors.red, shape: BoxShape.circle),
+                    constraints:
+                        const BoxConstraints(minWidth: 16, minHeight: 16),
+                    child: Text(
+                      _alerts.length > 99 ? '99+' : '${_alerts.length}',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

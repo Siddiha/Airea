@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-import '../config/app_theme.dart';
-import '../models/device_model.dart'; 
-import 'patient_connect_device_option.dart'; 
+import '../models/device_model.dart';
+import 'patient_connect_device_option.dart';
 import 'patient_summary_overview.dart';
 
 class PatientNotifications extends StatelessWidget {
-  const PatientNotifications({super.key});
+  final List<PatientNotification> alerts;
+
+  const PatientNotifications({super.key, this.alerts = const []});
 
   @override
   Widget build(BuildContext context) {
-    // Fetch Real Data from Controller
-    final List<PatientNotification> notifications = DeviceController().fetchNotifications();
+    final List<PatientNotification> notifications =
+        alerts.isNotEmpty ? alerts : DeviceController().fetchNotifications();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), 
@@ -38,11 +39,10 @@ class PatientNotifications extends StatelessWidget {
                   separatorBuilder: (context, index) => const SizedBox(height: 16),
                   itemBuilder: (context, index) {
                     final note = notifications[index];
-                    
-                    // 4. Pass data into your existing design widget
                     return _buildSimpleNotificationItem(
                       title: note.title,
                       time: note.time,
+                      isHighAlert: note.isHighAlert,
                     );
                   },
                 ),
@@ -112,15 +112,19 @@ class PatientNotifications extends StatelessWidget {
   Widget _buildSimpleNotificationItem({
     required String title,
     required String time,
+    bool isHighAlert = false,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9), 
-        borderRadius: BorderRadius.circular(30), 
+        color: isHighAlert ? const Color(0xFFFFEBEE) : const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(30),
+        border: isHighAlert
+            ? Border.all(color: Colors.red.shade200, width: 1)
+            : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -129,14 +133,23 @@ class PatientNotifications extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-              fontWeight: FontWeight.w400,
+          if (isHighAlert) ...[
+            const Icon(Icons.warning_amber_rounded,
+                color: Colors.red, size: 16),
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                color: isHighAlert ? Colors.red.shade700 : Colors.black87,
+                fontWeight:
+                    isHighAlert ? FontWeight.w600 : FontWeight.w400,
+              ),
             ),
           ),
+          const SizedBox(width: 8),
           Text(
             time,
             style: TextStyle(

@@ -4,6 +4,7 @@ import '../config/api_config.dart';
 import '../models/cough_event.dart';
 import '../models/cough_statistics.dart';
 import '../models/device.dart';
+import '../models/device_model.dart';
 
 class ApiService {
   // Use configuration instead of hardcoded URL
@@ -249,6 +250,45 @@ class ApiService {
     } catch (e) {
       print('Error generating dummy data: $e');
       rethrow;
+    }
+  }
+
+  /// Get alert notifications from fall events history
+  Future<List<PatientNotification>> getFallAlerts(String deviceId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/fall/history/$deviceId'),
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = json.decode(response.body);
+        return jsonList.map((event) {
+          final String level = event['emergencyLevel'] ?? 'NORMAL';
+          final bool isHighAlert = level == 'CRITICAL' || level == 'WARNING';
+          final String reason = (event['emergencyReason'] ?? '').toString().trim();
+          final String title = reason.isNotEmpty ? reason : 'Fall detected';
+          final String timestamp = event['timestamp']?.toString() ?? '';
+          String timeStr = '--:--';
+          if (timestamp.length >= 16) {
+            try {
+              final dt = DateTime.parse(timestamp);
+              timeStr =
+                  '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+            } catch (_) {
+              timeStr = timestamp.substring(11, 16);
+            }
+          }
+          return PatientNotification(
+            title: title,
+            time: timeStr,
+            isHighAlert: isHighAlert,
+          );
+        }).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching fall alerts: $e');
+      return [];
     }
   }
 
