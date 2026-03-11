@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'edit_doctor_details.dart';
 import 'doctor_logout.dart';
+import 'doctor_manage_patients_screen.dart';
 
 class DoctorProfileFrame extends StatelessWidget {
   const DoctorProfileFrame({super.key});
@@ -49,9 +50,13 @@ class DoctorProfileFrame extends StatelessWidget {
               _buildButton(context, "Edit additional details"),
 
               const SizedBox(height: 18),
+              
+              // Manage Connected Patients Button
               _buildButton(context, "Manage connected patients"),
 
               const SizedBox(height: 18),
+              
+              // Logout Button
               _buildButton(context, "Logout"),
             ],
           ),
@@ -81,7 +86,16 @@ class DoctorProfileFrame extends StatelessWidget {
                 builder: (_) => const EditDoctorDetails(),
               ),
             );
-          } else if (text == "Logout") {
+          } 
+          else if (text == "Manage connected patients") {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const DoctorManagePatientsScreen(),
+              ),
+            );
+          } 
+          else if (text == "Logout") {
             Navigator.push(
               context,
               MaterialPageRoute(

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'doctor_remove_patient_screen.dart';
-import 'doctor_patient_removed_success_screen.dart'; 
+import 'doctor_patient_removed_success_screen.dart';
+import 'option_connect_patient.dart'; 
+import '../services/doctor_patient_service.dart';
+import '../models/doctor_patient_connection.dart';
 
 class DoctorManagePatientsScreen extends StatefulWidget {
   const DoctorManagePatientsScreen({super.key});
@@ -10,32 +13,53 @@ class DoctorManagePatientsScreen extends StatefulWidget {
 }
 
 class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen> {
-  // Sample data simulating registered patients
-  final List<String> _patients = [
-    "Patient name",
-    "John Doe", 
-    "Sarah Smith"
-  ];
+  List<DoctorPatientConnection> _patients = [];
+  bool _isLoading = true;
 
-  void _removePatient(int index) {
-    setState(() {
-      _patients.removeAt(index);
-    });
+  @override
+  void initState() {
+    super.initState();
+    _loadPatients();
+  }
+
+  Future<void> _loadPatients() async {
+    try {
+      final patients = await DoctorPatientService.getConnectedPatients();
+      if (mounted) {
+        setState(() {
+          _patients = patients;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _removePatient(int index) async {
+    try {
+      final patientId = _patients[index].patientId;
+      final success = await DoctorPatientService.disconnectPatient(patientId);
+      
+      if (mounted && success) {
+        setState(() => _patients.removeAt(index));
+      }
+    } catch (e) {
+      debugPrint('Error removing patient: $e');
+    }
   }
 
   Future<void> _confirmRemove(int index) async {
-    // 1. Navigate to the confirmation screen (Yes/No)
     final bool? shouldRemove = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const DoctorRemovePatientScreen()),
     );
 
-    // 2. If user clicked "Yes"
     if (shouldRemove == true) {
-      // Remove the patient
-      _removePatient(index);
+      await _removePatient(index);
 
-      // Show the Success Screen
       if (mounted) {
         Navigator.push(
           context,
@@ -54,7 +78,6 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
           child: Column(
             children: [
-              // --- Title ---
               const SizedBox(height: 20),
               const Text(
                 "Manage Registered\nPatient’s",
@@ -70,75 +93,89 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
 
               // --- Patient List ---
               Expanded(
-                child: _patients.isEmpty 
-                  ? const Center(child: Text("No patients registered"))
-                  : ListView.builder(
-                      itemCount: _patients.length,
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 20.0),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF66A399), 
-                                    borderRadius: BorderRadius.circular(30),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _patients.isEmpty
+                        ? const Center(
+                            child: Text(
+                              "No patients connected yet",
+                              style: TextStyle(color: Colors.grey, fontSize: 16),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: _patients.length,
+                            itemBuilder: (context, index) {
+                              final patient = _patients[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 20.0),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF66A399), 
+                                          borderRadius: BorderRadius.circular(30),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.1),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              patient.patientName,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'ID: ${patient.patientId}',
+                                              style: TextStyle(
+                                                color: Colors.white.withOpacity(0.8),
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ],
-                                  ),
-                                  child: Text(
-                                    _patients[index],
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w500,
                                     ),
-                                  ),
-                                ),
-                              ),
-                              
-                              const SizedBox(width: 12),
-                              
-                              // Remove Button
-                              GestureDetector(
-                                onTap: () => _confirmRemove(index), 
-                                child: Container(
-                                  height: 45,
-                                  width: 45,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFB71C1C), 
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
+                                    const SizedBox(width: 12),
+                                    GestureDetector(
+                                      onTap: () => _confirmRemove(index), 
+                                      child: Container(
+                                        height: 45, width: 45,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFB71C1C), 
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(Icons.remove, color: Colors.white, size: 28),
                                       ),
-                                    ]
-                                  ),
-                                  child: const Icon(Icons.remove, color: Colors.white, size: 28),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
               ),
 
-              // --- Connect Button ---
+              // --- Connect Button (Updated) ---
               GestureDetector(
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Connect Patient screen is under construction")),
-                  );
+                  // 2. Updated to navigate to OptionConnectPatient
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const OptionConnectPatient(),
+                    ),
+                  ).then((_) => _loadPatients()); 
                 },
                 child: Container(
                   width: double.infinity,
@@ -161,7 +198,6 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
                       const SizedBox(width: 12),
                       const Text(
                         "Press to connect\nwith a patient",
-                        textAlign: TextAlign.start,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -172,7 +208,6 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
                   ),
                 ),
               ),
-              
               const SizedBox(height: 10),
             ],
           ),
@@ -183,24 +218,19 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
       bottomNavigationBar: SizedBox(
         height: 80,
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.home, size: 36, color: Colors.black),
-              Text("Home", style: TextStyle(fontSize: 12, color: Colors.black54)),
-            ],
+          child: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.home, size: 36, color: Colors.black),
+                Text("Home", style: TextStyle(fontSize: 12, color: Colors.black54)),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-}
-
-// --- MAIN FUNCTION FOR TESTING ---
-void main() {
-  runApp(const MaterialApp(
-    home: DoctorManagePatientsScreen(),
-    debugShowCheckedModeBanner: false,
-  ));
 }

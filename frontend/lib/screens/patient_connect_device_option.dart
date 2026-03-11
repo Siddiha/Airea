@@ -137,7 +137,9 @@ class PatientConnectDeviceOption extends StatelessWidget {
             icon: Icons.sensors, 
             label: "Device",
             isSelected: true, 
-            onTap: (){}
+            onTap: () {
+              // Already on device page, do nothing
+            }
           ),
 
           // Trends Item
@@ -146,7 +148,7 @@ class PatientConnectDeviceOption extends StatelessWidget {
             label: "Trends &\nsummary",
             isSelected: false,
             onTap: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (_) => PatientSummaryOverview()),
               );

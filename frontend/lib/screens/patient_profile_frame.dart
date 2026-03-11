@@ -131,10 +131,10 @@ class PatientProfileFrame extends StatelessWidget {
                 ),
               );
               break;
-            case 2:
-              // TODO: Implement PatientSummaryPage
-              break;
-          }
+  case 2:
+    // TODO: Implement PatientSummaryPage
+    break;
+}
         },
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,

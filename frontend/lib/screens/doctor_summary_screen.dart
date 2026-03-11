@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
-import '../config/app_theme.dart';
 import 'doctor_daily_records_calendar.dart';
 import 'doctor_weekly_records_calendar.dart';
 import 'doctor_select_patient_report.dart';
 import 'doctor_allergic_conditions_screen.dart';
+import '../models/doctor_patient_connection.dart';
 
 class DoctorSummaryScreen extends StatelessWidget {
-  const DoctorSummaryScreen({super.key});
+  final DoctorPatientConnection? patient;
+
+  const DoctorSummaryScreen({
+    super.key,
+    this.patient,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +23,49 @@ class DoctorSummaryScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- Header ---
+              // --- Header with Patient Name ---
+              if (patient != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF66A399),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Viewing Summary for:',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        patient!.patientName,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'ID: ${patient!.patientId}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (patient != null) const SizedBox(height: 24),
               const Text(
                 'Summary',
                 style: TextStyle(
