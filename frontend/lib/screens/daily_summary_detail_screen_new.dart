@@ -173,6 +173,10 @@ class _DailySummaryDetailScreenNewState extends State<DailySummaryDetailScreenNe
                 _buildVitalsSummarySection(summary.vitalsSummary),
                 const SizedBox(height: 20),
 
+                // Fall Events Summary Section
+                _buildFallEventsSummarySection(summary.fallEventsSummary),
+                const SizedBox(height: 20),
+
                 // Hourly Distribution Chart
                 _buildHourlyChart(summary),
                 const SizedBox(height: 20),
@@ -1703,6 +1707,302 @@ class _DailySummaryDetailScreenNewState extends State<DailySummaryDetailScreenNe
         return Icons.air;
       default:
         return Icons.warning;
+    }
+  }
+
+  // ==================== FALL EVENTS SECTION ====================
+
+  Widget _buildFallEventsSummarySection(FallEventsSummaryModel? fallSummary) {
+    if (fallSummary == null || !fallSummary.hasFallData) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.directions_walk_outlined, size: 48, color: Colors.grey[400]),
+            const SizedBox(height: 12),
+            Text(
+              'No Fall Events',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No fall events were detected for this day.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final riskColor = _getFallRiskColor(fallSummary.fallRiskLevel);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: riskColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.directions_walk, color: riskColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Fall Events',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A1A2E),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: riskColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  fallSummary.fallRiskLevel,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: riskColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Stats row
+          Row(
+            children: [
+              Expanded(
+                child: _buildFallStatCard(
+                  'Total Falls',
+                  fallSummary.totalFalls.toString(),
+                  Icons.arrow_downward,
+                  Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildFallStatCard(
+                  'Emergency',
+                  fallSummary.emergencyFalls.toString(),
+                  Icons.warning_amber_rounded,
+                  Colors.red,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildFallStatCard(
+                  'Max G-Force',
+                  '${fallSummary.maxGForce.toStringAsFixed(1)}g',
+                  Icons.speed,
+                  Colors.purple,
+                ),
+              ),
+            ],
+          ),
+
+          // Risk message
+          if (fallSummary.fallRiskMessage.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: riskColor.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: riskColor.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: riskColor, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      fallSummary.fallRiskMessage,
+                      style: TextStyle(fontSize: 13, color: riskColor),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // Individual fall events
+          if (fallSummary.fallEvents.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Text(
+              'Fall Events Timeline',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A1A2E),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...fallSummary.fallEvents.map((event) => _buildFallEventTile(event)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFallStatCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.15)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFallEventTile(FallEventDetailModel event) {
+    final levelColor = _getEmergencyLevelColor(event.emergencyLevel);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: levelColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: levelColor.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            event.isEmergency ? Icons.warning_amber_rounded : Icons.directions_walk,
+            color: levelColor,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      event.time,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: levelColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        event.emergencyLevel,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: levelColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  'G-Force: ${event.gForce.toStringAsFixed(1)}g'
+                  '${event.bpm != null ? '  •  HR: ${event.bpm!.toStringAsFixed(0)} bpm' : ''}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getFallRiskColor(String riskLevel) {
+    switch (riskLevel.toUpperCase()) {
+      case 'CRITICAL':
+        return const Color(0xFFB71C1C);
+      case 'HIGH':
+        return const Color(0xFFE53935);
+      case 'MODERATE':
+        return const Color(0xFFFB8C00);
+      case 'LOW':
+        return const Color(0xFFFDD835);
+      default:
+        return const Color(0xFF4CAF50);
+    }
+  }
+
+  Color _getEmergencyLevelColor(String level) {
+    switch (level.toUpperCase()) {
+      case 'CRITICAL':
+        return const Color(0xFFB71C1C);
+      case 'WARNING':
+        return const Color(0xFFFB8C00);
+      case 'MONITORING':
+        return const Color(0xFF1E88E5);
+      default:
+        return const Color(0xFF4CAF50);
     }
   }
 }

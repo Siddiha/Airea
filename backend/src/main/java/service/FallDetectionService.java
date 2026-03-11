@@ -312,8 +312,8 @@ public class FallDetectionService {
         // Format location with Google Maps link
         String location = formatLocation(request.getLatitude(), request.getLongitude());
 
-        // Send SMS via Twilio (or simulation)
-        System.out.println("📤 Sending emergency alert to: " + emergencyContact);
+        // Send SMS alert via Twilio
+        System.out.println("📤 Sending emergency SMS to: " + emergencyContact);
         boolean sent = smsAlertService.sendEmergencyAlert(
                 emergencyContact,
                 patient.getFullName(),

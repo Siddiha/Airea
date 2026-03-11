@@ -12,6 +12,7 @@ class DailySummaryDetailModel {
   final List<HourlyDistributionModel> hourlyDistribution;
   final List<CoughPatternModel> patterns;
   final VitalsSummaryModel? vitalsSummary; // NEW
+  final FallEventsSummaryModel? fallEventsSummary;
   final int severityScore;
   final String severityLevel;
   final String healthStatus;
@@ -35,6 +36,7 @@ class DailySummaryDetailModel {
     required this.hourlyDistribution,
     required this.patterns,
     this.vitalsSummary, // NEW
+    this.fallEventsSummary,
     required this.severityScore,
     required this.severityLevel,
     required this.healthStatus,
@@ -65,9 +67,12 @@ class DailySummaryDetailModel {
               ?.map((e) => CoughPatternModel.fromJson(e))
               .toList() ??
           [],
-      vitalsSummary: json['vitalsSummary'] != null 
-          ? VitalsSummaryModel.fromJson(json['vitalsSummary']) 
+      vitalsSummary: json['vitalsSummary'] != null
+          ? VitalsSummaryModel.fromJson(json['vitalsSummary'])
           : null, // NEW
+      fallEventsSummary: json['fallEventsSummary'] != null
+          ? FallEventsSummaryModel.fromJson(json['fallEventsSummary'])
+          : null,
       severityScore: json['severityScore'] ?? 0,
       severityLevel: json['severityLevel'] ?? 'UNKNOWN',
       healthStatus: json['healthStatus'] ?? '',
@@ -288,6 +293,90 @@ class VitalsHourlyDataModel {
       avgTemperature: json['avgTemperature']?.toDouble(),
       avgRespiratoryRate: json['avgRespiratoryRate']?.toDouble(),
       readingCount: json['readingCount'] ?? 0,
+    );
+  }
+}
+
+// ==================== FALL EVENTS MODELS ====================
+
+class FallEventDetailModel {
+  final String time;
+  final double gForce;
+  final bool isEmergency;
+  final String emergencyLevel;
+  final String? emergencyReason;
+  final double? bpm;
+  final double? temp;
+  final double? rr;
+
+  FallEventDetailModel({
+    required this.time,
+    required this.gForce,
+    required this.isEmergency,
+    required this.emergencyLevel,
+    this.emergencyReason,
+    this.bpm,
+    this.temp,
+    this.rr,
+  });
+
+  factory FallEventDetailModel.fromJson(Map<String, dynamic> json) {
+    return FallEventDetailModel(
+      time: json['time'] ?? '',
+      gForce: (json['gForce'] ?? 0).toDouble(),
+      isEmergency: json['emergency'] ?? json['isEmergency'] ?? false,
+      emergencyLevel: json['emergencyLevel'] ?? 'NORMAL',
+      emergencyReason: json['emergencyReason'],
+      bpm: json['bpm']?.toDouble(),
+      temp: json['temp']?.toDouble(),
+      rr: json['rr']?.toDouble(),
+    );
+  }
+}
+
+class FallEventsSummaryModel {
+  final bool hasFallData;
+  final int totalFalls;
+  final int emergencyFalls;
+  final int nonEmergencyFalls;
+  final double maxGForce;
+  final double avgGForce;
+  final String? latestFallTime;
+  final String? worstEmergencyLevel;
+  final String fallRiskLevel;
+  final String fallRiskMessage;
+  final List<FallEventDetailModel> fallEvents;
+
+  FallEventsSummaryModel({
+    required this.hasFallData,
+    required this.totalFalls,
+    required this.emergencyFalls,
+    required this.nonEmergencyFalls,
+    required this.maxGForce,
+    required this.avgGForce,
+    this.latestFallTime,
+    this.worstEmergencyLevel,
+    required this.fallRiskLevel,
+    required this.fallRiskMessage,
+    required this.fallEvents,
+  });
+
+  factory FallEventsSummaryModel.fromJson(Map<String, dynamic> json) {
+    return FallEventsSummaryModel(
+      hasFallData: json['hasFallData'] ?? false,
+      totalFalls: json['totalFalls'] ?? 0,
+      emergencyFalls: json['emergencyFalls'] ?? 0,
+      nonEmergencyFalls: json['nonEmergencyFalls'] ?? 0,
+      maxGForce: (json['maxGForce'] ?? 0).toDouble(),
+      avgGForce: (json['avgGForce'] ?? 0).toDouble(),
+      latestFallTime: json['latestFallTime'],
+      worstEmergencyLevel: json['worstEmergencyLevel'],
+      fallRiskLevel: json['fallRiskLevel'] ?? 'NONE',
+      fallRiskMessage: json['fallRiskMessage'] ?? '',
+      fallEvents: (json['fallEvents'] as List<dynamic>?)
+              ?.map((e) => FallEventDetailModel.fromJson(e))
+              .toList() ??
+          [],
     );
   }
 }

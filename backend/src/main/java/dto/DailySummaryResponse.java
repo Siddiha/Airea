@@ -24,9 +24,12 @@ public class DailySummaryResponse {
     private List<HourlyDistribution> hourlyDistribution;
     private List<CoughPattern> patterns;
     
-    // Vitals data (NEW)
+    // Vitals data
     private VitalsSummary vitalsSummary;
-    
+
+    // Fall events data
+    private FallEventsSummary fallEventsSummary;
+
     // Combined health assessment
     private int severityScore;
     private String severityLevel;

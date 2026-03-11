@@ -2,25 +2,31 @@ package service;
 
 import dto.*;
 import model.CoughEvent;
+import model.FallEvent;
 import model.VitalsEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import repository.CoughRepository;
+import repository.FallRepository;
 import repository.VitalsRepository;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Arrays;
 
 @Service
 public class SummaryService {
 
     @Autowired
     private CoughRepository coughRepository;
-    
+
     @Autowired
     private VitalsRepository vitalsRepository;
+
+    @Autowired
+    private FallRepository fallRepository;
 
     private static final ZoneId SRI_LANKA_ZONE = ZoneId.of("Asia/Colombo");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -56,11 +62,21 @@ public class SummaryService {
         // Always calculate vitals summary (even if no cough data)
         VitalsSummary vitalsSummary = calculateVitalsSummary(deviceId, date);
 
+        // Calculate fall events summary
+        FallEventsSummary fallEventsSummary = calculateFallEventsSummary(deviceId, date);
+
         if (events.isEmpty()) {
-            response.setHasData(vitalsSummary.isHasVitalsData()); // Has data if vitals exist
-            response.setMessage(vitalsSummary.isHasVitalsData() 
-                ? "No cough data, but vitals recorded" 
-                : "No cough or vitals data available for this date");
+            boolean hasAnyData = vitalsSummary.isHasVitalsData() || fallEventsSummary.isHasFallData();
+            response.setHasData(hasAnyData);
+            if (vitalsSummary.isHasVitalsData() && fallEventsSummary.isHasFallData()) {
+                response.setMessage("No cough data, but vitals and fall events recorded");
+            } else if (vitalsSummary.isHasVitalsData()) {
+                response.setMessage("No cough data, but vitals recorded");
+            } else if (fallEventsSummary.isHasFallData()) {
+                response.setMessage("No cough data, but fall events recorded");
+            } else {
+                response.setMessage("No cough or vitals data available for this date");
+            }
             response.setTotalCoughs(0);
             response.setCoughFrequency(0.0);
             response.setAvgConfidence(0.0);
@@ -72,11 +88,12 @@ public class SummaryService {
             response.setHourlyDistribution(generateEmptyHourlyDistribution());
             response.setPatterns(new ArrayList<>());
             response.setVitalsSummary(vitalsSummary);
+            response.setFallEventsSummary(fallEventsSummary);
             response.setSeverityScore(vitalsSummary.getVitalsSeverityScore());
             response.setSeverityLevel(getSeverityLevel(vitalsSummary.getVitalsSeverityScore()));
-            response.setHealthStatus(vitalsSummary.isHasVitalsData() 
-                ? vitalsSummary.getVitalsStatus() 
-                : "No data");
+            response.setHealthStatus(vitalsSummary.isHasVitalsData()
+                ? vitalsSummary.getVitalsStatus()
+                : fallEventsSummary.isHasFallData() ? "Fall Events Recorded" : "No data");
             response.setInsights(generateVitalsOnlyInsights(vitalsSummary));
             response.setRecommendations(generateVitalsOnlyRecommendations(vitalsSummary));
             response.setComparison(new DailyComparison(0, 0, 0.0, "STABLE"));
@@ -140,6 +157,7 @@ public class SummaryService {
         response.setHourlyDistribution(hourlyDist);
         response.setPatterns(patterns);
         response.setVitalsSummary(vitalsSummary);
+        response.setFallEventsSummary(fallEventsSummary);
         response.setSeverityScore(severityScore);
         response.setSeverityLevel(severityLevel);
         response.setHealthStatus(healthStatus);
@@ -1249,7 +1267,11 @@ public class SummaryService {
                 dailyHeartRateAverages, dailyTemperatureAverages, dailyRespiratoryRateAverages,
                 daysWithVitalsData, totalVitalsReadings, allAnomalies);
         response.setVitalsSummary(vitalsSummary);
-        
+
+        // Calculate weekly fall events summary
+        WeeklyFallEventsSummary weeklyFallSummary = calculateWeeklyFallEventsSummary(deviceId, weekStart);
+        response.setFallEventsSummary(weeklyFallSummary);
+
         // Generate weekly patterns
         List<String> weeklyPatterns = generateWeeklyPatterns(dailyBreakdowns, coughSummary, vitalsSummary);
         response.setWeeklyPatterns(weeklyPatterns);
@@ -1807,5 +1829,182 @@ public class SummaryService {
         }
         
         return status.toString();
+    }
+
+    // ==================== FALL EVENTS SUMMARY METHODS ====================
+
+    private FallEventsSummary calculateFallEventsSummary(String deviceId, LocalDate date) {
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
+        List<FallEvent> falls = fallRepository.findByDeviceIdAndTimestampBetween(deviceId, startOfDay, endOfDay);
+
+        FallEventsSummary summary = new FallEventsSummary();
+
+        if (falls.isEmpty()) {
+            summary.setHasFallData(false);
+            summary.setTotalFalls(0);
+            summary.setEmergencyFalls(0);
+            summary.setNonEmergencyFalls(0);
+            summary.setMaxGForce(0);
+            summary.setAvgGForce(0);
+            summary.setLatestFallTime(null);
+            summary.setWorstEmergencyLevel("NORMAL");
+            summary.setFallRiskLevel("NONE");
+            summary.setFallRiskMessage("No falls detected today");
+            summary.setFallEvents(new ArrayList<>());
+            return summary;
+        }
+
+        int totalFalls = falls.size();
+        int emergencyFalls = (int) falls.stream().filter(f -> Boolean.TRUE.equals(f.getIsEmergency())).count();
+        int nonEmergencyFalls = totalFalls - emergencyFalls;
+
+        double maxGForce = falls.stream().mapToDouble(f -> f.getGForce() != null ? f.getGForce() : 0).max().orElse(0);
+        double avgGForce = falls.stream().mapToDouble(f -> f.getGForce() != null ? f.getGForce() : 0).average().orElse(0);
+
+        String latestFallTime = falls.stream()
+                .max(Comparator.comparing(FallEvent::getTimestamp))
+                .map(f -> String.format("%02d:%02d", f.getTimestamp().getHour(), f.getTimestamp().getMinute()))
+                .orElse(null);
+
+        String worstLevel = falls.stream()
+                .map(f -> f.getEmergencyLevel() != null ? f.getEmergencyLevel() : "NORMAL")
+                .reduce("NORMAL", (a, b) -> emergencyLevelRank(a) >= emergencyLevelRank(b) ? a : b);
+
+        String fallRiskLevel = determineFallRiskLevel(totalFalls, emergencyFalls, worstLevel);
+        String fallRiskMessage = buildFallRiskMessage(totalFalls, emergencyFalls, fallRiskLevel);
+
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+        List<FallEventDetail> fallEventDetails = falls.stream()
+                .sorted(Comparator.comparing(FallEvent::getTimestamp).reversed())
+                .map(f -> new FallEventDetail(
+                        f.getTimestamp().format(timeFormatter),
+                        f.getGForce() != null ? f.getGForce() : 0,
+                        Boolean.TRUE.equals(f.getIsEmergency()),
+                        f.getEmergencyLevel() != null ? f.getEmergencyLevel() : "NORMAL",
+                        f.getEmergencyReason(),
+                        f.getBpm(),
+                        f.getTemp(),
+                        f.getRr()
+                ))
+                .collect(Collectors.toList());
+
+        summary.setHasFallData(true);
+        summary.setTotalFalls(totalFalls);
+        summary.setEmergencyFalls(emergencyFalls);
+        summary.setNonEmergencyFalls(nonEmergencyFalls);
+        summary.setMaxGForce(Math.round(maxGForce * 10.0) / 10.0);
+        summary.setAvgGForce(Math.round(avgGForce * 10.0) / 10.0);
+        summary.setLatestFallTime(latestFallTime);
+        summary.setWorstEmergencyLevel(worstLevel);
+        summary.setFallRiskLevel(fallRiskLevel);
+        summary.setFallRiskMessage(fallRiskMessage);
+        summary.setFallEvents(fallEventDetails);
+        return summary;
+    }
+
+    private WeeklyFallEventsSummary calculateWeeklyFallEventsSummary(String deviceId, LocalDate weekStart) {
+        LocalDate weekEnd = weekStart.plusDays(7);
+        List<FallEvent> falls = fallRepository.findByDeviceIdAndTimestampBetween(
+                deviceId, weekStart.atStartOfDay(), weekEnd.atStartOfDay());
+
+        WeeklyFallEventsSummary summary = new WeeklyFallEventsSummary();
+
+        if (falls.isEmpty()) {
+            summary.setHasFallData(false);
+            summary.setTotalFalls(0);
+            summary.setTotalEmergencyFalls(0);
+            summary.setMaxGForce(0);
+            summary.setAvgGForce(0);
+            summary.setDaysWithFalls(0);
+            summary.setAvgFallsPerDay(0);
+            summary.setWorstEmergencyLevel("NORMAL");
+            summary.setFallRiskLevel("NONE");
+            summary.setFallRiskMessage("No falls detected this week");
+            summary.setDailyFallCounts(Arrays.asList(0, 0, 0, 0, 0, 0, 0));
+            summary.setDailyEmergencyCounts(Arrays.asList(0, 0, 0, 0, 0, 0, 0));
+            return summary;
+        }
+
+        int totalFalls = falls.size();
+        int emergencyFalls = (int) falls.stream().filter(f -> Boolean.TRUE.equals(f.getIsEmergency())).count();
+        double maxGForce = falls.stream().mapToDouble(f -> f.getGForce() != null ? f.getGForce() : 0).max().orElse(0);
+        double avgGForce = falls.stream().mapToDouble(f -> f.getGForce() != null ? f.getGForce() : 0).average().orElse(0);
+
+        List<Integer> dailyFallCounts = new ArrayList<>();
+        List<Integer> dailyEmergencyCounts = new ArrayList<>();
+        int daysWithFalls = 0;
+
+        for (int i = 0; i < 7; i++) {
+            LocalDate day = weekStart.plusDays(i);
+            LocalDateTime dayStart = day.atStartOfDay();
+            LocalDateTime dayEnd = day.plusDays(1).atStartOfDay();
+            int dayCount = (int) falls.stream()
+                    .filter(f -> !f.getTimestamp().isBefore(dayStart) && f.getTimestamp().isBefore(dayEnd))
+                    .count();
+            int dayEmergency = (int) falls.stream()
+                    .filter(f -> !f.getTimestamp().isBefore(dayStart) && f.getTimestamp().isBefore(dayEnd)
+                            && Boolean.TRUE.equals(f.getIsEmergency()))
+                    .count();
+            dailyFallCounts.add(dayCount);
+            dailyEmergencyCounts.add(dayEmergency);
+            if (dayCount > 0) daysWithFalls++;
+        }
+
+        String worstLevel = falls.stream()
+                .map(f -> f.getEmergencyLevel() != null ? f.getEmergencyLevel() : "NORMAL")
+                .reduce("NORMAL", (a, b) -> emergencyLevelRank(a) >= emergencyLevelRank(b) ? a : b);
+
+        String fallRiskLevel = determineFallRiskLevel(totalFalls, emergencyFalls, worstLevel);
+        String fallRiskMessage = buildFallRiskMessage(totalFalls, emergencyFalls, fallRiskLevel);
+
+        summary.setHasFallData(true);
+        summary.setTotalFalls(totalFalls);
+        summary.setTotalEmergencyFalls(emergencyFalls);
+        summary.setMaxGForce(Math.round(maxGForce * 10.0) / 10.0);
+        summary.setAvgGForce(Math.round(avgGForce * 10.0) / 10.0);
+        summary.setDaysWithFalls(daysWithFalls);
+        summary.setAvgFallsPerDay(daysWithFalls > 0 ? Math.round(totalFalls * 10.0 / 7) / 10.0 : 0);
+        summary.setWorstEmergencyLevel(worstLevel);
+        summary.setFallRiskLevel(fallRiskLevel);
+        summary.setFallRiskMessage(fallRiskMessage);
+        summary.setDailyFallCounts(dailyFallCounts);
+        summary.setDailyEmergencyCounts(dailyEmergencyCounts);
+        return summary;
+    }
+
+    private int emergencyLevelRank(String level) {
+        if (level == null) return 0;
+        switch (level.toUpperCase()) {
+            case "CRITICAL": return 4;
+            case "WARNING": return 3;
+            case "MONITORING": return 2;
+            case "NORMAL": return 1;
+            default: return 0;
+        }
+    }
+
+    private String determineFallRiskLevel(int totalFalls, int emergencyFalls, String worstLevel) {
+        if (totalFalls == 0) return "NONE";
+        if ("CRITICAL".equals(worstLevel) || emergencyFalls >= 2) return "CRITICAL";
+        if ("WARNING".equals(worstLevel) || emergencyFalls >= 1) return "HIGH";
+        if (totalFalls >= 3) return "MODERATE";
+        return "LOW";
+    }
+
+    private String buildFallRiskMessage(int totalFalls, int emergencyFalls, String riskLevel) {
+        if (totalFalls == 0) return "No falls detected";
+        StringBuilder msg = new StringBuilder();
+        msg.append(totalFalls).append(" fall").append(totalFalls > 1 ? "s" : "").append(" detected");
+        if (emergencyFalls > 0) {
+            msg.append(", ").append(emergencyFalls).append(" emergency");
+        }
+        switch (riskLevel) {
+            case "CRITICAL": msg.append(" - Immediate attention required"); break;
+            case "HIGH": msg.append(" - Medical review recommended"); break;
+            case "MODERATE": msg.append(" - Monitor closely"); break;
+            default: msg.append(" - Low risk"); break;
+        }
+        return msg.toString();
     }
 }

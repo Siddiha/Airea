@@ -25,7 +25,10 @@ public class WeeklySummaryResponse {
     
     // Vitals Summary
     private WeeklyVitalsSummary vitalsSummary;
-    
+
+    // Fall events summary
+    private WeeklyFallEventsSummary fallEventsSummary;
+
     // Analysis
     private List<String> weeklyPatterns;
     private List<String> weeklyInsights;

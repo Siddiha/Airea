@@ -16,6 +16,9 @@ class WeeklySummaryDetailModel {
   // Vitals Summary
   final WeeklyVitalsSummaryModel? vitalsSummary;
 
+  // Fall Events Summary
+  final WeeklyFallEventsSummaryModel? fallEventsSummary;
+
   // Analysis
   final List<String> weeklyPatterns;
   final List<String> weeklyInsights;
@@ -37,6 +40,7 @@ class WeeklySummaryDetailModel {
     required this.weekOverWeekComparison,
     required this.dailyBreakdown,
     this.vitalsSummary,
+    this.fallEventsSummary,
     required this.weeklyPatterns,
     required this.weeklyInsights,
     required this.recommendations,
@@ -65,6 +69,9 @@ class WeeklySummaryDetailModel {
           [],
       vitalsSummary: json['vitalsSummary'] != null
           ? WeeklyVitalsSummaryModel.fromJson(json['vitalsSummary'])
+          : null,
+      fallEventsSummary: json['fallEventsSummary'] != null
+          ? WeeklyFallEventsSummaryModel.fromJson(json['fallEventsSummary'])
           : null,
       weeklyPatterns: (json['weeklyPatterns'] as List<dynamic>?)
               ?.map((e) => e.toString())
@@ -203,6 +210,8 @@ class DailyBreakdownModel {
   final double? avgHeartRate;
   final double? avgTemperature;
   final double? avgRespiratoryRate;
+  final int fallCount;
+  final int emergencyFallCount;
   final String severityLevel;
 
   DailyBreakdownModel({
@@ -217,6 +226,8 @@ class DailyBreakdownModel {
     this.avgHeartRate,
     this.avgTemperature,
     this.avgRespiratoryRate,
+    required this.fallCount,
+    required this.emergencyFallCount,
     required this.severityLevel,
   });
 
@@ -233,6 +244,8 @@ class DailyBreakdownModel {
       avgHeartRate: json['avgHeartRate']?.toDouble(),
       avgTemperature: json['avgTemperature']?.toDouble(),
       avgRespiratoryRate: json['avgRespiratoryRate']?.toDouble(),
+      fallCount: json['fallCount'] ?? 0,
+      emergencyFallCount: json['emergencyFallCount'] ?? 0,
       severityLevel: json['severityLevel'] ?? 'GOOD',
     );
   }
@@ -339,6 +352,61 @@ class WeeklyVitalStatsModel {
       totalReadings: json['totalReadings'] ?? 0,
       anomalyCount: json['anomalyCount'] ?? 0,
       trend: json['trend'] ?? 'STABLE',
+    );
+  }
+}
+
+// ==================== WEEKLY FALL EVENTS MODELS ====================
+
+class WeeklyFallEventsSummaryModel {
+  final bool hasFallData;
+  final int totalFalls;
+  final int totalEmergencyFalls;
+  final double maxGForce;
+  final double avgGForce;
+  final int daysWithFalls;
+  final double avgFallsPerDay;
+  final String? worstEmergencyLevel;
+  final String fallRiskLevel;
+  final String fallRiskMessage;
+  final List<int> dailyFallCounts;
+  final List<int> dailyEmergencyCounts;
+
+  WeeklyFallEventsSummaryModel({
+    required this.hasFallData,
+    required this.totalFalls,
+    required this.totalEmergencyFalls,
+    required this.maxGForce,
+    required this.avgGForce,
+    required this.daysWithFalls,
+    required this.avgFallsPerDay,
+    this.worstEmergencyLevel,
+    required this.fallRiskLevel,
+    required this.fallRiskMessage,
+    required this.dailyFallCounts,
+    required this.dailyEmergencyCounts,
+  });
+
+  factory WeeklyFallEventsSummaryModel.fromJson(Map<String, dynamic> json) {
+    return WeeklyFallEventsSummaryModel(
+      hasFallData: json['hasFallData'] ?? false,
+      totalFalls: json['totalFalls'] ?? 0,
+      totalEmergencyFalls: json['totalEmergencyFalls'] ?? 0,
+      maxGForce: (json['maxGForce'] ?? 0).toDouble(),
+      avgGForce: (json['avgGForce'] ?? 0).toDouble(),
+      daysWithFalls: json['daysWithFalls'] ?? 0,
+      avgFallsPerDay: (json['avgFallsPerDay'] ?? 0).toDouble(),
+      worstEmergencyLevel: json['worstEmergencyLevel'],
+      fallRiskLevel: json['fallRiskLevel'] ?? 'NONE',
+      fallRiskMessage: json['fallRiskMessage'] ?? '',
+      dailyFallCounts: (json['dailyFallCounts'] as List<dynamic>?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          List.filled(7, 0),
+      dailyEmergencyCounts: (json['dailyEmergencyCounts'] as List<dynamic>?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          List.filled(7, 0),
     );
   }
 }

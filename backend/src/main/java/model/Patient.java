@@ -60,16 +60,24 @@ public class Patient {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public UUID getId() { 
-        return id; 
+    public UUID getId() {
+        return id;
     }
 
-    public String getPatientCode() { 
-        return patientCode; 
+    public String getPatientCode() {
+        return patientCode;
     }
 
     public String getEmail() {
         return email;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public String getEmergencyContact() {
+        return emergencyContact;
     }
 
     @PrePersist

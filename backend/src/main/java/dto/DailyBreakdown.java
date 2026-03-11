@@ -22,6 +22,10 @@ public class DailyBreakdown {
     private Double avgTemperature;
     private Double avgRespiratoryRate;
     
+    // Fall data
+    private int fallCount;
+    private int emergencyFallCount;
+
     // Daily status
     private String severityLevel;
 }

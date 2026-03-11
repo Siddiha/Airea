@@ -204,6 +204,12 @@ class _WeeklySummaryDetailScreenNewState
                   const SizedBox(height: 20),
                 ],
 
+                // Fall Events Summary Section
+                if (summary.fallEventsSummary != null) ...[
+                  _buildWeeklyFallEventsSummarySection(summary.fallEventsSummary!),
+                  const SizedBox(height: 20),
+                ],
+
                 // Statistics Grid
                 _buildStatisticsGrid(summary),
                 const SizedBox(height: 20),
@@ -1424,6 +1430,199 @@ class _WeeklySummaryDetailScreenNewState
         return Colors.green;
       default:
         return Colors.grey;
+    }
+  }
+
+  // ==================== WEEKLY FALL EVENTS SECTION ====================
+
+  Widget _buildWeeklyFallEventsSummarySection(WeeklyFallEventsSummaryModel fallSummary) {
+    if (!fallSummary.hasFallData) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.directions_walk_outlined, size: 48, color: Colors.grey),
+            const SizedBox(height: 12),
+            const Text(
+              'No Fall Events This Week',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+            ),
+            const Text(
+              'No fall events were detected during this week.',
+              style: TextStyle(color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final riskColor = _getFallRiskColor(fallSummary.fallRiskLevel);
+    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Icon(Icons.directions_walk, color: riskColor),
+              const SizedBox(width: 8),
+              const Text(
+                'Weekly Fall Events',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: riskColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  fallSummary.fallRiskLevel,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: riskColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Stats row
+          Row(
+            children: [
+              Expanded(child: _buildWeeklyFallStat('Total Falls', fallSummary.totalFalls.toString(), Colors.orange)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildWeeklyFallStat('Emergency', fallSummary.totalEmergencyFalls.toString(), Colors.red)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildWeeklyFallStat('Days Affected', '${fallSummary.daysWithFalls}/7', Colors.purple)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildWeeklyFallStat('Avg/Day', fallSummary.avgFallsPerDay.toStringAsFixed(1), Colors.blue)),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Daily bar chart
+          const Text(
+            'Daily Fall Counts',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: List.generate(7, (i) {
+              final count = i < fallSummary.dailyFallCounts.length ? fallSummary.dailyFallCounts[i] : 0;
+              final emergencyCount = i < fallSummary.dailyEmergencyCounts.length ? fallSummary.dailyEmergencyCounts[i] : 0;
+              final maxCount = fallSummary.dailyFallCounts.isEmpty ? 1 : fallSummary.dailyFallCounts.reduce((a, b) => a > b ? a : b);
+              final barHeight = maxCount > 0 ? (count / maxCount * 60.0) : 0.0;
+              return Column(
+                children: [
+                  Text(
+                    count > 0 ? count.toString() : '',
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 2),
+                  Container(
+                    width: 28,
+                    height: barHeight > 0 ? barHeight : 4,
+                    decoration: BoxDecoration(
+                      color: emergencyCount > 0 ? Colors.red : Colors.orange,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(dayLabels[i], style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+                ],
+              );
+            }),
+          ),
+
+          // Risk message
+          if (fallSummary.fallRiskMessage.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: riskColor.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: riskColor.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: riskColor, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      fallSummary.fallRiskMessage,
+                      style: TextStyle(fontSize: 13, color: riskColor),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeeklyFallStat(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.15)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+          ),
+          Text(
+            label,
+            style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getFallRiskColor(String riskLevel) {
+    switch (riskLevel.toUpperCase()) {
+      case 'CRITICAL':
+        return const Color(0xFFB71C1C);
+      case 'HIGH':
+        return const Color(0xFFE53935);
+      case 'MODERATE':
+        return const Color(0xFFFB8C00);
+      case 'LOW':
+        return const Color(0xFFFDD835);
+      default:
+        return const Color(0xFF4CAF50);
     }
   }
 }
