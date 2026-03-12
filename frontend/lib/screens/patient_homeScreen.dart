@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import 'patient_notifications.dart';
@@ -616,4 +617,173 @@ class ECGLinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant ECGLinePainter oldDelegate) =>
       oldDelegate.isFlatline != isFlatline;
+}
+
+// ── Bottom-right critical alert toast ────────────────────────────────────────
+class _CriticalAlertToast extends StatefulWidget {
+  final PatientNotification alert;
+  final VoidCallback onView;
+  final VoidCallback onDismiss;
+
+  const _CriticalAlertToast({
+    required this.alert,
+    required this.onView,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_CriticalAlertToast> createState() => _CriticalAlertToastState();
+}
+
+class _CriticalAlertToastState extends State<_CriticalAlertToast>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<Offset> _slide;
+  late final Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 350));
+    _slide = Tween<Offset>(begin: const Offset(1.2, 0), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
+    _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeIn);
+    _ctrl.forward();
+
+    // Auto-dismiss after 6 seconds
+    Future.delayed(const Duration(seconds: 6), () {
+      if (mounted) _dismiss();
+    });
+  }
+
+  void _dismiss() async {
+    await _ctrl.reverse();
+    widget.onDismiss();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 100,
+      right: 16,
+      child: SlideTransition(
+        position: _slide,
+        child: FadeTransition(
+          opacity: _fade,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 300,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.red.shade200, width: 1.2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.red.withValues(alpha: 0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header row
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.warning_amber_rounded,
+                            color: Colors.red, size: 18),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Critical Alert',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: _dismiss,
+                        child: Icon(Icons.close,
+                            size: 16, color: Colors.grey.shade400),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  // Alert message
+                  Text(
+                    widget.alert.title,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade800,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Action buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: _dismiss,
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text('Dismiss',
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey.shade500)),
+                      ),
+                      const SizedBox(width: 6),
+                      ElevatedButton(
+                        onPressed: widget.onView,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          elevation: 0,
+                        ),
+                        child: const Text('View Alerts',
+                            style: TextStyle(fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
