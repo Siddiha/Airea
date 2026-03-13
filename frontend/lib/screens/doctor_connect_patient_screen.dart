@@ -89,9 +89,10 @@ class _DoctorConnectPatientScreenState extends State<DoctorConnectPatientScreen>
 
   Widget _buildConfirmationStep() {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const SizedBox(height: 60),
         const Text(
           'Do you want to connect\nwith a patient?',
           textAlign: TextAlign.center,
@@ -120,7 +121,7 @@ class _DoctorConnectPatientScreenState extends State<DoctorConnectPatientScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 20),
+          const SizedBox(height: 5),
           const Text(
             "Connect with a Patient",
             textAlign: TextAlign.center,
@@ -218,10 +219,8 @@ class _DoctorConnectPatientScreenState extends State<DoctorConnectPatientScreen>
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isSecondary
-              ? Colors.grey.shade300
-              : const Color(0xFF66A399),
-          foregroundColor: isSecondary ? Colors.black : Colors.white,
+          backgroundColor: const Color(0xFF66A399),
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
