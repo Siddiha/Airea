@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'patient_homescreen.dart';
 import 'patient_create_account.dart';
 import 'forgot_password_screen.dart';
@@ -42,14 +44,35 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
     setState(() => _isLoading = false);
 
     if (result['success']) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => PatientHomeScreen()),
-      );
+      await _fetchAndSavePatientCode(email);
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => PatientHomeScreen()),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['message'])),
       );
+    }
+  }
+
+  Future<void> _fetchAndSavePatientCode(String email) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('patients')
+          .select('patient_code')
+          .eq('email', email)
+          .maybeSingle();
+
+      if (response != null && response['patient_code'] != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('patient_code', response['patient_code']);
+      }
+    } catch (e) {
+      debugPrint('Error fetching patient code: $e');
     }
   }
 
