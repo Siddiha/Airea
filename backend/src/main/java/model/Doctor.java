@@ -56,6 +56,9 @@ public class Doctor {
     protected void onCreate() {
         createdAt = Instant.now();
         updatedAt = Instant.now();
+        if (doctorCode == null || doctorCode.isEmpty()) {
+            doctorCode = "D" + java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        }
     }
 
     @PreUpdate

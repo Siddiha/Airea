@@ -209,6 +209,14 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("Doctor not found"));
     }
 
+    public Patient savePatient(Patient patient) {
+        return patientRepository.save(patient);
+    }
+
+    public Doctor saveDoctor(Doctor doctor) {
+        return doctorRepository.save(doctor);
+    }
+
     private DoctorAuthResponse buildDoctorAuthResponse(Doctor doctor, String token) {
         DoctorAuthResponse.DoctorInfo doctorInfo = DoctorAuthResponse.DoctorInfo.builder()
                 .id(doctor.getId())
