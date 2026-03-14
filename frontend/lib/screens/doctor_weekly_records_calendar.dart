@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'weekly_summary_detail_screen_new.dart';
 import '../repositories/summary_repository.dart';
-import '../config/api_config.dart';
 
 class DoctorWeeklyRecordsCalendar extends StatefulWidget {
-  const DoctorWeeklyRecordsCalendar({super.key});
+  final String deviceId;
+
+  const DoctorWeeklyRecordsCalendar({
+    super.key,
+    required this.deviceId,
+  });
 
   @override
   State<DoctorWeeklyRecordsCalendar> createState() => _DoctorWeeklyRecordsCalendarState();
@@ -34,7 +38,7 @@ class _DoctorWeeklyRecordsCalendarState extends State<DoctorWeeklyRecordsCalenda
       MaterialPageRoute(
         builder: (context) => WeeklySummaryDetailScreenNew(
           weekStart: startOfWeek,
-          deviceId: ApiConfig.defaultDeviceId,
+          deviceId: widget.deviceId,
           repository: ApiSummaryRepository(),
         ),
       ),

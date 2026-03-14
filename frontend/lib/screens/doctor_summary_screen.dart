@@ -15,6 +15,8 @@ class DoctorSummaryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final deviceId = patient?.deviceId ?? '';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), 
       body: SafeArea(
@@ -56,7 +58,7 @@ class DoctorSummaryScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'ID: ${patient!.patientId}',
+                        'Code: ${patient!.patientCode}',
                         style: const TextStyle(
                           fontSize: 11,
                           color: Colors.white70,
@@ -76,61 +78,79 @@ class DoctorSummaryScreen extends StatelessWidget {
               ),
               const SizedBox(height: 40),
 
-              Column(
-                children: [
-                  _buildSummaryButton(
-                    label: "Daily summary",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const DoctorDailyRecordsCalendar())
-                      );
-                      // Navigate to Daily Summary Screen
-                    },
+              if (deviceId.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange.shade200),
                   ),
-                  const SizedBox(height: 20),
-                  
-                  _buildSummaryButton(
-                    label: "Weekly summary",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const DoctorWeeklyRecordsCalendar()
-                        ),
-                      );
-                      // Navigate to Weekly Summary Screen
-                    },
+                  child: const Text(
+                    'This patient has not linked a device yet. Summary data will be available once a device is connected.',
+                    style: TextStyle(fontSize: 14, color: Colors.black87),
                   ),
-                  const SizedBox(height: 20),
-
-                  _buildSummaryButton(
-                    label: "View past medical reports",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const DoctorSelectPatientReport(),
+                )
+              else
+                Column(
+                  children: [
+                    _buildSummaryButton(
+                      label: "Daily summary",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DoctorDailyRecordsCalendar(
+                              deviceId: deviceId,
+                            ),
                           ),
                         );
-                      // Navigate to Reports Screen
-                    },
-                  ),
-                  const SizedBox(height: 20),
-
-                  _buildSummaryButton(
-                    label: "Allergic conditions",
-                    onTap: () {
-                      Navigator.push(
-                        context, 
-                        MaterialPageRoute(
-                          builder: (context) => const DoctorAllergicConditionsScreen(),
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    _buildSummaryButton(
+                      label: "Weekly summary",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DoctorWeeklyRecordsCalendar(
+                              deviceId: deviceId,
+                            ),
                           ),
                         );
-                      // Navigate to Allergies Screen
-                    },
-                  ),
-                ],
-              ),
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    _buildSummaryButton(
+                      label: "View past medical reports",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const DoctorSelectPatientReport(),
+                            ),
+                          );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    _buildSummaryButton(
+                      label: "Allergic conditions",
+                      onTap: () {
+                        Navigator.push(
+                          context, 
+                          MaterialPageRoute(
+                            builder: (context) => const DoctorAllergicConditionsScreen(),
+                            ),
+                          );
+                      },
+                    ),
+                  ],
+                ),
             ],
           ),
         ),

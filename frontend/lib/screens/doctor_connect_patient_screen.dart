@@ -12,53 +12,52 @@ class DoctorConnectPatientScreen extends StatefulWidget {
 class _DoctorConnectPatientScreenState extends State<DoctorConnectPatientScreen> {
   int _step = 0; // 0: Confirmation, 1: Enter Details
   final TextEditingController _patientIdController = TextEditingController();
-  final TextEditingController _patientNameController = TextEditingController();
   bool _isLoading = false;
   String _errorMessage = '';
 
   @override
   void dispose() {
     _patientIdController.dispose();
-    _patientNameController.dispose();
     super.dispose();
   }
 
   Future<void> _handleConnect() async {
-    if (_patientIdController.text.isEmpty || _patientNameController.text.isEmpty) {
-      setState(() => _errorMessage = 'Please fill in all fields');
+    if (_patientIdController.text.isEmpty) {
+      setState(() => _errorMessage = 'Please enter the patient code');
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
 
     try {
       final success = await DoctorPatientService.connectPatient(
-        patientId: _patientIdController.text.trim(),
-        patientName: _patientNameController.text.trim(),
+        patientCode: _patientIdController.text.trim(),
       );
 
       if (mounted) {
         setState(() => _isLoading = false);
 
         if (success) {
-          // Show success and pop back to home
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Patient connected successfully!'),
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.pop(context, true); // Return true to indicate success
+          Navigator.pop(context, true);
         } else {
           setState(() =>
-              _errorMessage = 'This patient is already connected or invalid');
+              _errorMessage = 'Patient not found or already connected');
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Error: $e';
+          _errorMessage = 'Error: Could not connect. Is the server running?';
         });
       }
     }
@@ -129,26 +128,14 @@ class _DoctorConnectPatientScreenState extends State<DoctorConnectPatientScreen>
           ),
           const SizedBox(height: 40),
           const Text(
-            "Enter Patient ID",
+            "Enter Patient Code",
             textAlign: TextAlign.center,
             style: TextStyle(fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 10),
           _customTextField(
             controller: _patientIdController,
-            hintText: 'e.g., P123456',
-            enabled: !_isLoading,
-          ),
-          const SizedBox(height: 30),
-          const Text(
-            "Patient Name",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.w500),
-          ),
-          const SizedBox(height: 10),
-          _customTextField(
-            controller: _patientNameController,
-            hintText: 'Enter patient name',
+            hintText: 'e.g., P001',
             enabled: !_isLoading,
           ),
           const SizedBox(height: 20),

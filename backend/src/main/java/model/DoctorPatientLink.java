@@ -17,6 +17,10 @@ public class DoctorPatientLink {
     @Column(name = "patient_id")
     private UUID patientId;
 
+    public Long getId() { return id; }
+    public UUID getDoctorId() { return doctorId; }
+    public UUID getPatientId() { return patientId; }
+
     public void setDoctorId(UUID doctorId) { this.doctorId = doctorId; }
     public void setPatientId(UUID patientId) { this.patientId = patientId; }
 }
