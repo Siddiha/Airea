@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'doctor_home_screen.dart';
 import '../services/auth_service.dart';
+import '../services/doctor_patient_service.dart';
 import 'doctor_create_account.dart';
 import 'forgot_password_screen.dart';
 
@@ -39,17 +41,41 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
 
     final result = await _authService.doctorLogin(email, password);
 
-    setState(() => _isLoading = false);
-
     if (result['success']) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const DoctorHomeScreen()),
-      );
+      // Fetch doctor profile from backend to get doctorCode
+      await _fetchAndSaveDoctorCode(email);
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DoctorHomeScreen()),
+        );
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'])),
-      );
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'])),
+        );
+      }
+    }
+  }
+
+  Future<void> _fetchAndSaveDoctorCode(String email) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('doctors')
+          .select('doctor_code')
+          .eq('email', email)
+          .maybeSingle();
+
+      if (response != null && response['doctor_code'] != null) {
+        await DoctorPatientService.saveDoctorCode(response['doctor_code']);
+      }
+    } catch (e) {
+      print('Error fetching doctor code: $e');
     }
   }
 
