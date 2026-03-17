@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'patient_notifications.dart';
 import 'patient_profile_frame.dart';
@@ -23,18 +24,18 @@ class PatientHomeScreen extends StatefulWidget {
 
 class _PatientHomeScreenState extends State<PatientHomeScreen> {
   final ApiService _apiService = ApiService();
-  final String _deviceId = ApiConfig.defaultDeviceId;
+  String? _deviceId; // null until patient links a real device
 
   // Live Database Variables
   double temperature = 0.0;
-  String temperatureStatus = "Loading...";
+  String temperatureStatus = "No device connected";
 
   int heartRate = 0;
-  String heartRateStatus = "Loading...";
+  String heartRateStatus = "No device connected";
   bool leadsAreOff = false;
 
   int coughCount = 0;
-  String coughStatus = "Loading...";
+  String coughStatus = "No device connected";
 
   List<PatientNotification> _alerts = [];
   int _selectedIndex = 0;
@@ -44,18 +45,32 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch immediately on load
-    _loadCoughData();
-    _loadVitalsData();
-    _loadAlerts();
-    _loadConnectedDoctor();
+    _initDeviceAndLoad();
+  }
 
-    // Refresh every 10 seconds
-    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+  /// Load the patient's linked device ID, then start fetching data only if linked.
+  Future<void> _initDeviceAndLoad() async {
+    final prefs = await SharedPreferences.getInstance();
+    final linkedId = prefs.getString('linked_device_id');
+    if (mounted) {
+      setState(() => _deviceId = linkedId);
+    }
+
+    // Only fetch device data if a device is actually linked
+    if (_deviceId != null && _deviceId!.isNotEmpty) {
       _loadCoughData();
       _loadVitalsData();
       _loadAlerts();
-    });
+
+      // Refresh every 10 seconds
+      _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+        _loadCoughData();
+        _loadVitalsData();
+        _loadAlerts();
+      });
+    }
+
+    _loadConnectedDoctor();
   }
 
   @override
@@ -67,8 +82,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   // --- DATA FETCHING ---
 
   Future<void> _loadCoughData() async {
+    if (_deviceId == null || _deviceId!.isEmpty) return;
     try {
-      final stats = await _apiService.getTodayStatistics(_deviceId);
+      final stats = await _apiService.getTodayStatistics(_deviceId!);
       if (mounted) {
         setState(() {
           coughCount = stats.totalCoughs;
@@ -82,8 +98,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   }
 
   Future<void> _loadVitalsData() async {
+    if (_deviceId == null || _deviceId!.isEmpty) return;
     try {
-      final vitals = await _apiService.getLatestVitals(_deviceId);
+      final vitals = await _apiService.getLatestVitals(_deviceId!);
       if (mounted && vitals != null) {
         setState(() {
           temperature = vitals.temp;
@@ -111,8 +128,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   bool _criticalBannerShown = false;
 
   Future<void> _loadAlerts() async {
+    if (_deviceId == null || _deviceId!.isEmpty) return;
     try {
-      final alerts = await _apiService.getFallAlerts(_deviceId);
+      final alerts = await _apiService.getFallAlerts(_deviceId!);
       if (mounted) {
         setState(() => _alerts = alerts);
         // Pop up a banner the first time we detect a CRITICAL alert
@@ -451,10 +469,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
             ],
           ),
           ElevatedButton(
-            onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => CoughAnalyzerScreen(deviceId: _deviceId))),
+            onPressed: _deviceId != null && _deviceId!.isNotEmpty
+                ? () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => CoughAnalyzerScreen(deviceId: _deviceId!)))
+                : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4DB6AC),
               foregroundColor: Colors.white,
