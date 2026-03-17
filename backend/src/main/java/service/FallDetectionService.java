@@ -6,6 +6,8 @@ import model.FallEvent;
 import model.Patient;
 import repository.FallRepository;
 import repository.PatientRepository;
+import repository.VitalsRepository;
+import model.VitalsEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,9 @@ public class FallDetectionService {
     @Autowired
     private SmsAlertService smsAlertService;
 
+    @Autowired
+    private VitalsRepository vitalsRepository;
+
     // ==================== CLINICAL THRESHOLDS ====================
     // Heart Rate (bpm) - Based on adult normal ranges
     private static final double HR_CRITICAL_LOW = 40.0;   // Severe bradycardia
@@ -47,9 +52,9 @@ public class FallDetectionService {
     private static final double RR_WARNING_LOW = 10.0;
     private static final double RR_WARNING_HIGH = 24.0;
 
-    // G-Force threshold for severe fall
-    private static final double GFORCE_SEVERE = 3.0;
-    private static final double GFORCE_MODERATE = 2.0;
+    // AI Confidence threshold for severe fall
+    private static final double CONFIDENCE_HIGH = 0.85;
+    private static final double CONFIDENCE_MODERATE = 0.50;
 
     // Cooldown period to prevent duplicate alerts (in minutes)
     @Value("${fall.detection.alert.cooldown.minutes:5}")
@@ -63,7 +68,20 @@ public class FallDetectionService {
     public EmergencyAlertResponse processFallEvent(FallEventRequest request) {
         System.out.println("\n🚨 ========== FALL EVENT RECEIVED ==========");
         System.out.println("   Device: " + request.getDeviceId());
-        System.out.println("   G-Force: " + request.getGForce());
+        System.out.println("   Confidence: " + request.getConfidence());
+        System.out.println("   Alert Type: " + request.getAlert());
+
+        // Fetch latest vitals if they are not provided directly in the request (e.g., sent as separate payload)
+        if (request.getTemp() == null && request.getBpm() == null && request.getRr() == null) {
+            Optional<VitalsEvent> recentVitals = vitalsRepository.findFirstByDeviceIdOrderByCreatedAtDesc(request.getDeviceId());
+            if (recentVitals.isPresent()) {
+                request.setTemp(recentVitals.get().getTemp());
+                request.setBpm(recentVitals.get().getBpm());
+                request.setRr(recentVitals.get().getRr());
+                request.setLeadsOff(recentVitals.get().isLeadsOff());
+            }
+        }
+
         System.out.println("   Vitals - Temp: " + request.getTemp() +
                           ", BPM: " + request.getBpm() +
                           ", RR: " + request.getRr());
@@ -130,7 +148,8 @@ public class FallDetectionService {
                 .temp(request.getTemp())
                 .bpm(request.getBpm())
                 .rr(request.getRr())
-                .gForce(request.getGForce())
+                .confidence(request.getConfidence())
+                .alertType(request.getAlert())
                 .location(locationStr)
                 .message(buildResponseMessage(isEmergency, alertSent, alertSkippedCooldown, vitalsAnalysis))
                 .build();
@@ -142,7 +161,8 @@ public class FallDetectionService {
     private FallEvent createFallEvent(FallEventRequest request) {
         FallEvent event = new FallEvent();
         event.setDeviceId(request.getDeviceId());
-        event.setGForce(request.getGForce());
+        event.setConfidence(request.getConfidence());
+        event.setAlertType(request.getAlert());
         event.setTemp(request.getTemp());
         event.setBpm(request.getBpm());
         event.setRr(request.getRr());
@@ -245,7 +265,8 @@ public class FallDetectionService {
      * Determine if this fall + vitals combination is a true emergency
      */
     private boolean determineEmergency(FallEventRequest request, VitalsAnalysisResult analysis) {
-        Float gForce = request.getGForce() != null ? request.getGForce() : 0f;
+        Float confidence = request.getConfidence() != null ? request.getConfidence() : 0f;
+        String alertType = request.getAlert() != null ? request.getAlert() : "UNKNOWN";
 
         // CRITICAL vitals = Always emergency
         if ("CRITICAL".equals(analysis.getEmergencyLevel())) {
@@ -253,21 +274,21 @@ public class FallDetectionService {
             return true;
         }
 
-        // Severe fall (high G-force) + any abnormal vital = emergency
-        if (gForce >= GFORCE_SEVERE && !analysis.getAbnormalVitals().isEmpty()) {
-            System.out.println("🚨 EMERGENCY CONFIRMED: Severe fall (" + gForce + "G) with abnormal vitals!");
+        // AI detected EMERGENCY_FALL + High Confidence + any abnormal vital = emergency
+        if ("EMERGENCY_FALL".equals(alertType) && confidence >= CONFIDENCE_HIGH && !analysis.getAbnormalVitals().isEmpty()) {
+            System.out.println("🚨 EMERGENCY CONFIRMED: High confidence AI fall (" + confidence + ") with abnormal vitals!");
             return true;
         }
 
         // Multiple abnormal vitals after any fall = emergency
-        if (analysis.getAbnormalVitals().size() >= 2 && gForce >= GFORCE_MODERATE) {
-            System.out.println("🚨 EMERGENCY CONFIRMED: Multiple abnormal vitals after moderate fall!");
+        if (analysis.getAbnormalVitals().size() >= 2 && ("EMERGENCY_FALL".equals(alertType) || confidence >= CONFIDENCE_MODERATE)) {
+            System.out.println("🚨 EMERGENCY CONFIRMED: Multiple abnormal vitals after AI fall event!");
             return true;
         }
 
-        // Severe fall + leads off = potential emergency (can't verify vitals, err on caution)
-        if (request.getLeadsOff() && gForce >= GFORCE_SEVERE) {
-            System.out.println("🚨 EMERGENCY CONFIRMED: Severe fall, unable to verify vitals (leads off)");
+        // AI detected EMERGENCY_FALL + leads off = potential emergency (can't verify vitals, err on caution)
+        if (request.getLeadsOff() && "EMERGENCY_FALL".equals(alertType)) {
+            System.out.println("🚨 EMERGENCY CONFIRMED: AI EMERGENCY_FALL, unable to verify vitals (leads off)");
             return true;
         }
 
@@ -322,7 +343,8 @@ public class FallDetectionService {
                 request.getTemp(),
                 request.getBpm(),
                 request.getRr(),
-                request.getGForce()
+                request.getConfidence(),
+                request.getAlert()
         );
 
         if (sent) {

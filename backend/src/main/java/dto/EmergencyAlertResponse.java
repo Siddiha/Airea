@@ -27,7 +27,8 @@ public class EmergencyAlertResponse {
     private Float temp;
     private Float bpm;
     private Float rr;
-    private Float gForce;
+    private Float confidence;
+    private String alertType;
 
     // Location
     private String location;
