@@ -11,7 +11,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _deviceIdController = TextEditingController(
-    text: 'ESP32_COUGH_01', // Default device ID
+    text: 'ESP32_AIREA_01', // Default device ID
   );
   final ApiService _apiService = ApiService();
   bool _isChecking = false;
@@ -103,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
               TextField(
                 controller: _deviceIdController,
                 decoration: InputDecoration(
-                  hintText: 'ESP32_COUGH_01',
+                  hintText: 'ESP32_AIREA_01',
                   labelText: 'Device ID',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),

@@ -38,8 +38,8 @@ class ApiConfig {
     return 'http://$_localBackendHost:$backendPort/api';
   }
 
-  // Default device ID for testing (matches your ESP32 ID)
-  static const String defaultDeviceId = 'ESP32_COUGH_01';
+  // Default device ID for testing (matches your ESP32 firmware)
+  static const String defaultDeviceId = 'ESP32_AIREA_01';
 
   // ========================================
   // 🚀 API Endpoints
