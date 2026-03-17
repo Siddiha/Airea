@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'contact_doctor.dart';
 import 'doctor_details.dart';
 import '../services/doctor_patient_service.dart';
+import 'patient_homeScreen.dart';
 
 class ContactDoctorSelection extends StatelessWidget {
   const ContactDoctorSelection({super.key});
@@ -83,6 +84,15 @@ class ContactDoctorSelection extends StatelessWidget {
       currentIndex: index,
       selectedItemColor: AppTheme.primaryTeal,
       unselectedItemColor: Colors.grey,
+      onTap: (i) {
+        if (i == 0) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
+            (route) => false,
+          );
+        }
+      },
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.home),

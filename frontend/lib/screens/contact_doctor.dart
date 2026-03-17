@@ -1,8 +1,51 @@
 import 'package:airea_cough_monitor/config/app_theme.dart';
 import 'package:flutter/material.dart';
+import '../services/doctor_patient_service.dart';
+import 'patient_homeScreen.dart';
 
-class ContactDoctor extends StatelessWidget {
+class ContactDoctor extends StatefulWidget {
   const ContactDoctor({super.key});
+
+  @override
+  State<ContactDoctor> createState() => _ContactDoctorState();
+}
+
+class _ContactDoctorState extends State<ContactDoctor> {
+  String _phone = 'Loading...';
+  String _hospital = 'Loading...';
+  String _email = 'Loading...';
+  String _doctorName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDoctorContact();
+  }
+
+  Future<void> _loadDoctorContact() async {
+    final doctors = await DoctorPatientService.getConnectedDoctors();
+    if (mounted && doctors.isNotEmpty) {
+      final doc = doctors.first;
+      setState(() {
+        _doctorName = doc['doctorName'] ?? 'Unknown';
+        _phone = (doc['phoneNumber'] ?? '').toString().isNotEmpty
+            ? doc['phoneNumber']
+            : 'Not provided';
+        _hospital = (doc['hospital'] ?? '').toString().isNotEmpty
+            ? doc['hospital']
+            : 'Not provided';
+        _email = (doc['email'] ?? '').toString().isNotEmpty
+            ? doc['email']
+            : 'Not provided';
+      });
+    } else if (mounted) {
+      setState(() {
+        _phone = 'No doctor connected';
+        _hospital = 'No doctor connected';
+        _email = 'No doctor connected';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,15 +64,19 @@ class ContactDoctor extends StatelessWidget {
                   radius: 40,
                   child: Icon(Icons.person, size: 40),
                 ),
+                if (_doctorName.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _doctorName,
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
 
                 const SizedBox(height: 30),
 
-                _infoCard('Mobile Number', '+94 74 xxx xxxx'),
-                _infoCard(
-                  'Clinic/Hospital Address',
-                  'No 12, hospital Road, hospital',
-                ),
-                _infoCard('Email', 'doctor@gmail.com'),
+                _infoCard('Mobile Number', _phone),
+                _infoCard('Clinic/Hospital', _hospital),
+                _infoCard('Email', _email),
               ],
             ),
           ),
@@ -71,6 +118,15 @@ class ContactDoctor extends StatelessWidget {
       currentIndex: index,
       selectedItemColor: AppTheme.primaryTeal,
       unselectedItemColor: Colors.grey,
+      onTap: (i) {
+        if (i == 0) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
+            (route) => false,
+          );
+        }
+      },
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.home),

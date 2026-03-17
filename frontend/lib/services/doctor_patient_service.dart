@@ -167,7 +167,31 @@ class DoctorPatientService {
     }
   }
 
-  /// Disconnect a patient via backend API
+  /// Disconnect the current patient from a doctor
+  static Future<bool> disconnectFromDoctor(String doctorCode) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final patientCode = prefs.getString('patient_code');
+      if (patientCode == null || patientCode.isEmpty) {
+        print('disconnectFromDoctor: No patient_code in SharedPreferences');
+        return false;
+      }
+
+      final url = Uri.parse(
+          '${ApiConfig.baseUrl}/connections/disconnect?doctorCode=$doctorCode&patientCode=$patientCode');
+      final response = await http.delete(url).timeout(
+        const Duration(seconds: 10),
+      );
+
+      print('disconnectFromDoctor: status=${response.statusCode}, body=${response.body}');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('disconnectFromDoctor: exception=$e');
+      return false;
+    }
+  }
+
+  /// Disconnect a patient via backend API (used by doctors)
   static Future<bool> disconnectPatient(String patientId) async {
     try {
       final doctorCode = await getDoctorCode();

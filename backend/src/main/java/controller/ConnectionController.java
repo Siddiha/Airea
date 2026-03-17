@@ -118,12 +118,22 @@ public class ConnectionController {
     @DeleteMapping("/disconnect")
     public ResponseEntity<String> disconnectPatient(
             @RequestParam String doctorCode,
-            @RequestParam String patientId) {
+            @RequestParam(required = false) String patientId,
+            @RequestParam(required = false) String patientCode) {
         try {
             Doctor doctor = doctorRepository.findByDoctorCode(doctorCode)
                 .orElseThrow(() -> new RuntimeException("Doctor code not found."));
 
-            java.util.UUID patientUuid = java.util.UUID.fromString(patientId);
+            java.util.UUID patientUuid;
+            if (patientCode != null && !patientCode.isEmpty()) {
+                Patient patient = patientRepository.findByPatientCode(patientCode)
+                    .orElseThrow(() -> new RuntimeException("Patient code not found."));
+                patientUuid = patient.getId();
+            } else if (patientId != null && !patientId.isEmpty()) {
+                patientUuid = java.util.UUID.fromString(patientId);
+            } else {
+                return ResponseEntity.badRequest().body("Error: Either patientId or patientCode is required.");
+            }
 
             Optional<DoctorPatientLink> link = linkRepository.findByDoctorIdAndPatientId(
                 doctor.getId(), patientUuid);

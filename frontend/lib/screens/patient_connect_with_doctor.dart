@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'patient_pending_message.dart';
 import 'patient_guidance_to_connect_with_doctor.dart';
+import 'patient_homeScreen.dart';
 import '../config/api_config.dart';
 
 class PatientConnectWithDoctor extends StatefulWidget {
@@ -75,9 +76,17 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
   }
 
   void _onBottomNavTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (index == 0) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
+        (route) => false,
+      );
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   @override

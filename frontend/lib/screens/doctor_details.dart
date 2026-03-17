@@ -1,5 +1,7 @@
 import 'package:airea_cough_monitor/config/app_theme.dart';
 import 'package:flutter/material.dart';
+import '../services/doctor_patient_service.dart';
+import 'patient_homeScreen.dart';
 
 class DoctorDetails extends StatelessWidget {
   final String doctorName;
@@ -21,7 +23,7 @@ class DoctorDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Doctor's details")),
-      bottomNavigationBar: _bottomNav(0),
+      bottomNavigationBar: _bottomNav(context, 0),
       body: Center(
         child:SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -45,10 +47,78 @@ class DoctorDetails extends StatelessWidget {
             _infoCard('Mobile Number', phoneNumber.isNotEmpty ? phoneNumber : 'Not provided'),
             _infoCard('Specializations', specialization.isNotEmpty ? specialization : 'Not specified'),
             _infoCard('Hospital', hospital.isNotEmpty ? hospital : 'Not specified'),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: 220,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () => _showDisconnectConfirmation(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade400,
+                  foregroundColor: Colors.white,
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                child: const Text(
+                  'Disconnect Doctor',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ),
           ],
         ),
         
         ),
+      ),
+    );
+  }
+
+  void _showDisconnectConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Disconnect Doctor',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          'Are you sure you want to disconnect from Dr. $doctorName? '
+          'You will no longer be monitored by this doctor.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('No', style: TextStyle(color: Colors.grey, fontSize: 16)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx); // close dialog
+              final success = await DoctorPatientService.disconnectFromDoctor(doctorCode);
+              if (context.mounted) {
+                if (success) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
+                    (route) => false,
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Failed to disconnect. Please try again.')),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade400,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Yes, Disconnect', style: TextStyle(fontSize: 16)),
+          ),
+        ],
       ),
     );
   }
@@ -78,11 +148,20 @@ class DoctorDetails extends StatelessWidget {
     );
   }
 
-  BottomNavigationBar _bottomNav(int index) {
+  BottomNavigationBar _bottomNav(BuildContext context, int index) {
     return BottomNavigationBar(
       currentIndex: index,
       selectedItemColor: AppTheme.primaryTeal,
       unselectedItemColor: Colors.grey,
+      onTap: (i) {
+        if (i == 0) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
+            (route) => false,
+          );
+        }
+      },
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.home),

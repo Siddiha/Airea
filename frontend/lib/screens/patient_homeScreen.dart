@@ -173,8 +173,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   Future<void> _loadConnectedDoctor() async {
     try {
       final doctors = await DoctorPatientService.getConnectedDoctors();
-      if (mounted && doctors.isNotEmpty) {
-        setState(() => _connectedDoctor = doctors.first);
+      if (mounted) {
+        setState(() {
+          _connectedDoctor = doctors.isNotEmpty ? doctors.first : null;
+        });
       }
     } catch (e) {
       print('Error loading connected doctor: $e');
@@ -294,17 +296,18 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 const SizedBox(height: 10),
                 if (_connectedDoctor != null) ...[
                   _buildConnectedDoctorCard(),
-                  const SizedBox(height: 10),
+                ] else ...[
+                  _buildConnectionCard(
+                    title: "Connect with a\ndoctor",
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const PatientContactDoctor()),
+                      ).then((_) => _initDeviceAndLoad());
+                    },
+                  ),
                 ],
-                _buildConnectionCard(
-                  title: "Connect with a\ndoctor",
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const PatientContactDoctor()));
-                  },
-                ),
                 const SizedBox(height: 16),
               ],
             ),
@@ -583,7 +586,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               doctorCode: code,
             ),
           ),
-        );
+        ).then((_) => _initDeviceAndLoad());
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

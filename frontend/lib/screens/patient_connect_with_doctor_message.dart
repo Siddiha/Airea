@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'contact_doctor_selection.dart';
+import 'patient_homeScreen.dart';
 
 class PatientConnectWithDoctorMessage extends StatelessWidget {
   const PatientConnectWithDoctorMessage({super.key});
@@ -7,10 +7,11 @@ class PatientConnectWithDoctorMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Future.delayed(const Duration(seconds: 3), () {
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-            builder: (_) => const ContactDoctorSelection()),
+            builder: (_) => const PatientHomeScreen()),
+        (route) => false,
       );
     });
     return Scaffold(
