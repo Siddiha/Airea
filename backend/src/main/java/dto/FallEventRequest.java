@@ -11,9 +11,9 @@ import lombok.NoArgsConstructor;
 public class FallEventRequest {
 
     private String deviceId;
-    
-    @JsonProperty("gForce")
-    private Float gForce;
+
+    @JsonProperty("confidence")
+    private Float confidence;
 
     // Vitals at time of fall
     private Float temp;
@@ -33,9 +33,9 @@ public class FallEventRequest {
         return deviceId;
     }
 
-    @JsonProperty("gForce")
-    public Float getGForce() {
-        return gForce;
+    @JsonProperty("confidence")
+    public Float getConfidence() {
+        return confidence;
     }
 
     public Float getTemp() {
