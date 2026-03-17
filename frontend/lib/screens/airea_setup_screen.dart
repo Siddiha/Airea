@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'connection_success_screen.dart';
 
 class AireaSetupScreen extends StatefulWidget {
@@ -12,6 +13,7 @@ class AireaSetupScreen extends StatefulWidget {
 }
 
 class _AireaSetupScreenState extends State<AireaSetupScreen> {
+  static const String _boardHardwareId = 'ESP32_AIREA_01';
   final TextEditingController _ssidController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -39,7 +41,7 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
     try {
       final response = await http.get(
         Uri.parse(
-            'https://airea-production.up.railway.app/api/board/status/airea_board_001'),
+            'https://airea-production.up.railway.app/api/board/status/$_boardHardwareId'),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -64,7 +66,7 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
       try {
         final response = await http.get(
           Uri.parse(
-              'https://airea-production.up.railway.app/api/board/status/airea_board_001'),
+              'https://airea-production.up.railway.app/api/board/status/$_boardHardwareId'),
         );
 
         if (response.statusCode == 200) {
@@ -83,6 +85,9 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
             timer.cancel();
 
             if (mounted) {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('linked_device_id', _boardHardwareId);
+
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Board Connected Successfully!'),
