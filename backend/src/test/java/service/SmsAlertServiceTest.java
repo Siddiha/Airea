@@ -48,7 +48,8 @@ public class SmsAlertServiceTest {
             39.5f, 
             90f, 
             16f, 
-            1.5f
+            0.95f,
+            "EMERGENCY_FALL"
         );
 
         // Assert

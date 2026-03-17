@@ -68,6 +68,7 @@ public class FallDetectionServiceTest {
         criticalFallReq = new FallEventRequest();
         criticalFallReq.setDeviceId("DEV123");
         criticalFallReq.setConfidence(0.95f);
+
         criticalFallReq.setTemp(34.0f); // Critical low
         criticalFallReq.setBpm(35f);    // Critical low
         criticalFallReq.setRr(10f);
@@ -84,7 +85,7 @@ public class FallDetectionServiceTest {
         assertTrue(response.isFallDetected());
         assertFalse(response.isEmergency());
         assertEquals("NORMAL", response.getEmergencyLevel());
-        verify(smsAlertService, never()).sendEmergencyAlert(anyString(), anyString(), anyString(), anyString(), anyFloat(), anyFloat(), anyFloat(), anyFloat());
+        verify(smsAlertService, never()).sendEmergencyAlert(anyString(), anyString(), anyString(), anyString(), anyFloat(), anyFloat(), anyFloat(), anyFloat(), anyString());
     }
 
     @Test
@@ -92,7 +93,7 @@ public class FallDetectionServiceTest {
         when(fallRepository.save(any(FallEvent.class))).thenReturn(savedFallEvent);
         when(fallRepository.findRecentEmergencyAlerts(anyString(), any())).thenReturn(Collections.emptyList()); // No cooldown
         when(patientRepository.findByDeviceId("DEV123")).thenReturn(Optional.of(testPatient));
-        when(smsAlertService.sendEmergencyAlert(anyString(), anyString(), anyString(), any(), anyFloat(), anyFloat(), anyFloat(), anyFloat())).thenReturn(true);
+        when(smsAlertService.sendEmergencyAlert(anyString(), anyString(), anyString(), any(), anyFloat(), anyFloat(), anyFloat(), anyFloat(), anyString())).thenReturn(true);
 
         EmergencyAlertResponse response = fallDetectionService.processFallEvent(criticalFallReq);
 
@@ -101,7 +102,7 @@ public class FallDetectionServiceTest {
         assertEquals("CRITICAL", response.getEmergencyLevel());
         assertTrue(response.isAlertSent());
         assertEquals("+1234567890", response.getAlertSentTo());
-        verify(smsAlertService).sendEmergencyAlert(eq("+1234567890"), eq("John Doe"), anyString(), any(), anyFloat(), anyFloat(), anyFloat(), anyFloat());
+        verify(smsAlertService).sendEmergencyAlert(eq("+1234567890"), eq("John Doe"), anyString(), any(), anyFloat(), anyFloat(), anyFloat(), anyFloat(), anyString());
     }
 
     @Test
@@ -114,7 +115,7 @@ public class FallDetectionServiceTest {
 
         assertTrue(response.isEmergency());
         assertFalse(response.isAlertSent()); // Alert blocked by cooldown
-        verify(smsAlertService, never()).sendEmergencyAlert(anyString(), anyString(), anyString(), anyString(), anyFloat(), anyFloat(), anyFloat(), anyFloat());
+        verify(smsAlertService, never()).sendEmergencyAlert(anyString(), anyString(), anyString(), anyString(), anyFloat(), anyFloat(), anyFloat(), anyFloat(), anyString());
     }
 
     @Test
@@ -128,6 +129,6 @@ public class FallDetectionServiceTest {
 
         assertTrue(response.isEmergency());
         assertFalse(response.isAlertSent());
-        verify(smsAlertService, never()).sendEmergencyAlert(anyString(), anyString(), anyString(), anyString(), anyFloat(), anyFloat(), anyFloat(), anyFloat());
+        verify(smsAlertService, never()).sendEmergencyAlert(anyString(), anyString(), anyString(), anyString(), anyFloat(), anyFloat(), anyFloat(), anyFloat(), anyString());
     }
 }

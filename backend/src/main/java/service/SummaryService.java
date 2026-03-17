@@ -1938,8 +1938,8 @@ public class SummaryService {
         int emergencyFalls = (int) falls.stream().filter(f -> Boolean.TRUE.equals(f.getIsEmergency())).count();
         int nonEmergencyFalls = totalFalls - emergencyFalls;
 
-        double maxGForce = falls.stream().mapToDouble(f -> f.getConfidence() != null ? f.getConfidence() : 0).max().orElse(0);
-        double avgGForce = falls.stream().mapToDouble(f -> f.getConfidence() != null ? f.getConfidence() : 0).average().orElse(0);
+        double maxConfidence = falls.stream().mapToDouble(f -> f.getConfidence() != null ? f.getConfidence() : 0).max().orElse(0);
+        double avgConfidence = falls.stream().mapToDouble(f -> f.getConfidence() != null ? f.getConfidence() : 0).average().orElse(0);
 
         String latestFallTime = falls.stream()
                 .max(Comparator.comparing(FallEvent::getTimestamp))
@@ -1957,23 +1957,23 @@ public class SummaryService {
         List<FallEventDetail> fallEventDetails = falls.stream()
                 .sorted(Comparator.comparing(FallEvent::getTimestamp).reversed())
                 .map(f -> new FallEventDetail(
-                f.getTimestamp().format(timeFormatter),
-                f.getConfidence() != null ? f.getConfidence() : 0,
-                Boolean.TRUE.equals(f.getIsEmergency()),
-                f.getEmergencyLevel() != null ? f.getEmergencyLevel() : "NORMAL",
-                f.getEmergencyReason(),
-                f.getBpm(),
-                f.getTemp(),
-                f.getRr()
-        ))
+                        f.getTimestamp().format(timeFormatter),
+                        f.getConfidence() != null ? f.getConfidence() : 0,
+                        Boolean.TRUE.equals(f.getIsEmergency()),
+                        f.getEmergencyLevel() != null ? f.getEmergencyLevel() : "NORMAL",
+                        f.getEmergencyReason(),
+                        f.getBpm(),
+                        f.getTemp(),
+                        f.getRr()
+                ))
                 .collect(Collectors.toList());
 
         summary.setHasFallData(true);
         summary.setTotalFalls(totalFalls);
         summary.setEmergencyFalls(emergencyFalls);
         summary.setNonEmergencyFalls(nonEmergencyFalls);
-        summary.setMaxGForce(Math.round(maxGForce * 10.0) / 10.0);
-        summary.setAvgGForce(Math.round(avgGForce * 10.0) / 10.0);
+        summary.setMaxGForce(Math.round(maxConfidence * 100.0) / 100.0);
+        summary.setAvgGForce(Math.round(avgConfidence * 100.0) / 100.0);
         summary.setLatestFallTime(latestFallTime);
         summary.setWorstEmergencyLevel(worstLevel);
         summary.setFallRiskLevel(fallRiskLevel);
@@ -2007,8 +2007,8 @@ public class SummaryService {
 
         int totalFalls = falls.size();
         int emergencyFalls = (int) falls.stream().filter(f -> Boolean.TRUE.equals(f.getIsEmergency())).count();
-        double maxGForce = falls.stream().mapToDouble(f -> f.getConfidence() != null ? f.getConfidence() : 0).max().orElse(0);
-        double avgGForce = falls.stream().mapToDouble(f -> f.getConfidence() != null ? f.getConfidence() : 0).average().orElse(0);
+        double maxConfidence = falls.stream().mapToDouble(f -> f.getConfidence() != null ? f.getConfidence() : 0).max().orElse(0);
+        double avgConfidence = falls.stream().mapToDouble(f -> f.getConfidence() != null ? f.getConfidence() : 0).average().orElse(0);
 
         List<Integer> dailyFallCounts = new ArrayList<>();
         List<Integer> dailyEmergencyCounts = new ArrayList<>();
@@ -2042,8 +2042,8 @@ public class SummaryService {
         summary.setHasFallData(true);
         summary.setTotalFalls(totalFalls);
         summary.setTotalEmergencyFalls(emergencyFalls);
-        summary.setMaxGForce(Math.round(maxGForce * 10.0) / 10.0);
-        summary.setAvgGForce(Math.round(avgGForce * 10.0) / 10.0);
+        summary.setMaxGForce(Math.round(maxConfidence * 100.0) / 100.0);
+        summary.setAvgGForce(Math.round(avgConfidence * 100.0) / 100.0);
         summary.setDaysWithFalls(daysWithFalls);
         summary.setAvgFallsPerDay(daysWithFalls > 0 ? Math.round(totalFalls * 10.0 / 7) / 10.0 : 0);
         summary.setWorstEmergencyLevel(worstLevel);
