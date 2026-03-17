@@ -2,12 +2,10 @@
   ===========================================================================
     AIREA MASTER FIRMWARE (PROTOTYPE)
     ESP32-S3 Custom PCB Integration
-    Features:
-    - WiFiManager for easy setup
-    - TFLite Audio Inference (Cough Detection)
-    - TFLite Motion Inference (AI Fall Detection - MPU6050)
-    - Vitals DSP (MAX30205 Temp, AD8232 BPM & Respiratory Rate)
-    - FreeRTOS Network Queueing to Railway Spring Boot
+    LED Update:
+    - Solid ON when Wi-Fi connected
+    - OFF when disconnected
+    - Blinks 3x for Cough, 10x for Fall
   ===========================================================================
 */
 
@@ -17,6 +15,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <driver/i2s.h>
+#include <esp_task_wdt.h>
 
 // --- FREERTOS ---
 #include "freertos/FreeRTOS.h"
@@ -73,10 +72,10 @@ enum EventType
 struct CloudEvent
 {
     EventType type;
-    float val1; // Cough Confidence / Fall Confidence / Temp
-    float val2; // Cough Volume / BPM
-    float val3; // Respiratory Rate
-    bool flag;  // Leads Off
+    float val1;
+    float val2;
+    float val3;
+    bool flag;
 };
 
 QueueHandle_t cloudQueue;
@@ -129,13 +128,16 @@ static bool wasAbove = false, respWasAbove = false;
 // =========================================================
 void blinkLED(int times, int delayMs)
 {
+    // Since the resting state is now ON, we dip LOW to create the blink
     for (int i = 0; i < times; i++)
     {
-        digitalWrite(PIN_LED, HIGH);
-        delay(delayMs);
         digitalWrite(PIN_LED, LOW);
         delay(delayMs);
+        digitalWrite(PIN_LED, HIGH);
+        delay(delayMs);
     }
+    // Safety check: ensure resting state matches Wi-Fi status
+    digitalWrite(PIN_LED, WiFi.status() == WL_CONNECTED ? HIGH : LOW);
 }
 
 void notifyBackendOnline()
@@ -169,41 +171,52 @@ void network_sender_task(void *parameter)
 
     while (true)
     {
-        if (xQueueReceive(cloudQueue, &event, portMAX_DELAY) == pdTRUE)
+        if (WiFi.status() != WL_CONNECTED)
         {
+            digitalWrite(PIN_LED, LOW); // Turn LED OFF when disconnected
+            Serial.println("⚠️ Wi-Fi Lost! Attempting to reconnect...");
+            WiFi.disconnect();
+            WiFi.reconnect();
+            vTaskDelay(5000 / portTICK_PERIOD_MS);
             if (WiFi.status() == WL_CONNECTED)
             {
-                String url = "";
-                String json = "{\"deviceId\":\"ESP32_AIREA_01\",";
-
-                if (event.type == EVENT_COUGH)
-                {
-                    url = COUGH_URL;
-                    json += "\"confidence\":" + String(event.val1, 3) + ",\"audioVolume\":" + String(event.val2, 2);
-                }
-                else if (event.type == EVENT_FALL)
-                {
-                    url = FALL_URL;
-                    json += "\"confidence\":" + String(event.val1, 3) + ",\"alert\":\"EMERGENCY_FALL\"";
-                }
-                else if (event.type == EVENT_VITALS)
-                {
-                    url = VITALS_URL;
-                    json += "\"temp\":" + String(event.val1, 2) + ",\"bpm\":" + String(event.val2, 1) +
-                            ",\"rr\":" + String(event.val3, 1) + ",\"leadsOff\":" + String(event.flag ? "true" : "false");
-                }
-                json += "}";
-
-                http.begin(client, url);
-                http.addHeader("Content-Type", "application/json");
-                int httpCode = http.POST(json);
-                http.end();
-
-                Serial.printf("☁️ [Cloud] Sent %s | HTTP: %d\n",
-                              (event.type == EVENT_COUGH ? "COUGH" : event.type == EVENT_FALL ? "FALL"
-                                                                                              : "VITALS"),
-                              httpCode);
+                digitalWrite(PIN_LED, HIGH); // Turn LED ON once reconnected
             }
+            continue;
+        }
+
+        if (xQueueReceive(cloudQueue, &event, portMAX_DELAY) == pdTRUE)
+        {
+            String url = "";
+            String json = "{\"deviceId\":\"ESP32_AIREA_01\",";
+
+            if (event.type == EVENT_COUGH)
+            {
+                url = COUGH_URL;
+                json += "\"confidence\":" + String(event.val1, 3) + ",\"audioVolume\":" + String(event.val2, 2);
+            }
+            else if (event.type == EVENT_FALL)
+            {
+                url = FALL_URL;
+                json += "\"confidence\":" + String(event.val1, 3) + ",\"alert\":\"EMERGENCY_FALL\"";
+            }
+            else if (event.type == EVENT_VITALS)
+            {
+                url = VITALS_URL;
+                json += "\"temp\":" + String(event.val1, 2) + ",\"bpm\":" + String(event.val2, 1) +
+                        ",\"rr\":" + String(event.val3, 1) + ",\"leadsOff\":" + String(event.flag ? "true" : "false");
+            }
+            json += "}";
+
+            http.begin(client, url);
+            http.addHeader("Content-Type", "application/json");
+            int httpCode = http.POST(json);
+            http.end();
+
+            Serial.printf("☁️ [Cloud] Sent %s | HTTP: %d\n",
+                          (event.type == EVENT_COUGH ? "COUGH" : event.type == EVENT_FALL ? "FALL"
+                                                                                          : "VITALS"),
+                          httpCode);
         }
     }
 }
@@ -215,9 +228,9 @@ void audio_inference_task(void *parameter)
 {
     if (audio_input == nullptr)
     {
-        Serial.println("❌ FATAL: Audio Model failed.");
-        vTaskDelete(NULL);
-        return;
+        Serial.println("❌ FATAL: Audio Model failed. Restarting board...");
+        delay(1000);
+        ESP.restart();
     }
     size_t bytes_read;
     static unsigned long last_alert_time = 0;
@@ -252,17 +265,16 @@ void audio_inference_task(void *parameter)
 
         if (audio_interpreter->Invoke() != kTfLiteOk)
             continue;
+
         float cough_score = (audio_output->type == kTfLiteInt8) ? (audio_output->data.int8[1] - audio_output->params.zero_point) * audio_output->params.scale : audio_output->data.f[1];
 
         if (avg_vol > 300 && cough_score > COUGH_THRESHOLD && (millis() - last_alert_time > 5000))
         {
             Serial.println("\n🚨 COUGH DETECTED!");
-            digitalWrite(PIN_LED, HIGH);
+            blinkLED(3, 150); // Blink 3 times for cough
             CloudEvent event = {EVENT_COUGH, cough_score, avg_vol, 0.0, false};
             xQueueSend(cloudQueue, &event, 0);
             last_alert_time = millis();
-            delay(200);
-            digitalWrite(PIN_LED, LOW);
         }
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
@@ -276,10 +288,11 @@ void setup()
     Serial.begin(115200);
     delay(1000);
     pinMode(PIN_LED, OUTPUT);
+    digitalWrite(PIN_LED, LOW); // Start with LED officially OFF during setup
+
     pinMode(PIN_ECG_LO_PLUS, INPUT);
     pinMode(PIN_ECG_LO_MINUS, INPUT);
     analogReadResolution(12);
-    digitalWrite(PIN_LED, HIGH);
 
     Serial.println("\n=================================");
     Serial.println("    AIREA MONITORING SYSTEM      ");
@@ -293,8 +306,8 @@ void setup()
         ESP.restart();
     }
     Serial.println("✅ WiFi Connected!");
-    blinkLED(3, 200);
-    digitalWrite(PIN_LED, HIGH);
+
+    digitalWrite(PIN_LED, HIGH); // Turn LED permanently ON to show active connection
     notifyBackendOnline();
 
     cloudQueue = xQueueCreate(10, sizeof(CloudEvent));
@@ -302,7 +315,7 @@ void setup()
     fall_tensor_arena = (uint8_t *)malloc(kFallArenaSize);
     raw_audio_buffer = (int16_t *)malloc(kAudioBufferSize * sizeof(int16_t));
 
-    // AUDIO INTERPRETER INIT - Fixed &micro_error_reporter
+    // AUDIO INTERPRETER INIT
     audio_model = tflite::GetModel(model_data);
     static tflite::MicroInterpreter static_audio_interpreter(audio_model, resolver, audio_tensor_arena, kAudioArenaSize, &micro_error_reporter);
     audio_interpreter = &static_audio_interpreter;
@@ -310,7 +323,7 @@ void setup()
     audio_input = audio_interpreter->input(0);
     audio_output = audio_interpreter->output(0);
 
-    // FALL INTERPRETER INIT - Fixed &micro_error_reporter
+    // FALL INTERPRETER INIT
     fall_model_ptr = tflite::GetModel(fall_model);
     static tflite::MicroInterpreter static_fall_interpreter(fall_model_ptr, resolver, fall_tensor_arena, kFallArenaSize, &micro_error_reporter);
     fall_interpreter = &static_fall_interpreter;
@@ -328,6 +341,9 @@ void setup()
     Wire1.write(0x00);
     Wire1.endTransmission();
 
+    esp_task_wdt_init(5, true);
+    esp_task_wdt_add(NULL);
+
     xTaskCreatePinnedToCore(network_sender_task, "NetSender", 8192, NULL, 1, NULL, 0);
     xTaskCreatePinnedToCore(audio_inference_task, "AudioAI", 8192, NULL, 2, NULL, 0);
 }
@@ -337,6 +353,8 @@ void setup()
 // =========================================================
 void loop()
 {
+    esp_task_wdt_reset();
+
     static unsigned long lastSampleUs = 0, lastMotionMs = 0, lastTempMs = 0, lastVitalsSyncMs = 0, lastFallAlertMs = 0;
     unsigned long nowUs = micros(), nowMs = millis();
 
@@ -433,12 +451,10 @@ void loop()
                         if (fall_confidence > FALL_THRESHOLD && (nowMs - lastFallAlertMs > 5000))
                         {
                             Serial.printf("⚠️ AI FALL DETECTED! Confidence: %.2f%%\n", fall_confidence * 100);
-                            blinkLED(5, 100);
-                            digitalWrite(PIN_LED, HIGH);
+                            blinkLED(10, 100); // Blink 10 times rapidly for fall
                             CloudEvent event = {EVENT_FALL, fall_confidence, 0.0, 0.0, false};
                             xQueueSend(cloudQueue, &event, 0);
                             lastFallAlertMs = nowMs;
-                            delay(500);
                         }
                     }
                     int overlap = TIME_STEPS / 2;
