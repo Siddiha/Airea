@@ -29,6 +29,13 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
   late TextEditingController _habitsController;
   late TextEditingController _workingEnvironmentController;
 
+  String? _fullNameError;
+  String? _dobError;
+  String? _addressError;
+  String? _ageError;
+  String? _heightError;
+  String? _weightError;
+
   @override
   void initState() {
     super.initState();
@@ -63,21 +70,62 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
     final fullName = _fullNameController.text.trim();
     final dob = _dobController.text.trim();
     final address = _addressController.text.trim();
+    final ageText = _ageController.text.trim();
+    final heightText = _heightController.text.trim();
+    final weightText = _weightController.text.trim();
 
-    if (fullName.isEmpty || dob.isEmpty || address.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields')),
-      );
-      return;
+    setState(() {
+      _fullNameError = null;
+      _dobError = null;
+      _addressError = null;
+      _ageError = null;
+      _heightError = null;
+      _weightError = null;
+    });
+
+    bool hasError = false;
+
+    final nameRegex = RegExp(r'^[a-zA-Z\s]+$');
+    if (fullName.isEmpty) {
+      setState(() => _fullNameError = 'Full Name is required');
+      hasError = true;
+    } else if (!nameRegex.hasMatch(fullName)) {
+      setState(() => _fullNameError = 'Name should only contain letters');
+      hasError = true;
     }
-    // ensure medical numeric values are valid
-    final age = int.tryParse(_ageController.text) ?? 0;
-    if (age <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid age')),
-      );
-      return;
+
+    if (dob.isEmpty) {
+      setState(() => _dobError = 'Date of birth is required');
+      hasError = true;
     }
+
+    if (address.isEmpty) {
+      setState(() => _addressError = 'Address is required');
+      hasError = true;
+    }
+
+    final age = int.tryParse(ageText);
+    if (ageText.isEmpty) {
+      setState(() => _ageError = 'Age is required');
+      hasError = true;
+    } else if (age == null || age <= 0) {
+      setState(() => _ageError = 'Please enter a valid age');
+      hasError = true;
+    }
+
+    final height = int.tryParse(heightText);
+    if (heightText.isNotEmpty && (height == null || height <= 0)) {
+      setState(() => _heightError = 'Please enter a valid height');
+      hasError = true;
+    }
+
+    final weight = int.tryParse(weightText);
+    if (weightText.isNotEmpty && (weight == null || weight <= 0)) {
+      setState(() => _weightError = 'Please enter a valid weight');
+      hasError = true;
+    }
+
+    if (hasError) return;
 
     // Update registration data with personal information
     final PatientMedicalDetails medDetails = PatientMedicalDetails(
@@ -150,9 +198,11 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
               // Full Name
               TextField(
                 controller: _fullNameController,
+                onChanged: (_) => setState(() => _fullNameError = null),
                 decoration: InputDecoration(
                   labelText: 'Full Name',
                   hintText: 'Enter your full name',
+                  errorText: _fullNameError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -167,6 +217,7 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
                 decoration: InputDecoration(
                   labelText: 'Date of Birth',
                   hintText: 'DD/MM/YYYY',
+                  errorText: _dobError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -181,8 +232,10 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
                     lastDate: DateTime.now(),
                   );
                   if (date != null) {
-                    _dobController.text =
-                        '${date.day}/${date.month}/${date.year}';
+                    setState(() {
+                      _dobError = null;
+                      _dobController.text = '${date.day}/${date.month}/${date.year}';
+                    });
                   }
                 },
               ),
@@ -227,9 +280,11 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
               // Address
               TextField(
                 controller: _addressController,
+                onChanged: (_) => setState(() => _addressError = null),
                 decoration: InputDecoration(
                   labelText: 'Address',
                   hintText: 'Enter your address',
+                  errorText: _addressError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -243,9 +298,11 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
               TextField(
                 controller: _ageController,
                 keyboardType: TextInputType.number,
+                onChanged: (_) => setState(() => _ageError = null),
                 decoration: InputDecoration(
                   labelText: 'Age',
                   hintText: 'Enter your age',
+                  errorText: _ageError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -255,9 +312,11 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
               TextField(
                 controller: _heightController,
                 keyboardType: TextInputType.number,
+                onChanged: (_) => setState(() => _heightError = null),
                 decoration: InputDecoration(
                   labelText: 'Height (cm)',
                   hintText: 'Enter your height',
+                  errorText: _heightError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -267,9 +326,11 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
               TextField(
                 controller: _weightController,
                 keyboardType: TextInputType.number,
+                onChanged: (_) => setState(() => _weightError = null),
                 decoration: InputDecoration(
                   labelText: 'Weight (kg)',
                   hintText: 'Enter your weight',
+                  errorText: _weightError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),

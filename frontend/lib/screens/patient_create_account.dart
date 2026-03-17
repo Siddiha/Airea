@@ -15,6 +15,9 @@ class _PatientCreateAccountState extends State<PatientCreateAccount> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
+  String? _emailError;
+  String? _passwordError;
+  String? _confirmPasswordError;
 
   @override
   void dispose() {
@@ -29,27 +32,42 @@ class _PatientCreateAccountState extends State<PatientCreateAccount> {
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
+    setState(() {
+      _emailError = null;
+      _passwordError = null;
+      _confirmPasswordError = null;
+    });
+
+    bool hasError = false;
+
     // Validation
-    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields')),
-      );
-      return;
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    
+    if (email.isEmpty) {
+      setState(() => _emailError = 'Email is required');
+      hasError = true;
+    } else if (!emailRegex.hasMatch(email)) {
+      setState(() => _emailError = 'Please enter a valid email address');
+      hasError = true;
+    }
+    
+    if (password.isEmpty) {
+      setState(() => _passwordError = 'Password is required');
+      hasError = true;
+    } else if (password.length < 6) {
+      setState(() => _passwordError = 'Password must be at least 6 characters');
+      hasError = true;
     }
 
-    if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
-      return;
+    if (confirmPassword.isEmpty) {
+      setState(() => _confirmPasswordError = 'Please confirm your password');
+      hasError = true;
+    } else if (password != confirmPassword) {
+      setState(() => _confirmPasswordError = 'Passwords do not match');
+      hasError = true;
     }
 
-    if (password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must be at least 6 characters')),
-      );
-      return;
-    }
+    if (hasError) return;
 
     // Create registration data and navigate to next screen
     final registrationData = RegistrationData(
@@ -106,12 +124,13 @@ class _PatientCreateAccountState extends State<PatientCreateAccount> {
               ),
               const SizedBox(height: 40),
 
-              // Email Field
               TextField(
                 controller: _emailController,
+                onChanged: (_) => setState(() => _emailError = null),
                 decoration: InputDecoration(
                   labelText: 'Email Address',
                   hintText: 'Enter your email',
+                  errorText: _emailError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -121,12 +140,13 @@ class _PatientCreateAccountState extends State<PatientCreateAccount> {
               ),
               const SizedBox(height: 16),
 
-              // Password Field
               TextField(
                 controller: _passwordController,
+                onChanged: (_) => setState(() => _passwordError = null),
                 decoration: InputDecoration(
                   labelText: 'Password',
                   hintText: 'Enter your password',
+                  errorText: _passwordError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -136,12 +156,13 @@ class _PatientCreateAccountState extends State<PatientCreateAccount> {
               ),
               const SizedBox(height: 16),
 
-              // Confirm Password Field
               TextField(
                 controller: _confirmPasswordController,
+                onChanged: (_) => setState(() => _confirmPasswordError = null),
                 decoration: InputDecoration(
                   labelText: 'Confirm Password',
                   hintText: 'Re-enter your password',
+                  errorText: _confirmPasswordError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),

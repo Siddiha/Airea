@@ -21,6 +21,11 @@ class _DoctorDetailsInputState extends State<DoctorDetailsInput> {
   late TextEditingController _specializationsController;
   late TextEditingController _medicalLicenseController;
 
+  String? _fullNameError;
+  String? _mobileNumberError;
+  String? _specializationsError;
+  String? _medicalLicenseError;
+
   @override
   void initState() {
     super.initState();
@@ -49,15 +54,44 @@ class _DoctorDetailsInputState extends State<DoctorDetailsInput> {
     final specializations = _specializationsController.text.trim();
     final medicalLicense = _medicalLicenseController.text.trim();
 
-    if (fullName.isEmpty ||
-        mobileNumber.isEmpty ||
-        specializations.isEmpty ||
-        medicalLicense.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields')),
-      );
-      return;
+    setState(() {
+      _fullNameError = null;
+      _mobileNumberError = null;
+      _specializationsError = null;
+      _medicalLicenseError = null;
+    });
+
+    bool hasError = false;
+
+    final nameRegex = RegExp(r'^[a-zA-Z\s]+$');
+    if (fullName.isEmpty) {
+      setState(() => _fullNameError = 'Full Name is required');
+      hasError = true;
+    } else if (!nameRegex.hasMatch(fullName)) {
+      setState(() => _fullNameError = 'Name should only contain letters');
+      hasError = true;
     }
+
+    final sriLankanPhoneRegex = RegExp(r'^(?:\+94|0)?7\d{8}$');
+    if (mobileNumber.isEmpty) {
+      setState(() => _mobileNumberError = 'Mobile Number is required');
+      hasError = true;
+    } else if (!sriLankanPhoneRegex.hasMatch(mobileNumber)) {
+      setState(() => _mobileNumberError = 'Please enter a valid Sri Lankan structure (+947..., 07...)');
+      hasError = true;
+    }
+
+    if (specializations.isEmpty) {
+      setState(() => _specializationsError = 'Specializations are required');
+      hasError = true;
+    }
+
+    if (medicalLicense.isEmpty) {
+      setState(() => _medicalLicenseError = 'Medical License Number is required');
+      hasError = true;
+    }
+
+    if (hasError) return;
 
     // Update registration data with doctor information
     final updatedData = widget.registrationData.copyWith(
@@ -120,9 +154,11 @@ class _DoctorDetailsInputState extends State<DoctorDetailsInput> {
               // Full Name
               TextField(
                 controller: _fullNameController,
+                onChanged: (_) => setState(() => _fullNameError = null),
                 decoration: InputDecoration(
                   labelText: 'Full Name',
                   hintText: 'Enter your full name',
+                  errorText: _fullNameError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -134,9 +170,11 @@ class _DoctorDetailsInputState extends State<DoctorDetailsInput> {
               // Mobile Number
               TextField(
                 controller: _mobileNumberController,
+                onChanged: (_) => setState(() => _mobileNumberError = null),
                 decoration: InputDecoration(
                   labelText: 'Mobile Number',
                   hintText: 'Enter your mobile number',
+                  errorText: _mobileNumberError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -149,9 +187,11 @@ class _DoctorDetailsInputState extends State<DoctorDetailsInput> {
               // Specializations
               TextField(
                 controller: _specializationsController,
+                onChanged: (_) => setState(() => _specializationsError = null),
                 decoration: InputDecoration(
                   labelText: 'Specializations',
                   hintText: 'e.g., Cardiology, Pulmonology',
+                  errorText: _specializationsError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -164,9 +204,11 @@ class _DoctorDetailsInputState extends State<DoctorDetailsInput> {
               // Medical License Number
               TextField(
                 controller: _medicalLicenseController,
+                onChanged: (_) => setState(() => _medicalLicenseError = null),
                 decoration: InputDecoration(
                   labelText: 'Medical License Number',
                   hintText: 'Enter your medical license number',
+                  errorText: _medicalLicenseError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
