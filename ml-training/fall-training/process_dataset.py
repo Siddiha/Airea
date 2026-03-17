@@ -24,7 +24,7 @@ def process_category(category_folder, label_value):
     all_data = []
     
     # Search path - Updated to find .csv files based on your screenshot
-    search_path = os.path.join(DATASET_ROOT, "sub*", category_folder, "*.csv")
+    search_path = os.path.join(DATASET_ROOT, "sub*", category_folder, "*.xlsx")
     files = glob.glob(search_path)
     
     print(f"Found {len(files)} files for {category_folder}...")
@@ -37,8 +37,8 @@ def process_category(category_folder, label_value):
         # ---------------------------------
 
         try:
-            # Read CSV file (changed from read_excel since your files are .csv)
-            df = pd.read_csv(file_path)
+            
+            df = pd.read_excel(file_path, engine='openpyxl')
             
             # 1. Drop the magnetic field columns
             mag_cols = [col for col in df.columns if 'Magnetic' in col]
