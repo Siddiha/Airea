@@ -7,7 +7,9 @@ import 'patient_profile_frame.dart';
 import 'patient_connect_device_option.dart';
 import 'patient_summary_overview.dart';
 import 'cough_analyzer_screen.dart';
+import 'doctor_details.dart';
 import '../services/api_service.dart';
+import '../services/doctor_patient_service.dart';
 import '../config/api_config.dart';
 import '../models/device_model.dart';
 import 'patient_contact_doctor.dart';
@@ -37,6 +39,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   List<PatientNotification> _alerts = [];
   int _selectedIndex = 0;
   Timer? _refreshTimer;
+  Map<String, dynamic>? _connectedDoctor;
 
   @override
   void initState() {
@@ -45,6 +48,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     _loadCoughData();
     _loadVitalsData();
     _loadAlerts();
+    _loadConnectedDoctor();
 
     // Refresh every 10 seconds
     _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
@@ -120,6 +124,17 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       }
     } catch (e) {
       print('Error loading alerts: $e');
+    }
+  }
+
+  Future<void> _loadConnectedDoctor() async {
+    try {
+      final doctors = await DoctorPatientService.getConnectedDoctors();
+      if (mounted && doctors.isNotEmpty) {
+        setState(() => _connectedDoctor = doctors.first);
+      }
+    } catch (e) {
+      print('Error loading connected doctor: $e');
     }
   }
 
@@ -227,6 +242,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   },
                 ),
                 const SizedBox(height: 10),
+                if (_connectedDoctor != null) ...[
+                  _buildConnectedDoctorCard(),
+                  const SizedBox(height: 10),
+                ],
                 _buildConnectionCard(
                   title: "Connect with a\ndoctor",
                   onTap: () {
@@ -489,6 +508,78 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildConnectedDoctorCard() {
+    final name = _connectedDoctor!['doctorName'] ?? 'Unknown';
+    final specialization = _connectedDoctor!['specialization'] ?? '';
+    final code = _connectedDoctor!['doctorCode'] ?? '';
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DoctorDetails(
+              doctorName: name,
+              phoneNumber: _connectedDoctor!['phoneNumber'] ?? '',
+              specialization: specialization,
+              hospital: _connectedDoctor!['hospital'] ?? '',
+              doctorCode: code,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.grey.withValues(alpha: 0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 3))
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF4DB6AC).withValues(alpha: 0.15),
+              ),
+              child: const Icon(Icons.medical_services_outlined,
+                  color: Color(0xFF4DB6AC), size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Your Doctor",
+                      style: TextStyle(
+                          color: Colors.grey, fontSize: 11)),
+                  const SizedBox(height: 2),
+                  Text(name,
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87)),
+                  if (specialization.isNotEmpty)
+                    Text(specialization,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }
