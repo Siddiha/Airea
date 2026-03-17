@@ -50,11 +50,12 @@ public class FallController {
      * 
      * Request body example:
      * {
-     *   "deviceId": "ESP32_COUGH_01",
-     *   "gForce": 3.5,
-     *   "temp": 38.5,
-     *   "bpm": 45,
-     *   "rr": 8,
+     *   "deviceId": "ESP32_AIREA_01",
+     *   "confidence": 0.951,
+     *   "alert": "EMERGENCY_FALL",
+     *   "temp": 36.8,    // now sent separately, but fallback if still sent here
+     *   "bpm": 82,
+     *   "rr": 17,
      *   "leadsOff": false,
      *   "latitude": 6.9271,
      *   "longitude": 79.8612

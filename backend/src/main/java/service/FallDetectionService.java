@@ -6,6 +6,8 @@ import model.FallEvent;
 import model.Patient;
 import repository.FallRepository;
 import repository.PatientRepository;
+import repository.VitalsRepository;
+import model.VitalsEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,9 @@ public class FallDetectionService {
 
     @Autowired
     private SmsAlertService smsAlertService;
+
+    @Autowired
+    private VitalsRepository vitalsRepository;
 
     // ==================== CLINICAL THRESHOLDS ====================
     private static final double HR_CRITICAL_LOW = 40.0;
