@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'doctor_remove_patient_screen.dart';
 import 'doctor_patient_removed_success_screen.dart';
-import 'option_connect_patient.dart'; 
+import 'doctor_connect_patient_screen.dart'; 
 import '../services/doctor_patient_service.dart';
 import '../models/doctor_patient_connection.dart';
 
@@ -137,7 +137,7 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
-                                              'ID: ${patient.patientId}',
+                                              'ID: ${patient.patientCode}',
                                               style: TextStyle(
                                                 color: Colors.white.withOpacity(0.8),
                                                 fontSize: 12,
@@ -169,11 +169,10 @@ class _DoctorManagePatientsScreenState extends State<DoctorManagePatientsScreen>
               // --- Connect Button (Updated) ---
               GestureDetector(
                 onTap: () {
-                  // 2. Updated to navigate to OptionConnectPatient
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const OptionConnectPatient(),
+                      builder: (context) => const DoctorConnectPatientScreen(),
                     ),
                   ).then((_) => _loadPatients()); 
                 },

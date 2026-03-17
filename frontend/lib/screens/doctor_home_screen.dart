@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'doctor_notification.dart';
 import 'doctor_profile_frame.dart';
 import 'doctor_patient_info.dart';
@@ -14,11 +15,21 @@ class DoctorHomeScreen extends StatefulWidget {
 
 class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   int _patientCount = 0;
+  String _userName = 'user';
 
   @override
   void initState() {
     super.initState();
+    _loadUserName();
     _loadPatientCount();
+  }
+
+  Future<void> _loadUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString('user_full_name');
+    if (name != null && name.isNotEmpty && mounted) {
+      setState(() => _userName = name);
+    }
   }
 
   Future<void> _loadPatientCount() async {
@@ -73,16 +84,17 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Profile Navigation
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const DoctorProfileFrame(),
-                        ),
-                      );
-                    },
-                    child: Row(
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const DoctorProfileFrame(),
+                          ),
+                        );
+                      },
+                      child: Row(
                       children: [
                         Container(
                           width: 44,
@@ -105,16 +117,21 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        const Text(
-                          "Hello user !",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black87,
+                        Flexible(
+                          child: Text(
+                            "Hello $_userName !",
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                            ),
                           ),
                         ),
                       ],
                     ),
+                  ),
                   ),
 
                   // Notification Navigation
