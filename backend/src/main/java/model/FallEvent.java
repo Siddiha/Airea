@@ -25,9 +25,6 @@ public class FallEvent {
     @Column(name = "confidence", nullable = false)
     private Float confidence;
 
-    @Column(name = "alert_type", nullable = false)
-    private String alertType;
-
     // Vitals at time of fall
     private Float temp;
     private Float bpm;

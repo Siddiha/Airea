@@ -2,12 +2,10 @@
   ===========================================================================
     AIREA MASTER FIRMWARE (PROTOTYPE)
     ESP32-S3 Custom PCB Integration
-    Features:
-    - WiFiManager for easy setup
-    - TFLite Audio Inference (Cough Detection)
-    - Fall Detection (MPU6050 magnitude tracking)
-    - Vitals DSP (MAX30205 Temp, AD8232 BPM & Respiratory Rate)
-    - FreeRTOS Network Queueing to Railway Spring Boot
+    LED Update:
+    - Solid ON when Wi-Fi connected
+    - OFF when disconnected
+    - Blinks 3x for Cough, 10x for Fall
   ===========================================================================
 */
 
@@ -17,6 +15,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <driver/i2s.h>
+#include <esp_task_wdt.h>
 
 // --- FREERTOS ---
 #include "freertos/FreeRTOS.h"
@@ -28,39 +27,31 @@
 #include "tensorflow/lite/micro/micro_error_reporter.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/schema/schema_generated.h"
-#include "cough_model.h" // Your exported TFLite model array
+#include "cough_model.h"
+#include "fall_model.h"
 
 // --- SENSORS ---
 #include <Protocentral_MAX30205.h>
 
 // =========================================================
-// 1. PIN DEFINITIONS (Strictly Airea PCB)
+// 1. PIN DEFINITIONS
 // =========================================================
-// I2C Bus 1 (Temperature)
 #define PIN_TEMP_SDA 17
 #define PIN_TEMP_SCL 18
-
-// I2C Bus 2 (Motion / MPU6050)
 #define PIN_MOTION_SDA 15
 #define PIN_MOTION_SCL 16
 #define MPU6050_ADDR 0x68
-
-// AD8232 (ECG & Respiration)
 #define PIN_ECG_OUTPUT 1
 #define PIN_ECG_LO_PLUS 6
 #define PIN_ECG_LO_MINUS 7
-
-// INMP441 (Microphone)
 #define I2S_WS 42
 #define I2S_SD 2
 #define I2S_SCK 41
 #define I2S_PORT I2S_NUM_0
-
-// Status LED
 #define PIN_LED 4
 
 // =========================================================
-// 2. NETWORK URLS (Railway Backend)
+// 2. NETWORK URLS
 // =========================================================
 const String BASE_URL = "https://airea-production.up.railway.app/api";
 const String STATUS_URL = BASE_URL + "/board/status";
@@ -71,7 +62,6 @@ const String FALL_URL = BASE_URL + "/fall/event";
 // =========================================================
 // 3. GLOBALS & QUEUES
 // =========================================================
-// We use one unified queue to prevent the main loop from blocking
 enum EventType
 {
     EVENT_COUGH,
@@ -82,41 +72,53 @@ enum EventType
 struct CloudEvent
 {
     EventType type;
-    float val1; // Cough Confidence / Fall G-Force / Temp
-    float val2; // Cough Volume / BPM
-    float val3; // Respiratory Rate
-    bool flag;  // Leads Off
+    float val1;
+    float val2;
+    float val3;
+    bool flag;
 };
 
 QueueHandle_t cloudQueue;
 
-// TFLite Globals
-const int kArenaSize = 200 * 1024;
-uint8_t *tensor_arena;
+// --- TFLite Globals (Cough Model) ---
+const int kAudioArenaSize = 200 * 1024;
+uint8_t *audio_tensor_arena;
 int16_t *raw_audio_buffer;
 #define SAMPLE_RATE 16000
-const int kAudioBufferSize = 32000; // 2 Seconds
+const int kAudioBufferSize = 32000;
 #define COUGH_THRESHOLD 0.80
 
 tflite::MicroErrorReporter micro_error_reporter;
 tflite::AllOpsResolver resolver;
-const tflite::Model *model;
-tflite::MicroInterpreter *interpreter;
-TfLiteTensor *input = nullptr;
-TfLiteTensor *output = nullptr;
 
-// Vitals & Sensor Globals
+const tflite::Model *audio_model;
+tflite::MicroInterpreter *audio_interpreter;
+TfLiteTensor *audio_input = nullptr;
+TfLiteTensor *audio_output = nullptr;
+
+// --- TFLite Globals (Fall Model) ---
+const int kFallArenaSize = 100 * 1024;
+uint8_t *fall_tensor_arena;
+
+const tflite::Model *fall_model_ptr;
+tflite::MicroInterpreter *fall_interpreter;
+TfLiteTensor *fall_input = nullptr;
+TfLiteTensor *fall_output = nullptr;
+
+#define TIME_STEPS 200
+#define NUM_FEATURES 6
+#define FALL_THRESHOLD 0.85
+float motion_buffer[TIME_STEPS][NUM_FEATURES];
+int motion_buffer_index = 0;
+
+// --- Vitals ---
 MAX30205 tempSensor;
-float currentTemp = 0.0;
-float currentBPM = 0.0;
-float currentRR = 0.0;
+float currentTemp = 0.0, currentBPM = 0.0, currentRR = 0.0;
 bool leadsAreOff = false;
 
-// ECG DSP Variables (250Hz)
-constexpr unsigned long SAMPLE_INTERVAL_US = 4000; // 1/250th second
+constexpr unsigned long SAMPLE_INTERVAL_US = 4000;
 static float ecgEma = 0.0f, baselineEma = 0.0f, respEma = 0.0f;
-static float signalMin = 4095.0f, signalMax = 0.0f;
-static float respMin = 1e9f, respMax = -1e9f;
+static float signalMin = 4095.0f, signalMax = 0.0f, respMin = 1e9f, respMax = -1e9f;
 static unsigned long lastRangeResetMs = 0, lastRespRangeResetMs = 0;
 static unsigned long lastBeatMs = 0, lastBreathMs = 0;
 static bool wasAbove = false, respWasAbove = false;
@@ -126,13 +128,16 @@ static bool wasAbove = false, respWasAbove = false;
 // =========================================================
 void blinkLED(int times, int delayMs)
 {
+    // Since the resting state is now ON, we dip LOW to create the blink
     for (int i = 0; i < times; i++)
     {
-        digitalWrite(PIN_LED, HIGH);
-        delay(delayMs);
         digitalWrite(PIN_LED, LOW);
         delay(delayMs);
+        digitalWrite(PIN_LED, HIGH);
+        delay(delayMs);
     }
+    // Safety check: ensure resting state matches Wi-Fi status
+    digitalWrite(PIN_LED, WiFi.status() == WL_CONNECTED ? HIGH : LOW);
 }
 
 void notifyBackendOnline()
@@ -140,22 +145,16 @@ void notifyBackendOnline()
     if (WiFi.status() == WL_CONNECTED)
     {
         WiFiClientSecure client;
-        client.setInsecure(); // Accept self-signed Railway certs
+        client.setInsecure();
         HTTPClient http;
-
-        Serial.println("🌐 Notifying Spring Boot Backend...");
         http.begin(client, STATUS_URL);
         http.addHeader("Content-Type", "application/json");
-
-        String deviceIP = WiFi.localIP().toString();
-        String payload = "{\"hardwareId\": \"ESP32_AIREA_01\", \"status\": \"online\", \"ipAddress\": \"" + deviceIP + "\"}";
-
+        String payload = "{\"hardwareId\": \"ESP32_AIREA_01\", \"status\": \"online\", \"ipAddress\": \"" + WiFi.localIP().toString() + "\"}";
         int httpCode = http.POST(payload);
         if (httpCode > 0)
             Serial.printf("✅ Backend Online! (HTTP %d)\n", httpCode);
         else
             Serial.printf("❌ Backend Error: %s\n", http.errorToString(httpCode).c_str());
-
         http.end();
     }
 }
@@ -163,8 +162,6 @@ void notifyBackendOnline()
 // =========================================================
 // 5. FREE-RTOS TASK: NETWORK SENDER
 // =========================================================
-// This task runs in the background. It takes packages from the queue
-// and uploads them so the main loop never gets stuck waiting on Wi-Fi.
 void network_sender_task(void *parameter)
 {
     CloudEvent event;
@@ -174,88 +171,73 @@ void network_sender_task(void *parameter)
 
     while (true)
     {
-        // Wait here until an event is pushed into the queue
-        if (xQueueReceive(cloudQueue, &event, portMAX_DELAY) == pdTRUE)
+        if (WiFi.status() != WL_CONNECTED)
         {
+            digitalWrite(PIN_LED, LOW); // Turn LED OFF when disconnected
+            Serial.println("⚠️ Wi-Fi Lost! Attempting to reconnect...");
+            WiFi.disconnect();
+            WiFi.reconnect();
+            vTaskDelay(5000 / portTICK_PERIOD_MS);
             if (WiFi.status() == WL_CONNECTED)
             {
-
-                String url = "";
-                String json = "{";
-                json += "\"deviceId\":\"ESP32_AIREA_01\",";
-
-                // Format the JSON based on what kind of event it is
-                if (event.type == EVENT_COUGH)
-                {
-                    url = COUGH_URL;
-                    json += "\"confidence\":" + String(event.val1, 3) + ",";
-                    json += "\"audioVolume\":" + String(event.val2, 2);
-                }
-                else if (event.type == EVENT_FALL)
-                {
-                    url = FALL_URL;
-                    json += "\"gForce\":" + String(event.val1, 2) + ",";
-                    json += "\"alert\":\"EMERGENCY_FALL\"";
-                }
-                else if (event.type == EVENT_VITALS)
-                {
-                    url = VITALS_URL;
-                    json += "\"temp\":" + String(event.val1, 2) + ",";
-                    json += "\"bpm\":" + String(event.val2, 1) + ",";
-                    json += "\"rr\":" + String(event.val3, 1) + ",";
-                    json += "\"leadsOff\":" + String(event.flag ? "true" : "false");
-                }
-                json += "}";
-
-                // Send the POST request
-                http.begin(client, url);
-                http.addHeader("Content-Type", "application/json");
-                int httpCode = http.POST(json);
-                http.end();
-
-                Serial.printf("☁️ [Cloud] Sent %s | HTTP: %d\n",
-                              (event.type == EVENT_COUGH ? "COUGH" : event.type == EVENT_FALL ? "FALL"
-                                                                                              : "VITALS"),
-                              httpCode);
+                digitalWrite(PIN_LED, HIGH); // Turn LED ON once reconnected
             }
+            continue;
+        }
+
+        if (xQueueReceive(cloudQueue, &event, portMAX_DELAY) == pdTRUE)
+        {
+            String url = "";
+            String json = "{\"deviceId\":\"ESP32_AIREA_01\",";
+
+            if (event.type == EVENT_COUGH)
+            {
+                url = COUGH_URL;
+                json += "\"confidence\":" + String(event.val1, 3) + ",\"audioVolume\":" + String(event.val2, 2);
+            }
+            else if (event.type == EVENT_FALL)
+            {
+                url = FALL_URL;
+                json += "\"confidence\":" + String(event.val1, 3) + ",\"alert\":\"EMERGENCY_FALL\"";
+            }
+            else if (event.type == EVENT_VITALS)
+            {
+                url = VITALS_URL;
+                json += "\"temp\":" + String(event.val1, 2) + ",\"bpm\":" + String(event.val2, 1) +
+                        ",\"rr\":" + String(event.val3, 1) + ",\"leadsOff\":" + String(event.flag ? "true" : "false");
+            }
+            json += "}";
+
+            http.begin(client, url);
+            http.addHeader("Content-Type", "application/json");
+            int httpCode = http.POST(json);
+            http.end();
+
+            Serial.printf("☁️ [Cloud] Sent %s | HTTP: %d\n",
+                          (event.type == EVENT_COUGH ? "COUGH" : event.type == EVENT_FALL ? "FALL"
+                                                                                          : "VITALS"),
+                          httpCode);
         }
     }
 }
 
 // =========================================================
-// 6. FREE-RTOS TASK: AUDIO AI (Cough Detection)
+// 6. FREE-RTOS TASK: AUDIO AI
 // =========================================================
 void audio_inference_task(void *parameter)
 {
-    if (input == nullptr)
+    if (audio_input == nullptr)
     {
-        Serial.println("❌ FATAL: Model failed to load.");
-        vTaskDelete(NULL);
-        return;
+        Serial.println("❌ FATAL: Audio Model failed. Restarting board...");
+        delay(1000);
+        ESP.restart();
     }
-
     size_t bytes_read;
     static unsigned long last_alert_time = 0;
 
-    // I2S Config for INMP441
     const i2s_config_t i2s_config = {
-        .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),
-        .sample_rate = SAMPLE_RATE,
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
-        .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
-        .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB),
-        .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-        .dma_buf_count = 4,
-        .dma_buf_len = 1024,
-        .use_apll = false,
-        .fixed_mclk = 0};
-
-    const i2s_pin_config_t pin_config = {
-        .bck_io_num = I2S_SCK,
-        .ws_io_num = I2S_WS,
-        .data_out_num = I2S_PIN_NO_CHANGE,
-        .data_in_num = I2S_SD};
-
+        .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX), .sample_rate = SAMPLE_RATE, .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT, .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT, .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB), .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1, .dma_buf_count = 4, .dma_buf_len = 1024, .use_apll = false, .fixed_mclk = 0};
+    const i2s_pin_config_t pin_config = {.bck_io_num = I2S_SCK, .ws_io_num = I2S_WS, .data_out_num = I2S_PIN_NO_CHANGE, .data_in_num = I2S_SD};
     i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL);
     i2s_set_pin(I2S_PORT, &pin_config);
 
@@ -264,14 +246,13 @@ void audio_inference_task(void *parameter)
     while (true)
     {
         i2s_read(I2S_PORT, raw_audio_buffer, kAudioBufferSize * sizeof(int16_t), &bytes_read, portMAX_DELAY);
-
-        int8_t *input_data = input->data.int8;
+        int8_t *input_data = audio_input->data.int8;
         float avg_vol = 0;
 
-        for (int i = 0; i < input->bytes; i++)
+        for (int i = 0; i < audio_input->bytes; i++)
         {
             int16_t sample = raw_audio_buffer[i * 2];
-            int32_t amplified = sample * 8; // Gain
+            int32_t amplified = sample * 8;
             if (amplified > 32767)
                 amplified = 32767;
             if (amplified < -32768)
@@ -280,27 +261,20 @@ void audio_inference_task(void *parameter)
             if (i % 100 == 0)
                 avg_vol += abs(amplified);
         }
-        avg_vol /= (input->bytes / 100);
+        avg_vol /= (audio_input->bytes / 100);
 
-        if (interpreter->Invoke() != kTfLiteOk)
+        if (audio_interpreter->Invoke() != kTfLiteOk)
             continue;
 
-        float cough_score = (output->type == kTfLiteInt8) ? (output->data.int8[1] - output->params.zero_point) * output->params.scale : output->data.f[1];
+        float cough_score = (audio_output->type == kTfLiteInt8) ? (audio_output->data.int8[1] - audio_output->params.zero_point) * audio_output->params.scale : audio_output->data.f[1];
 
         if (avg_vol > 300 && cough_score > COUGH_THRESHOLD && (millis() - last_alert_time > 5000))
         {
             Serial.println("\n🚨 COUGH DETECTED!");
-
-            // Visual LED Indicator for Cough
-            digitalWrite(PIN_LED, HIGH);
-
-            // Push to Network Queue
+            blinkLED(3, 150); // Blink 3 times for cough
             CloudEvent event = {EVENT_COUGH, cough_score, avg_vol, 0.0, false};
             xQueueSend(cloudQueue, &event, 0);
-
             last_alert_time = millis();
-            delay(200); // Brief pause to keep LED visible
-            digitalWrite(PIN_LED, LOW);
         }
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
@@ -313,207 +287,195 @@ void setup()
 {
     Serial.begin(115200);
     delay(1000);
-
-    // 1. Hardware Pins Init
     pinMode(PIN_LED, OUTPUT);
+    digitalWrite(PIN_LED, LOW); // Start with LED officially OFF during setup
+
     pinMode(PIN_ECG_LO_PLUS, INPUT);
     pinMode(PIN_ECG_LO_MINUS, INPUT);
     analogReadResolution(12);
-    digitalWrite(PIN_LED, HIGH); // Turn LED on during setup
 
     Serial.println("\n=================================");
     Serial.println("    AIREA MONITORING SYSTEM      ");
     Serial.println("=================================");
 
-    // 2. WiFi Setup via WiFiManager
     WiFiManager wm;
-    // wm.resetSettings(); // Uncomment to wipe saved WiFi networks
-
     Serial.println("📡 Connecting to WiFi...");
-    bool res = wm.autoConnect("Airea-Setup");
-    if (!res)
+    if (!wm.autoConnect("Airea-Setup"))
     {
-        Serial.println("❌ Failed to connect. Restarting...");
+        Serial.println("❌ Failed. Restarting...");
         ESP.restart();
     }
     Serial.println("✅ WiFi Connected!");
-    blinkLED(3, 200);            // Blink 3 times to show WiFi success
-    digitalWrite(PIN_LED, HIGH); // Leave solid when ready
 
-    // 3. Notify Backend
+    digitalWrite(PIN_LED, HIGH); // Turn LED permanently ON to show active connection
     notifyBackendOnline();
 
-    // 4. Queue & Memory Initialization
     cloudQueue = xQueueCreate(10, sizeof(CloudEvent));
-
-    tensor_arena = (uint8_t *)malloc(kArenaSize);
+    audio_tensor_arena = (uint8_t *)malloc(kAudioArenaSize);
+    fall_tensor_arena = (uint8_t *)malloc(kFallArenaSize);
     raw_audio_buffer = (int16_t *)malloc(kAudioBufferSize * sizeof(int16_t));
 
-    // 5. TFLite Initialization
-    model = tflite::GetModel(model_data);
-    static tflite::MicroInterpreter static_interpreter(model, resolver, tensor_arena, kArenaSize, &micro_error_reporter);
-    interpreter = &static_interpreter;
-    interpreter->AllocateTensors();
-    input = interpreter->input(0);
-    output = interpreter->output(0);
+    // AUDIO INTERPRETER INIT
+    audio_model = tflite::GetModel(model_data);
+    static tflite::MicroInterpreter static_audio_interpreter(audio_model, resolver, audio_tensor_arena, kAudioArenaSize, &micro_error_reporter);
+    audio_interpreter = &static_audio_interpreter;
+    audio_interpreter->AllocateTensors();
+    audio_input = audio_interpreter->input(0);
+    audio_output = audio_interpreter->output(0);
 
-    // 6. Sensor Bus Initialization
-    Wire.begin(PIN_TEMP_SDA, PIN_TEMP_SCL, 100000); // Temp Bus
+    // FALL INTERPRETER INIT
+    fall_model_ptr = tflite::GetModel(fall_model);
+    static tflite::MicroInterpreter static_fall_interpreter(fall_model_ptr, resolver, fall_tensor_arena, kFallArenaSize, &micro_error_reporter);
+    fall_interpreter = &static_fall_interpreter;
+    fall_interpreter->AllocateTensors();
+    fall_input = fall_interpreter->input(0);
+    fall_output = fall_interpreter->output(0);
+
+    Serial.println("✅ AI Models Loaded Successfully.");
+
+    Wire.begin(PIN_TEMP_SDA, PIN_TEMP_SCL, 100000);
     tempSensor.begin();
-
-    Wire1.begin(PIN_MOTION_SDA, PIN_MOTION_SCL, 100000); // Motion Bus
+    Wire1.begin(PIN_MOTION_SDA, PIN_MOTION_SCL, 100000);
     Wire1.beginTransmission(MPU6050_ADDR);
     Wire1.write(0x6B);
-    Wire1.write(0x00); // Wake MPU6050
+    Wire1.write(0x00);
     Wire1.endTransmission();
 
-    // 7. Start FreeRTOS Tasks
+    esp_task_wdt_init(5, true);
+    esp_task_wdt_add(NULL);
+
     xTaskCreatePinnedToCore(network_sender_task, "NetSender", 8192, NULL, 1, NULL, 0);
-    xTaskCreatePinnedToCore(audio_inference_task, "AudioAI", 8192, NULL, 2, NULL, 0); // Core 0
+    xTaskCreatePinnedToCore(audio_inference_task, "AudioAI", 8192, NULL, 2, NULL, 0);
 }
 
 // =========================================================
-// 8. MAIN LOOP (Real-Time Sensor Processing)
+// 8. MAIN LOOP
 // =========================================================
 void loop()
 {
-    static unsigned long lastSampleUs = 0;
-    static unsigned long lastMotionMs = 0;
-    static unsigned long lastTempMs = 0;
-    static unsigned long lastVitalsSyncMs = 0;
+    esp_task_wdt_reset();
 
-    unsigned long nowUs = micros();
-    unsigned long nowMs = millis();
+    static unsigned long lastSampleUs = 0, lastMotionMs = 0, lastTempMs = 0, lastVitalsSyncMs = 0, lastFallAlertMs = 0;
+    unsigned long nowUs = micros(), nowMs = millis();
 
-    // --------------------------------------------------
-    // A. ECG & RESPIRATION TASK (Runs exactly every 4ms / 250Hz)
-    // --------------------------------------------------
+    // A. ECG TASK (250Hz)
     if (nowUs - lastSampleUs >= SAMPLE_INTERVAL_US)
     {
         lastSampleUs += SAMPLE_INTERVAL_US;
-
-        // Check if pads are on the body
         leadsAreOff = (digitalRead(PIN_ECG_LO_PLUS) == 1 || digitalRead(PIN_ECG_LO_MINUS) == 1);
 
         if (!leadsAreOff)
         {
             int raw = analogRead(PIN_ECG_OUTPUT);
-
-            // --- BPM Math ---
-            ecgEma = 0.15f * raw + (1.0f - 0.15f) * ecgEma;
+            ecgEma = 0.15f * raw + 0.85f * ecgEma;
             signalMin = min(signalMin, ecgEma);
             signalMax = max(signalMax, ecgEma);
-
             if (nowMs - lastRangeResetMs > 2000)
             {
-                signalMin = ecgEma;
-                signalMax = ecgEma;
+                signalMin = signalMax = ecgEma;
                 lastRangeResetMs = nowMs;
             }
-            float beatThreshold = signalMin + (signalMax - signalMin) * 0.65f;
-            bool isAbove = (ecgEma > beatThreshold);
+            bool isAbove = (ecgEma > signalMin + (signalMax - signalMin) * 0.65f);
             if (!wasAbove && isAbove && (nowMs - lastBeatMs > 250))
             {
                 if (lastBeatMs != 0)
                 {
                     float newBpm = 60000.0f / (nowMs - lastBeatMs);
                     if (newBpm >= 45.0f && newBpm <= 160.0f)
-                    {
                         currentBPM = (currentBPM == 0.0f) ? newBpm : (0.8f * currentBPM + 0.2f * newBpm);
-                    }
                 }
                 lastBeatMs = nowMs;
             }
             wasAbove = isAbove;
 
-            // --- Resp Math (EDR) ---
-            baselineEma = 0.004f * raw + (1.0f - 0.004f) * baselineEma;
-            respEma = 0.05f * baselineEma + (1.0f - 0.05f) * respEma;
-
+            baselineEma = 0.004f * raw + 0.996f * baselineEma;
+            respEma = 0.05f * baselineEma + 0.95f * respEma;
             respMin = min(respMin, respEma);
             respMax = max(respMax, respEma);
             if (nowMs - lastRespRangeResetMs > 8000)
             {
-                respMin = respEma;
-                respMax = respEma;
+                respMin = respMax = respEma;
                 lastRespRangeResetMs = nowMs;
             }
-
-            float respThreshold = respMin + (respMax - respMin) * 0.60f;
-            bool respAbove = (respEma > respThreshold);
+            bool respAbove = (respEma > respMin + (respMax - respMin) * 0.60f);
             if (!respWasAbove && respAbove && lastBreathMs != 0)
             {
                 unsigned long bbi = nowMs - lastBreathMs;
                 if (bbi >= 2500 && bbi <= 12000)
-                {
-                    float newRr = 60000.0f / (float)bbi;
-                    currentRR = (currentRR == 0.0f) ? newRr : (0.85f * currentRR + 0.15f * newRr);
-                }
+                    currentRR = (currentRR == 0.0f) ? 60000.0f / bbi : (0.85f * currentRR + 0.15f * (60000.0f / bbi));
                 lastBreathMs = nowMs;
             }
             respWasAbove = respAbove;
         }
         else
         {
-            currentBPM = 0;
-            currentRR = 0;
+            currentBPM = currentRR = 0;
         }
     }
 
-    // --------------------------------------------------
-    // B. FALL DETECTION TASK (Runs every 50ms)
-    // --------------------------------------------------
-    if (nowMs - lastMotionMs >= 50)
+    // B. AI FALL DETECTION (100Hz)
+    if (nowMs - lastMotionMs >= 10)
     {
         lastMotionMs = nowMs;
-
         Wire1.beginTransmission(MPU6050_ADDR);
         Wire1.write(0x3B);
-        if (Wire1.endTransmission(true) == 0)
+        if (Wire1.endTransmission(false) == 0)
         {
-            Wire1.requestFrom((uint16_t)MPU6050_ADDR, (uint8_t)6, (uint8_t)true);
-            if (Wire1.available() >= 6)
+            Wire1.requestFrom((uint16_t)MPU6050_ADDR, (uint8_t)14, (uint8_t)true);
+            if (Wire1.available() >= 14)
             {
-                int16_t ax = Wire1.read() << 8 | Wire1.read();
-                int16_t ay = Wire1.read() << 8 | Wire1.read();
-                int16_t az = Wire1.read() << 8 | Wire1.read();
+                int16_t raw_ax = Wire1.read() << 8 | Wire1.read(), raw_ay = Wire1.read() << 8 | Wire1.read(), raw_az = Wire1.read() << 8 | Wire1.read();
+                Wire1.read();
+                Wire1.read();
+                int16_t raw_gx = Wire1.read() << 8 | Wire1.read(), raw_gy = Wire1.read() << 8 | Wire1.read(), raw_gz = Wire1.read() << 8 | Wire1.read();
 
-                // Calculate G-Force Magnitude
-                float gForce = sqrt(sq(ax / 16384.0) + sq(ay / 16384.0) + sq(az / 16384.0));
+                float ax_mps2 = (raw_ax / 16384.0) * 9.81, ay_mps2 = (raw_ay / 16384.0) * 9.81, az_mps2 = (raw_az / 16384.0) * 9.81;
+                float gx_degs = raw_gx / 131.0, gy_degs = raw_gy / 131.0, gz_degs = raw_gz / 131.0;
 
-                // If G-Force spikes violently (e.g., > 2.5G), trigger a Fall Event
-                if (gForce > 2.5)
+                motion_buffer[motion_buffer_index][0] = ay_mps2 / 20.0;
+                motion_buffer[motion_buffer_index][1] = ax_mps2 / 20.0;
+                motion_buffer[motion_buffer_index][2] = az_mps2 / 20.0;
+                motion_buffer[motion_buffer_index][3] = gy_degs / 500.0;
+                motion_buffer[motion_buffer_index][4] = gx_degs / 500.0;
+                motion_buffer[motion_buffer_index][5] = gz_degs / 500.0;
+                motion_buffer_index++;
+
+                if (motion_buffer_index >= TIME_STEPS)
                 {
-                    Serial.println("⚠️ FALL DETECTED!");
-                    blinkLED(5, 100); // Fast strobe warning
-                    digitalWrite(PIN_LED, HIGH);
-
-                    CloudEvent event = {EVENT_FALL, gForce, 0.0, 0.0, false};
-                    xQueueSend(cloudQueue, &event, 0);
-                    delay(500); // Brief debounce
+                    for (int i = 0; i < TIME_STEPS; i++)
+                        for (int j = 0; j < NUM_FEATURES; j++)
+                            fall_input->data.f[(i * NUM_FEATURES) + j] = motion_buffer[i][j];
+                    if (fall_interpreter->Invoke() == kTfLiteOk)
+                    {
+                        float fall_confidence = fall_output->data.f[0];
+                        if (fall_confidence > FALL_THRESHOLD && (nowMs - lastFallAlertMs > 5000))
+                        {
+                            Serial.printf("⚠️ AI FALL DETECTED! Confidence: %.2f%%\n", fall_confidence * 100);
+                            blinkLED(10, 100); // Blink 10 times rapidly for fall
+                            CloudEvent event = {EVENT_FALL, fall_confidence, 0.0, 0.0, false};
+                            xQueueSend(cloudQueue, &event, 0);
+                            lastFallAlertMs = nowMs;
+                        }
+                    }
+                    int overlap = TIME_STEPS / 2;
+                    for (int i = 0; i < overlap; i++)
+                        for (int j = 0; j < NUM_FEATURES; j++)
+                            motion_buffer[i][j] = motion_buffer[i + overlap][j];
+                    motion_buffer_index = overlap;
                 }
             }
         }
     }
 
-    // --------------------------------------------------
-    // C. TEMPERATURE TASK (Runs every 1000ms)
-    // --------------------------------------------------
+    // C. TEMP (1s) & D. CLOUD SYNC (5s)
     if (nowMs - lastTempMs >= 1000)
     {
         lastTempMs = nowMs;
         currentTemp = tempSensor.getTemperature();
     }
-
-    // --------------------------------------------------
-    // D. VITALS CLOUD SYNC TASK (Runs every 5000ms)
-    // --------------------------------------------------
     if (nowMs - lastVitalsSyncMs >= 5000)
     {
         lastVitalsSyncMs = nowMs;
-
-        // Simply package the current vitals and drop them in the queue.
-        // The Network Task will handle the HTTP POST in the background.
         CloudEvent event = {EVENT_VITALS, currentTemp, currentBPM, currentRR, leadsAreOff};
         xQueueSend(cloudQueue, &event, 0);
     }

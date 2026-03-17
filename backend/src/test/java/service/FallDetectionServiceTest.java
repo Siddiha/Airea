@@ -58,7 +58,7 @@ public class FallDetectionServiceTest {
         // Basic fall, normal vitals
         normalFallReq = new FallEventRequest();
         normalFallReq.setDeviceId("DEV123");
-        normalFallReq.setGForce(1.5f);
+        normalFallReq.setConfidence(0.60f);
         normalFallReq.setTemp(36.5f);
         normalFallReq.setBpm(75f);
         normalFallReq.setRr(16f);
@@ -67,7 +67,7 @@ public class FallDetectionServiceTest {
         // Severe fall, critical vitals (Hypothermia + Bradycardia)
         criticalFallReq = new FallEventRequest();
         criticalFallReq.setDeviceId("DEV123");
-        criticalFallReq.setGForce(3.5f);
+        criticalFallReq.setConfidence(0.95f);
         criticalFallReq.setTemp(34.0f); // Critical low
         criticalFallReq.setBpm(35f);    // Critical low
         criticalFallReq.setRr(10f);
@@ -109,7 +109,7 @@ public class FallDetectionServiceTest {
         when(fallRepository.save(any(FallEvent.class))).thenReturn(savedFallEvent);
         // Simulate an existing alert within the last 5 minutes
         when(fallRepository.findRecentEmergencyAlerts(anyString(), any())).thenReturn(Collections.singletonList(new FallEvent()));
-        
+
         EmergencyAlertResponse response = fallDetectionService.processFallEvent(criticalFallReq);
 
         assertTrue(response.isEmergency());
