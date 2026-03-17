@@ -225,7 +225,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
               controller: deviceIdController,
               decoration: const InputDecoration(
                 labelText: 'Device ID',
-                hintText: 'ESP32_COUGH_01',
+                hintText: 'ESP32_AIREA_01',
               ),
             ),
             const SizedBox(height: 12),
