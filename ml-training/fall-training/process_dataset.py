@@ -5,7 +5,7 @@ import math
 
 # ================= CONFIGURATION =================
 # If your folders are inside "IMU-Dataset", change this to "./IMU-Dataset"
-DATASET_ROOT = "./IMU-Dataset" 
+DATASET_ROOT = "IMU-Dataset" 
 OUTPUT_FOLDER = "processed_data"
 
 # EXACT COLUMN NAMES - UPDATED FOR YOUR HARDWARE
