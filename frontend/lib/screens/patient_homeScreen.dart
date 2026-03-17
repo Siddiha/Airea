@@ -58,10 +58,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     final linkedId = prefs.getString('linked_device_id');
+    final effectiveDeviceId = (linkedId == null || linkedId.isEmpty)
+        ? ApiConfig.defaultDeviceId
+        : linkedId;
     final savedName = prefs.getString('user_full_name');
     if (mounted) {
       setState(() {
-        _deviceId = linkedId;
+        _deviceId = effectiveDeviceId;
         if (savedName != null && savedName.isNotEmpty) {
           _userName = savedName;
         }
@@ -156,7 +159,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       if (mounted) {
         setState(() {
           // Merge new alerts with existing ones, avoiding duplicates
-          final existingTitles = _alerts.map((a) => '${a.title}_${a.time}').toSet();
+          final existingTitles =
+              _alerts.map((a) => '${a.title}_${a.time}').toSet();
           for (final alert in newAlerts) {
             if (!existingTitles.contains('${alert.title}_${alert.time}')) {
               _alerts.add(alert);
@@ -164,8 +168,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           }
         });
         // Pop up a banner the first time we detect a CRITICAL alert
-        if (!_criticalBannerShown &&
-            _alerts.any((a) => a.isHighAlert)) {
+        if (!_criticalBannerShown && _alerts.any((a) => a.isHighAlert)) {
           _criticalBannerShown = true;
           _showCriticalBanner(_alerts.firstWhere((a) => a.isHighAlert));
         }
@@ -289,12 +292,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                       ? "View Device"
                       : "Connect",
                   onTap: () {
-                    final destination = _deviceId != null && _deviceId!.isNotEmpty
-                        ? const PatientDeviceDashboard()
-                        : const PatientConnectDeviceOption();
+                    final destination =
+                        _deviceId != null && _deviceId!.isNotEmpty
+                            ? const PatientDeviceDashboard()
+                            : const PatientConnectDeviceOption();
                     Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => destination),
+                      context,
+                      MaterialPageRoute(builder: (_) => destination),
                     ).then((_) => _initDeviceAndLoad());
                   },
                 ),
@@ -306,9 +310,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     title: "Connect with a\ndoctor",
                     onTap: () {
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const PatientContactDoctor()),
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const PatientContactDoctor()),
                       ).then((_) => _initDeviceAndLoad());
                     },
                   ),
@@ -351,7 +355,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         ),
         const SizedBox(width: 8),
         GestureDetector(
-          onTap: () => Navigator.push(context,
+          onTap: () => Navigator.push(
+              context,
               MaterialPageRoute(
                   builder: (_) => PatientNotifications(alerts: _alerts))),
           child: Stack(
@@ -517,7 +522,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 ? () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) => CoughAnalyzerScreen(deviceId: _deviceId!)))
+                        builder: (_) =>
+                            CoughAnalyzerScreen(deviceId: _deviceId!)))
                 : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4DB6AC),
@@ -571,7 +577,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               elevation: 0,
             ),
             child: Text(buttonLabel,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -627,8 +634,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text("Your Doctor",
-                      style: TextStyle(
-                          color: Colors.grey, fontSize: 11)),
+                      style: TextStyle(color: Colors.grey, fontSize: 11)),
                   const SizedBox(height: 2),
                   Text(name,
                       style: const TextStyle(
@@ -638,8 +644,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   if (specialization.isNotEmpty)
                     Text(specialization,
                         style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600)),
+                            fontSize: 12, color: Colors.grey.shade600)),
                 ],
               ),
             ),
@@ -678,12 +683,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   isSelected: _selectedIndex == 1,
                   onTap: () {
                     setState(() => _selectedIndex = 1);
-                    final destination = _deviceId != null && _deviceId!.isNotEmpty
-                        ? const PatientDeviceDashboard()
-                        : const PatientConnectDeviceOption();
+                    final destination =
+                        _deviceId != null && _deviceId!.isNotEmpty
+                            ? const PatientDeviceDashboard()
+                            : const PatientConnectDeviceOption();
                     Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => destination),
+                      context,
+                      MaterialPageRoute(builder: (_) => destination),
                     ).then((_) => _initDeviceAndLoad());
                   }),
               _buildNavItem(
