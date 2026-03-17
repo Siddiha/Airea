@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'patient_notifications.dart';
 import 'patient_profile_frame.dart';
 import 'patient_connect_device_option.dart';
+import 'patient_device_dashboard.dart';
 import 'patient_summary_overview.dart';
 import 'cough_analyzer_screen.dart';
 import 'doctor_details.dart';
@@ -50,10 +51,26 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
   /// Load the patient's linked device ID, then start fetching data only if linked.
   Future<void> _initDeviceAndLoad() async {
+    // Cancel any existing timer before potentially creating a new one
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+
     final prefs = await SharedPreferences.getInstance();
     final linkedId = prefs.getString('linked_device_id');
     if (mounted) {
-      setState(() => _deviceId = linkedId);
+      setState(() {
+        _deviceId = linkedId;
+        // Reset vitals display when no device is linked, but keep _alerts intact
+        if (_deviceId == null || _deviceId!.isEmpty) {
+          temperature = 0.0;
+          temperatureStatus = "No device connected";
+          heartRate = 0;
+          heartRateStatus = "No device connected";
+          leadsAreOff = false;
+          coughCount = 0;
+          coughStatus = "No device connected";
+        }
+      });
     }
 
     // Only fetch device data if a device is actually linked
@@ -130,14 +147,22 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   Future<void> _loadAlerts() async {
     if (_deviceId == null || _deviceId!.isEmpty) return;
     try {
-      final alerts = await _apiService.getFallAlerts(_deviceId!);
+      final newAlerts = await _apiService.getFallAlerts(_deviceId!);
       if (mounted) {
-        setState(() => _alerts = alerts);
+        setState(() {
+          // Merge new alerts with existing ones, avoiding duplicates
+          final existingTitles = _alerts.map((a) => '${a.title}_${a.time}').toSet();
+          for (final alert in newAlerts) {
+            if (!existingTitles.contains('${alert.title}_${alert.time}')) {
+              _alerts.add(alert);
+            }
+          }
+        });
         // Pop up a banner the first time we detect a CRITICAL alert
         if (!_criticalBannerShown &&
-            alerts.any((a) => a.isHighAlert)) {
+            _alerts.any((a) => a.isHighAlert)) {
           _criticalBannerShown = true;
-          _showCriticalBanner(alerts.firstWhere((a) => a.isHighAlert));
+          _showCriticalBanner(_alerts.firstWhere((a) => a.isHighAlert));
         }
       }
     } catch (e) {
@@ -250,13 +275,20 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 _buildCoughCountCard(),
                 const SizedBox(height: 12),
                 _buildConnectionCard(
-                  title: "Connect with a\ndevice",
+                  title: _deviceId != null && _deviceId!.isNotEmpty
+                      ? "Device connected"
+                      : "Connect with a\ndevice",
+                  buttonLabel: _deviceId != null && _deviceId!.isNotEmpty
+                      ? "View Device"
+                      : "Connect",
                   onTap: () {
+                    final destination = _deviceId != null && _deviceId!.isNotEmpty
+                        ? const PatientDeviceDashboard()
+                        : const PatientConnectDeviceOption();
                     Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                const PatientConnectDeviceOption()));
+                        MaterialPageRoute(builder: (_) => destination),
+                    ).then((_) => _initDeviceAndLoad());
                   },
                 ),
                 const SizedBox(height: 10),
@@ -492,7 +524,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   }
 
   Widget _buildConnectionCard(
-      {required String title, required VoidCallback onTap}) {
+      {required String title,
+      required VoidCallback onTap,
+      String buttonLabel = "Connect"}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
@@ -524,8 +558,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               elevation: 0,
             ),
-            child: const Text("Connect",
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            child: Text(buttonLabel,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -632,11 +666,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   isSelected: _selectedIndex == 1,
                   onTap: () {
                     setState(() => _selectedIndex = 1);
+                    final destination = _deviceId != null && _deviceId!.isNotEmpty
+                        ? const PatientDeviceDashboard()
+                        : const PatientConnectDeviceOption();
                     Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                const PatientConnectDeviceOption()));
+                        MaterialPageRoute(builder: (_) => destination),
+                    ).then((_) => _initDeviceAndLoad());
                   }),
               _buildNavItem(
                   icon: Icons.menu_book_outlined,
