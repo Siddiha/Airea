@@ -305,7 +305,7 @@ public class AuthController {
     @GetMapping("/patient/code")
     public ResponseEntity<?> getPatientCode(@RequestParam String email) {
         try {
-            Patient patient = authService.getPatientByEmail(email);
+            Patient patient = authService.ensurePatientExists(email);
             String code = patient.getPatientCode();
             if (code == null || code.isEmpty()) {
                 code = "P" + java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
@@ -324,7 +324,7 @@ public class AuthController {
     @GetMapping("/doctor/code")
     public ResponseEntity<?> getDoctorCode(@RequestParam String email) {
         try {
-            Doctor doctor = authService.getDoctorByEmail(email);
+            Doctor doctor = authService.ensureDoctorExists(email);
             String code = doctor.getDoctorCode();
             if (code == null || code.isEmpty()) {
                 code = "D" + java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();

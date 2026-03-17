@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../config/app_theme.dart';
+import '../config/api_config.dart';
 import '../models/doctor_registration_data.dart';
 import '../services/auth_service.dart';
+import '../services/doctor_patient_service.dart';
 import 'doctor_home_screen.dart';
 import 'doctor_create_account.dart';
 import 'doctor_login_page.dart';
@@ -49,8 +53,9 @@ class _DoctorAccountCreatedState extends State<DoctorAccountCreated> {
       );
 
       if (result['success']) {
-        // If registration is successful, you could save additional doctor data here
-        // For example, save name, specializations, etc. to a user profile service
+        // Also register with backend to create doctor record in database
+        await _registerDoctorWithBackend(registrationData);
+
         print('Doctor registered successfully');
         setState(() {
           _isLoading = false;
@@ -81,6 +86,39 @@ class _DoctorAccountCreatedState extends State<DoctorAccountCreated> {
         _success = false;
         _message = 'An error occurred during registration';
       });
+    }
+  }
+
+  /// Register doctor with Spring Boot backend to create the database record
+  Future<void> _registerDoctorWithBackend(DoctorRegistrationData data) async {
+    try {
+      // Step 1: Register doctor in the backend database
+      final registerUrl = Uri.parse('${ApiConfig.baseUrl}/auth/doctor/register');
+      await http.post(
+        registerUrl,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': data.email,
+          'password': data.password,
+          'fullName': data.fullName ?? '',
+          'specialization': data.specializations ?? '',
+          'phoneNumber': data.mobileNumber ?? '',
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      // Step 2: Fetch and save the doctor code
+      final codeUrl = Uri.parse(
+          '${ApiConfig.baseUrl}/auth/doctor/code?email=${Uri.encodeComponent(data.email)}');
+      final codeResp = await http.get(codeUrl).timeout(const Duration(seconds: 10));
+      if (codeResp.statusCode == 200) {
+        final codeData = jsonDecode(codeResp.body);
+        if (codeData['code'] != null) {
+          await DoctorPatientService.saveDoctorCode(codeData['code']);
+        }
+      }
+    } catch (e) {
+      // Backend registration failed - the code endpoint will create the record later
+      print('Backend doctor registration: $e');
     }
   }
 

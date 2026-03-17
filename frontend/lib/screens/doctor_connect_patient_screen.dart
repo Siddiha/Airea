@@ -33,14 +33,14 @@ class _DoctorConnectPatientScreenState extends State<DoctorConnectPatientScreen>
     });
 
     try {
-      final success = await DoctorPatientService.connectPatient(
+      final error = await DoctorPatientService.connectPatient(
         patientCode: _patientIdController.text.trim(),
       );
 
       if (mounted) {
         setState(() => _isLoading = false);
 
-        if (success) {
+        if (error == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Patient connected successfully!'),
@@ -49,8 +49,7 @@ class _DoctorConnectPatientScreenState extends State<DoctorConnectPatientScreen>
           );
           Navigator.pop(context, true);
         } else {
-          setState(() =>
-              _errorMessage = 'Patient not found or already connected');
+          setState(() => _errorMessage = error);
         }
       }
     } catch (e) {
