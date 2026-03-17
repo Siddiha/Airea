@@ -2,6 +2,7 @@ package controller;
 
 import dto.ConnectionRequestDto;
 import dto.ConnectedPatientDto;
+import dto.ConnectedDoctorDto;
 import model.Doctor;
 import model.Patient;
 import model.DoctorPatientLink;
@@ -80,6 +81,34 @@ public class ConnectionController {
             }
 
             return ResponseEntity.ok(patients);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/patient/{patientCode}/doctors")
+    public ResponseEntity<?> getConnectedDoctors(@PathVariable String patientCode) {
+        try {
+            Patient patient = patientRepository.findByPatientCode(patientCode)
+                .orElseThrow(() -> new RuntimeException("Patient code not found."));
+
+            List<DoctorPatientLink> links = linkRepository.findByPatientId(patient.getId());
+
+            List<ConnectedDoctorDto> doctors = new ArrayList<>();
+            for (DoctorPatientLink link : links) {
+                Optional<Doctor> doctorOpt = doctorRepository.findById(link.getDoctorId());
+                doctorOpt.ifPresent(doctor -> doctors.add(new ConnectedDoctorDto(
+                    doctor.getId(),
+                    doctor.getDoctorCode(),
+                    doctor.getFullName() != null ? doctor.getFullName() : "Unknown",
+                    doctor.getSpecialization() != null ? doctor.getSpecialization() : "",
+                    doctor.getPhoneNumber() != null ? doctor.getPhoneNumber() : "",
+                    doctor.getHospital() != null ? doctor.getHospital() : ""
+                )));
+            }
+
+            return ResponseEntity.ok(doctors);
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());

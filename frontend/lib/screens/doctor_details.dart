@@ -2,7 +2,20 @@ import 'package:airea_cough_monitor/config/app_theme.dart';
 import 'package:flutter/material.dart';
 
 class DoctorDetails extends StatelessWidget {
-  const DoctorDetails({super.key});
+  final String doctorName;
+  final String phoneNumber;
+  final String specialization;
+  final String hospital;
+  final String doctorCode;
+
+  const DoctorDetails({
+    super.key,
+    required this.doctorName,
+    required this.phoneNumber,
+    required this.specialization,
+    required this.hospital,
+    required this.doctorCode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,13 +32,19 @@ class DoctorDetails extends StatelessWidget {
               radius: 40,
               child: Icon(Icons.person, size: 40),
             ),
-            const SizedBox(height: 30),
-            _infoCard('Mobile Number', '+94 74 xxx xxxx'),
-            _infoCard(
-              'Specializations',
-              'Oncologists\nPulmonologists',
+            const SizedBox(height: 10),
+            Text(
+              doctorName,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            _infoCard('Medical License Number', 'XXX XXX XXX'),
+            Text(
+              doctorCode,
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 24),
+            _infoCard('Mobile Number', phoneNumber.isNotEmpty ? phoneNumber : 'Not provided'),
+            _infoCard('Specializations', specialization.isNotEmpty ? specialization : 'Not specified'),
+            _infoCard('Hospital', hospital.isNotEmpty ? hospital : 'Not specified'),
           ],
         ),
         
