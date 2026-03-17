@@ -2,7 +2,10 @@
   ===========================================================================
     AIREA MASTER FIRMWARE (PROTOTYPE)
     ESP32-S3 Custom PCB Integration
-    Added: Hardware Watchdog, Auto-Reconnect, and LED Cleanup
+    LED Update:
+    - Solid ON when Wi-Fi connected
+    - OFF when disconnected
+    - Blinks 3x for Cough, 10x for Fall
   ===========================================================================
 */
 
@@ -12,7 +15,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <driver/i2s.h>
-#include <esp_task_wdt.h> // <-- ADDED: Watchdog Timer
+#include <esp_task_wdt.h>
 
 // --- FREERTOS ---
 #include "freertos/FreeRTOS.h"
@@ -125,13 +128,16 @@ static bool wasAbove = false, respWasAbove = false;
 // =========================================================
 void blinkLED(int times, int delayMs)
 {
+    // Since the resting state is now ON, we dip LOW to create the blink
     for (int i = 0; i < times; i++)
     {
-        digitalWrite(PIN_LED, HIGH);
-        delay(delayMs);
         digitalWrite(PIN_LED, LOW);
         delay(delayMs);
+        digitalWrite(PIN_LED, HIGH);
+        delay(delayMs);
     }
+    // Safety check: ensure resting state matches Wi-Fi status
+    digitalWrite(PIN_LED, WiFi.status() == WL_CONNECTED ? HIGH : LOW);
 }
 
 void notifyBackendOnline()
@@ -165,13 +171,17 @@ void network_sender_task(void *parameter)
 
     while (true)
     {
-        // <-- ADDED: Wi-Fi Auto-Reconnect Logic
         if (WiFi.status() != WL_CONNECTED)
         {
+            digitalWrite(PIN_LED, LOW); // Turn LED OFF when disconnected
             Serial.println("⚠️ Wi-Fi Lost! Attempting to reconnect...");
             WiFi.disconnect();
             WiFi.reconnect();
-            vTaskDelay(5000 / portTICK_PERIOD_MS); // Wait 5 seconds before trying again
+            vTaskDelay(5000 / portTICK_PERIOD_MS);
+            if (WiFi.status() == WL_CONNECTED)
+            {
+                digitalWrite(PIN_LED, HIGH); // Turn LED ON once reconnected
+            }
             continue;
         }
 
@@ -218,7 +228,6 @@ void audio_inference_task(void *parameter)
 {
     if (audio_input == nullptr)
     {
-        // <-- CHANGED: Force a restart if the critical audio AI fails to load
         Serial.println("❌ FATAL: Audio Model failed. Restarting board...");
         delay(1000);
         ESP.restart();
@@ -262,12 +271,10 @@ void audio_inference_task(void *parameter)
         if (avg_vol > 300 && cough_score > COUGH_THRESHOLD && (millis() - last_alert_time > 5000))
         {
             Serial.println("\n🚨 COUGH DETECTED!");
-            digitalWrite(PIN_LED, HIGH); // Turn LED on briefly for cough
+            blinkLED(3, 150); // Blink 3 times for cough
             CloudEvent event = {EVENT_COUGH, cough_score, avg_vol, 0.0, false};
             xQueueSend(cloudQueue, &event, 0);
             last_alert_time = millis();
-            delay(200);
-            digitalWrite(PIN_LED, LOW); // Turn LED back off
         }
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
@@ -281,11 +288,11 @@ void setup()
     Serial.begin(115200);
     delay(1000);
     pinMode(PIN_LED, OUTPUT);
+    digitalWrite(PIN_LED, LOW); // Start with LED officially OFF during setup
+
     pinMode(PIN_ECG_LO_PLUS, INPUT);
     pinMode(PIN_ECG_LO_MINUS, INPUT);
     analogReadResolution(12);
-
-    digitalWrite(PIN_LED, HIGH); // ON while booting
 
     Serial.println("\n=================================");
     Serial.println("    AIREA MONITORING SYSTEM      ");
@@ -299,8 +306,8 @@ void setup()
         ESP.restart();
     }
     Serial.println("✅ WiFi Connected!");
-    blinkLED(3, 200);
-    digitalWrite(PIN_LED, LOW); // Rest state is now OFF
+
+    digitalWrite(PIN_LED, HIGH); // Turn LED permanently ON to show active connection
     notifyBackendOnline();
 
     cloudQueue = xQueueCreate(10, sizeof(CloudEvent));
@@ -334,9 +341,8 @@ void setup()
     Wire1.write(0x00);
     Wire1.endTransmission();
 
-    // <-- ADDED: Initialize the Watchdog Timer for 5 seconds
     esp_task_wdt_init(5, true);
-    esp_task_wdt_add(NULL); // Attach WDT to the main loop
+    esp_task_wdt_add(NULL);
 
     xTaskCreatePinnedToCore(network_sender_task, "NetSender", 8192, NULL, 1, NULL, 0);
     xTaskCreatePinnedToCore(audio_inference_task, "AudioAI", 8192, NULL, 2, NULL, 0);
@@ -347,7 +353,6 @@ void setup()
 // =========================================================
 void loop()
 {
-    // <-- ADDED: Pet the watchdog every loop cycle to prove we aren't frozen
     esp_task_wdt_reset();
 
     static unsigned long lastSampleUs = 0, lastMotionMs = 0, lastTempMs = 0, lastVitalsSyncMs = 0, lastFallAlertMs = 0;
@@ -446,12 +451,10 @@ void loop()
                         if (fall_confidence > FALL_THRESHOLD && (nowMs - lastFallAlertMs > 5000))
                         {
                             Serial.printf("⚠️ AI FALL DETECTED! Confidence: %.2f%%\n", fall_confidence * 100);
-                            blinkLED(5, 100);
-                            digitalWrite(PIN_LED, LOW); // <-- CHANGED: LED returns to OFF after falling alert
+                            blinkLED(10, 100); // Blink 10 times rapidly for fall
                             CloudEvent event = {EVENT_FALL, fall_confidence, 0.0, 0.0, false};
                             xQueueSend(cloudQueue, &event, 0);
                             lastFallAlertMs = nowMs;
-                            delay(500);
                         }
                     }
                     int overlap = TIME_STEPS / 2;
