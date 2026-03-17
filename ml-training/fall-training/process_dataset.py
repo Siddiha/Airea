@@ -5,17 +5,17 @@ import math
 
 # ================= CONFIGURATION =================
 # If your folders are inside "IMU-Dataset", change this to "./IMU-Dataset"
-# Based on your error log, it looks like they are inside "IMU-Dataset"
 DATASET_ROOT = "./IMU-Dataset" 
 OUTPUT_FOLDER = "processed_data"
 
-# EXACT COLUMN NAMES
+# EXACT COLUMN NAMES - UPDATED FOR YOUR HARDWARE
+# We are mapping the dataset's X to your Y, and the dataset's Y to your X!
 COLUMN_MAPPING = {
-    'sternum Acceleration X (m/s^2)': 'accX',
-    'sternum Acceleration Y (m/s^2)': 'accY',
+    'sternum Acceleration Y (m/s^2)': 'accX',   # Swapped!
+    'sternum Acceleration X (m/s^2)': 'accY',   # Swapped!
     'sternum Acceleration Z (m/s^2)': 'accZ',
-    'sternum Angular Velocity X (rad/s)': 'gyroX',
-    'sternum Angular Velocity Y (rad/s)': 'gyroY',
+    'sternum Angular Velocity Y (rad/s)': 'gyroX',  # Swapped!
+    'sternum Angular Velocity X (rad/s)': 'gyroY',  # Swapped!
     'sternum Angular Velocity Z (rad/s)': 'gyroZ'
 }
 # =================================================
@@ -23,8 +23,8 @@ COLUMN_MAPPING = {
 def process_category(category_folder, label_value):
     all_data = []
     
-    # Search path
-    search_path = os.path.join(DATASET_ROOT, "sub*", category_folder, "*.xlsx")
+    # Search path - Updated to find .csv files based on your screenshot
+    search_path = os.path.join(DATASET_ROOT, "sub*", category_folder, "*.csv")
     files = glob.glob(search_path)
     
     print(f"Found {len(files)} files for {category_folder}...")
@@ -37,9 +37,13 @@ def process_category(category_folder, label_value):
         # ---------------------------------
 
         try:
-            # Read Excel file
-            df = pd.read_excel(file_path, engine='openpyxl')
+            # Read CSV file (changed from read_excel since your files are .csv)
+            df = pd.read_csv(file_path)
             
+            # 1. Drop the magnetic field columns
+            mag_cols = [col for col in df.columns if 'Magnetic' in col]
+            df = df.drop(columns=mag_cols)
+
             # Check columns
             available_cols = [c for c in COLUMN_MAPPING.keys() if c in df.columns]
             
@@ -47,7 +51,7 @@ def process_category(category_folder, label_value):
                 # Silent skip for cleaner logs
                 continue
 
-            # Extract and Rename
+            # Extract and Rename (This automatically handles the swap!)
             df = df[available_cols]
             df = df.rename(columns=COLUMN_MAPPING)
             
