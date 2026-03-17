@@ -302,6 +302,7 @@ void setup()
     fall_tensor_arena = (uint8_t *)malloc(kFallArenaSize);
     raw_audio_buffer = (int16_t *)malloc(kAudioBufferSize * sizeof(int16_t));
 
+    // AUDIO INTERPRETER INIT - Fixed &micro_error_reporter
     audio_model = tflite::GetModel(model_data);
     static tflite::MicroInterpreter static_audio_interpreter(audio_model, resolver, audio_tensor_arena, kAudioArenaSize, &micro_error_reporter);
     audio_interpreter = &static_audio_interpreter;
@@ -309,6 +310,7 @@ void setup()
     audio_input = audio_interpreter->input(0);
     audio_output = audio_interpreter->output(0);
 
+    // FALL INTERPRETER INIT - Fixed &micro_error_reporter
     fall_model_ptr = tflite::GetModel(fall_model);
     static tflite::MicroInterpreter static_fall_interpreter(fall_model_ptr, resolver, fall_tensor_arena, kFallArenaSize, &micro_error_reporter);
     fall_interpreter = &static_fall_interpreter;
