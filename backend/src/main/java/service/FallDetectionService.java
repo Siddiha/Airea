@@ -284,7 +284,8 @@ public class FallDetectionService {
                 request.getTemp(),
                 request.getBpm(),
                 request.getRr(),
-                request.getConfidence() // Passed Confidence instead of G-Force to SMS
+                request.getConfidence(),
+                "EMERGENCY_FALL"
         );
 
         if (sent) {
