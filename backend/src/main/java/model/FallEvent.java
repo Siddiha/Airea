@@ -22,8 +22,8 @@ public class FallEvent {
     @Column(name = "device_id", nullable = false)
     private String deviceId;
 
-    @Column(name = "g_force", nullable = false)
-    private Float gForce;
+    @Column(name = "confidence", nullable = false)
+    private Float confidence;
 
     // Vitals at time of fall
     private Float temp;
