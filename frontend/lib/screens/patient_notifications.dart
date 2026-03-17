@@ -10,8 +10,7 @@ class PatientNotifications extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<PatientNotification> notifications =
-        alerts.isNotEmpty ? alerts : DeviceController().fetchNotifications();
+    final List<PatientNotification> notifications = alerts;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), 
@@ -34,18 +33,38 @@ class PatientNotifications extends StatelessWidget {
 
               // Use Expanded + ListView.builder
               Expanded(
-                child: ListView.separated(
-                  itemCount: notifications.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 16),
-                  itemBuilder: (context, index) {
-                    final note = notifications[index];
-                    return _buildSimpleNotificationItem(
-                      title: note.title,
-                      time: note.time,
-                      isHighAlert: note.isHighAlert,
-                    );
-                  },
-                ),
+                child: notifications.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.notifications_off_outlined,
+                                size: 64, color: Colors.grey.shade400),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No notifications',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: notifications.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 16),
+                        itemBuilder: (context, index) {
+                          final note = notifications[index];
+                          return _buildSimpleNotificationItem(
+                            title: note.title,
+                            time: note.time,
+                            isHighAlert: note.isHighAlert,
+                          );
+                        },
+                      ),
               ),
             ],
           ),

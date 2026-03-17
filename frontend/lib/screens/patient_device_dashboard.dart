@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_theme.dart';
 import 'patient_device_disconnected.dart';
 import 'patient_device_manual.dart';
@@ -111,16 +112,22 @@ class PatientDeviceDashboard extends StatelessWidget {
                 width: 220, 
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     // Call the Disconnect Logic
-                    controller.disconnectDevice(); 
-                    
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const PatientDeviceDisconnected(),
-                      ),
-                    );
+                    controller.disconnectDevice();
+
+                    // Clear the linked device ID
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.remove('linked_device_id');
+
+                    if (context.mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const PatientDeviceDisconnected(),
+                        ),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4FA095), 
