@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'patient_homescreen.dart';
 import 'patient_create_account.dart';
 import 'forgot_password_screen.dart';
 import '../services/auth_service.dart';
+import '../config/api_config.dart';
 
 class PatientLoginPage extends StatefulWidget {
   const PatientLoginPage({super.key});
@@ -44,7 +47,7 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
     setState(() => _isLoading = false);
 
     if (result['success']) {
-      await _fetchAndSavePatientCode(email);
+      await _fetchAndSavePatientCode(email, password);
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -58,15 +61,45 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
     }
   }
 
-  Future<void> _fetchAndSavePatientCode(String email) async {
+  Future<void> _fetchAndSavePatientCode(String email, String password) async {
     try {
+      // Step 1: Ensure patient record exists in backend DB by calling register
+      // If already registered, backend returns error which we ignore
+      try {
+        final registerUrl = Uri.parse('${ApiConfig.baseUrl}/auth/register');
+        await http.post(
+          registerUrl,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'email': email,
+            'password': password,
+            'fullName': '',
+          }),
+        ).timeout(const Duration(seconds: 10));
+      } catch (_) {
+        // Ignore - patient may already exist or backend unavailable
+      }
+
+      // Step 2: Fetch patient code from backend API
+      final codeUrl = Uri.parse(
+          '${ApiConfig.baseUrl}/auth/patient/code?email=${Uri.encodeComponent(email)}');
+      final resp = await http.get(codeUrl).timeout(const Duration(seconds: 10));
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        if (data['code'] != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('patient_code', data['code']);
+          return;
+        }
+      }
+
+      // Step 3: Fallback - try Supabase direct query
       final supabase = Supabase.instance.client;
       final response = await supabase
           .from('patients')
           .select('patient_code')
           .eq('email', email)
           .maybeSingle();
-
       if (response != null && response['patient_code'] != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('patient_code', response['patient_code']);

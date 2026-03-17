@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../services/doctor_patient_service.dart';
+import '../config/api_config.dart';
 import 'welcome_page.dart';
 import 'patient_homescreen.dart';
 import 'doctor_home_screen.dart';
@@ -63,24 +66,29 @@ class _SplashScreenState extends State<SplashScreen> {
   /// Fetch and cache the user's code if not already saved
   Future<void> _ensureCodeSaved(String userType, String email) async {
     try {
-      final supabase = Supabase.instance.client;
-      final prefs = await SharedPreferences.getInstance();
-
       if (userType == 'doctor') {
-        final existing = await DoctorPatientService.getDoctorCode();
-        if (existing == null || existing.isEmpty) {
-          final resp = await supabase
-              .from('doctors')
-              .select('doctor_code')
-              .eq('email', email)
-              .maybeSingle();
-          if (resp != null && resp['doctor_code'] != null) {
-            await DoctorPatientService.saveDoctorCode(resp['doctor_code']);
-          }
-        }
+        // getDoctorCode() already has backend API + Supabase fallback
+        await DoctorPatientService.getDoctorCode();
       } else {
+        final prefs = await SharedPreferences.getInstance();
         final existing = prefs.getString('patient_code');
         if (existing == null || existing.isEmpty) {
+          // Try backend API first
+          try {
+            final codeUrl = Uri.parse(
+                '${ApiConfig.baseUrl}/auth/patient/code?email=${Uri.encodeComponent(email)}');
+            final resp = await http.get(codeUrl).timeout(const Duration(seconds: 10));
+            if (resp.statusCode == 200) {
+              final data = jsonDecode(resp.body);
+              if (data['code'] != null) {
+                await prefs.setString('patient_code', data['code']);
+                return;
+              }
+            }
+          } catch (_) {}
+
+          // Fallback: Supabase direct query
+          final supabase = Supabase.instance.client;
           final resp = await supabase
               .from('patients')
               .select('patient_code')

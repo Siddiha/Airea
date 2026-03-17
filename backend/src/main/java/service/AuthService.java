@@ -209,6 +209,34 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("Doctor not found"));
     }
 
+    /**
+     * Find doctor by email, or create a new record if not found.
+     * This handles doctors who registered via Supabase Auth but don't have
+     * a row in the doctors table yet.
+     */
+    public Doctor ensureDoctorExists(String email) {
+        return doctorRepository.findByEmail(email).orElseGet(() -> {
+            Doctor doctor = new Doctor();
+            doctor.setEmail(email);
+            doctor.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+            return doctorRepository.save(doctor);
+        });
+    }
+
+    /**
+     * Find patient by email, or create a new record if not found.
+     * This handles patients who registered via Supabase Auth but don't have
+     * a row in the patients table yet.
+     */
+    public Patient ensurePatientExists(String email) {
+        return patientRepository.findByEmail(email).orElseGet(() -> {
+            Patient patient = new Patient();
+            patient.setEmail(email);
+            patient.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+            return patientRepository.save(patient);
+        });
+    }
+
     public Patient savePatient(Patient patient) {
         return patientRepository.save(patient);
     }

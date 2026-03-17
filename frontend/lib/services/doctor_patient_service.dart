@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/api_config.dart';
 import '../models/doctor_patient_connection.dart';
 
@@ -14,10 +15,50 @@ class DoctorPatientService {
     await prefs.setString(_doctorCodeKey, doctorCode);
   }
 
-  /// Get the logged-in doctor's code
+  /// Get the logged-in doctor's code (auto-fetches from backend if not cached)
   static Future<String?> getDoctorCode() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_doctorCodeKey);
+    String? code = prefs.getString(_doctorCodeKey);
+    if (code != null && code.isNotEmpty) return code;
+
+    // If not cached, try to fetch from backend API
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user?.email != null) {
+      // Try backend API
+      try {
+        final url = Uri.parse(
+            '${ApiConfig.baseUrl}/auth/doctor/code?email=${Uri.encodeComponent(user!.email!)}');
+        final resp = await http.get(url).timeout(const Duration(seconds: 10));
+        if (resp.statusCode == 200) {
+          final data = jsonDecode(resp.body);
+          if (data['code'] != null) {
+            code = data['code'] as String;
+            await prefs.setString(_doctorCodeKey, code);
+            return code;
+          }
+        }
+      } catch (e) {
+        print('Error fetching doctor code from API: $e');
+      }
+
+      // Fallback: try Supabase direct query
+      try {
+        final supabase = Supabase.instance.client;
+        final resp = await supabase
+            .from('doctors')
+            .select('doctor_code')
+            .eq('email', user!.email!)
+            .maybeSingle();
+        if (resp != null && resp['doctor_code'] != null) {
+          code = resp['doctor_code'] as String;
+          await prefs.setString(_doctorCodeKey, code);
+          return code;
+        }
+      } catch (e) {
+        print('Error fetching doctor code from Supabase: $e');
+      }
+    }
+    return null;
   }
 
   /// Get all connected patients from the backend
@@ -58,14 +99,15 @@ class DoctorPatientService {
   }
 
   /// Connect a new patient via backend API
-  static Future<bool> connectPatient({
+  /// Returns null on success, or an error message string on failure
+  static Future<String?> connectPatient({
     required String patientCode,
   }) async {
     try {
       final doctorCode = await getDoctorCode();
       if (doctorCode == null || doctorCode.isEmpty) {
         print('No doctor code found');
-        return false;
+        return 'Doctor code not found. Please log out and log in again.';
       }
 
       final url =
@@ -79,10 +121,14 @@ class DoctorPatientService {
         }),
       ).timeout(const Duration(seconds: 10));
 
-      return response.statusCode == 200;
+      if (response.statusCode == 200) {
+        return null; // success
+      } else {
+        return response.body;
+      }
     } catch (e) {
       print('Error connecting patient: $e');
-      return false;
+      return 'Error: Could not connect. Is the server running?';
     }
   }
 
@@ -90,6 +136,35 @@ class DoctorPatientService {
   static Future<void> clearDoctorCode() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_doctorCodeKey);
+  }
+
+  /// Get connected doctors for the current patient
+  static Future<List<Map<String, dynamic>>> getConnectedDoctors() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final patientCode = prefs.getString('patient_code');
+      if (patientCode == null || patientCode.isEmpty) {
+        print('No patient code found');
+        return [];
+      }
+
+      final url = Uri.parse(
+          '${ApiConfig.baseUrl}/connections/patient/$patientCode/doctors');
+      final response = await http.get(url).timeout(
+        const Duration(seconds: 10),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(response.body);
+        return jsonList.cast<Map<String, dynamic>>();
+      } else {
+        print('Failed to load connected doctors: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      print('Error loading connected doctors: $e');
+      return [];
+    }
   }
 
   /// Disconnect a patient via backend API
