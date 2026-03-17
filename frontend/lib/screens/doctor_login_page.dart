@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'doctor_home_screen.dart';
 import '../services/auth_service.dart';
 import '../services/doctor_patient_service.dart';
@@ -96,15 +97,21 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
         }
       }
 
-      // Step 3: Fallback - try Supabase direct query
+      // Step 3: Fallback - try Supabase direct query + fetch name
       final supabase = Supabase.instance.client;
       final response = await supabase
           .from('doctors')
-          .select('doctor_code')
+          .select('doctor_code, full_name')
           .eq('email', email)
           .maybeSingle();
-      if (response != null && response['doctor_code'] != null) {
-        await DoctorPatientService.saveDoctorCode(response['doctor_code']);
+      if (response != null) {
+        if (response['doctor_code'] != null) {
+          await DoctorPatientService.saveDoctorCode(response['doctor_code']);
+        }
+        if (response['full_name'] != null && (response['full_name'] as String).isNotEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_full_name', response['full_name']);
+        }
       }
     } catch (e) {
       print('Error fetching doctor code: $e');

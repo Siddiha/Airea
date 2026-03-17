@@ -42,6 +42,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   int _selectedIndex = 0;
   Timer? _refreshTimer;
   Map<String, dynamic>? _connectedDoctor;
+  String _userName = 'user';
 
   @override
   void initState() {
@@ -57,9 +58,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     final linkedId = prefs.getString('linked_device_id');
+    final savedName = prefs.getString('user_full_name');
     if (mounted) {
       setState(() {
         _deviceId = linkedId;
+        if (savedName != null && savedName.isNotEmpty) {
+          _userName = savedName;
+        }
         // Reset vitals display when no device is linked, but keep _alerts intact
         if (_deviceId == null || _deviceId!.isEmpty) {
           temperature = 0.0;
@@ -335,12 +340,16 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           ),
         ),
         const SizedBox(width: 12),
-        const Text("Hello user !",
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87)),
-        const Spacer(),
+        Expanded(
+          child: Text("Hello $_userName !",
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87)),
+        ),
+        const SizedBox(width: 8),
         GestureDetector(
           onTap: () => Navigator.push(context,
               MaterialPageRoute(

@@ -44,9 +44,10 @@ class _SplashScreenState extends State<SplashScreen> {
         final userType = userData['userType'] ?? 'patient';
         final email = userData['email'];
 
-        // Ensure code is saved for View ID to work
+        // Ensure code and name are saved
         if (email != null) {
           await _ensureCodeSaved(userType, email);
+          await _ensureNameSaved(userType, email);
         }
 
         if (!mounted) return;
@@ -101,6 +102,28 @@ class _SplashScreenState extends State<SplashScreen> {
       }
     } catch (e) {
       debugPrint('Error ensuring code saved: $e');
+    }
+  }
+
+  /// Fetch and cache the user's full name if not already saved
+  Future<void> _ensureNameSaved(String userType, String email) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final existing = prefs.getString('user_full_name');
+      if (existing != null && existing.isNotEmpty) return;
+
+      final supabase = Supabase.instance.client;
+      final table = userType == 'doctor' ? 'doctors' : 'patients';
+      final resp = await supabase
+          .from(table)
+          .select('full_name')
+          .eq('email', email)
+          .maybeSingle();
+      if (resp != null && resp['full_name'] != null && (resp['full_name'] as String).isNotEmpty) {
+        await prefs.setString('user_full_name', resp['full_name']);
+      }
+    } catch (e) {
+      debugPrint('Error ensuring name saved: $e');
     }
   }
 

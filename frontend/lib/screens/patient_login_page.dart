@@ -89,20 +89,24 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
         if (data['code'] != null) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('patient_code', data['code']);
-          return;
         }
       }
 
-      // Step 3: Fallback - try Supabase direct query
+      // Fetch and save the patient's full name
       final supabase = Supabase.instance.client;
-      final response = await supabase
+      final nameResp = await supabase
           .from('patients')
-          .select('patient_code')
+          .select('patient_code, full_name')
           .eq('email', email)
           .maybeSingle();
-      if (response != null && response['patient_code'] != null) {
+      if (nameResp != null) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('patient_code', response['patient_code']);
+        if (nameResp['patient_code'] != null && (prefs.getString('patient_code') == null || prefs.getString('patient_code')!.isEmpty)) {
+          await prefs.setString('patient_code', nameResp['patient_code']);
+        }
+        if (nameResp['full_name'] != null && (nameResp['full_name'] as String).isNotEmpty) {
+          await prefs.setString('user_full_name', nameResp['full_name']);
+        }
       }
     } catch (e) {
       debugPrint('Error fetching patient code: $e');
