@@ -141,7 +141,7 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
               const Text(
                 "Please contact with doctor to get his/her id",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13),
+                style: TextStyle(fontSize: 15),
               ),
               const SizedBox(height: 8),
 
