@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'patient_device_connected.dart';
 import 'patient_device_guidance.dart';
 import '../models/device_model.dart';
+import '../services/api_service.dart';
+import '../services/profile_service.dart';
 import '../widgets/bottom_nav_bar.dart';
 
 
@@ -16,11 +17,13 @@ class PatientConnectDeviceCode extends StatefulWidget {
 class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
   final TextEditingController _codeController = TextEditingController();
   final DeviceController _deviceLogic = DeviceController();
+  final ApiService _apiService = ApiService();
+  bool _isLoading = false;
   String? _codeError;
 
   @override
   void dispose() {
-    _codeController.dispose(); 
+    _codeController.dispose();
     super.dispose();
   }
 
@@ -52,16 +55,16 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
 
                 const SizedBox(height: 30),
 
-                // 2. Input Field 
+                // 2. Input Field
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFFC7D0D5),
                     borderRadius: BorderRadius.circular(50),
                   ),
                   child: TextField(
-                    controller: _codeController, 
+                    controller: _codeController,
                     textAlign: TextAlign.left,
-                    keyboardType: TextInputType.number, 
+                    keyboardType: TextInputType.text,
                     onChanged: (_) => setState(() => _codeError = null),
                     decoration: InputDecoration(
                       hintText: 'type',
@@ -77,30 +80,38 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
 
                 const SizedBox(height: 30),
 
-                // 3. Confirm Button 
+                // 3. Confirm Button
                 SizedBox(
                   width: 180,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () async {
+                    onPressed: _isLoading ? null : () async {
                       String input = _codeController.text.trim();
-                      final digitsOnly = RegExp(r'^\d+$');
 
                       if (input.isEmpty) {
                         setState(() => _codeError = 'Please enter the device code');
                         return;
                       }
-                      if (!digitsOnly.hasMatch(input)) {
-                        setState(() => _codeError = 'Device code must contain only digits');
-                        return;
-                      }
 
-                      bool isSuccess = _deviceLogic.pairDevice(input);
+                      setState(() {
+                        _isLoading = true;
+                        _codeError = null;
+                      });
 
-                      if (isSuccess) {
-                        // Save the device ID so the home screen uses it
-                        final prefs = await SharedPreferences.getInstance();
-                        await prefs.setString('linked_device_id', input);
+                      try {
+                        // Verify the device exists in the backend
+                        final device = await _apiService.getDevice(input);
+                        if (device == null) {
+                          setState(() {
+                            _codeError = 'Device not found. Please verify the device ID.';
+                            _isLoading = false;
+                          });
+                          return;
+                        }
+
+                        // Validate locally and save to SharedPreferences + Supabase
+                        _deviceLogic.pairDevice(input);
+                        await ProfileService.saveLinkedDevice(input);
 
                         if (context.mounted) {
                           Navigator.pushReplacement(
@@ -110,13 +121,16 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                             ),
                           );
                         }
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Invalid Code! Please try again."),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Connection error: ${e.toString()}'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                        setState(() => _isLoading = false);
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -128,10 +142,19 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                       elevation: 4,
                       shadowColor: Colors.grey.withOpacity(0.5),
                     ),
-                    child: const Text(
-                      'Confirm',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : const Text(
+                            'Confirm',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
                   ),
                 ),
 
