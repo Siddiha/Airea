@@ -22,8 +22,16 @@ class _DoctorConnectPatientScreenState extends State<DoctorConnectPatientScreen>
   }
 
   Future<void> _handleConnect() async {
-    if (_patientIdController.text.isEmpty) {
+    final patientCode = _patientIdController.text.trim();
+    final codeRegex = RegExp(r'^[a-zA-Z0-9_-]+$');
+
+    if (patientCode.isEmpty) {
       setState(() => _errorMessage = 'Please enter the patient code');
+      return;
+    }
+
+    if (!codeRegex.hasMatch(patientCode)) {
+      setState(() => _errorMessage = 'Code can only contain letters, numbers, hyphens, and underscores');
       return;
     }
 

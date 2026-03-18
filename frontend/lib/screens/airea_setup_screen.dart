@@ -20,6 +20,8 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
   bool _isConnecting = false;
   Timer? _pollingTimer;
   String? _initialLastSeen; // We store the "old" timestamp here
+  String? _ssidError;
+  String? _passwordError;
 
   @override
   void initState() {
@@ -125,12 +127,24 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
   }
 
   Future<void> _sendCredentialsToESP32() async {
-    if (_ssidController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter both SSID and Password')),
-      );
-      return;
+    final ssid = _ssidController.text.trim();
+    final password = _passwordController.text;
+    bool hasError = false;
+
+    setState(() {
+      _ssidError = null;
+      _passwordError = null;
+    });
+
+    if (ssid.isEmpty) {
+      setState(() => _ssidError = 'Wi-Fi name is required');
+      hasError = true;
     }
+    if (password.isEmpty) {
+      setState(() => _passwordError = 'Wi-Fi password is required');
+      hasError = true;
+    }
+    if (hasError) return;
 
     FocusScope.of(context).unfocus();
 
@@ -189,10 +203,12 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
             TextField(
               controller: _ssidController,
               enabled: !_isConnecting,
-              decoration: const InputDecoration(
+              onChanged: (_) => setState(() => _ssidError = null),
+              decoration: InputDecoration(
                 labelText: 'Home Wi-Fi Name (SSID)',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.wifi),
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.wifi),
+                errorText: _ssidError,
               ),
             ),
             const SizedBox(height: 16),
@@ -200,10 +216,12 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
               controller: _passwordController,
               enabled: !_isConnecting,
               obscureText: true,
-              decoration: const InputDecoration(
+              onChanged: (_) => setState(() => _passwordError = null),
+              decoration: InputDecoration(
                 labelText: 'Wi-Fi Password',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.lock),
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.lock),
+                errorText: _passwordError,
               ),
             ),
             const SizedBox(height: 32),

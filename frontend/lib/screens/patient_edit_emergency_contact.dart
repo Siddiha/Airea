@@ -20,6 +20,8 @@ class EditEmergencyInfo extends StatefulWidget {
 class _ContactInputScreenState extends State<EditEmergencyInfo> {
   late TextEditingController _relationController;
   late TextEditingController _phoneController;
+  String? _relationError;
+  String? _phoneError;
 
   @override
   void initState() {
@@ -81,11 +83,11 @@ class _ContactInputScreenState extends State<EditEmergencyInfo> {
               const SizedBox(height: 60),
               const Text("What is their relationship to you?", textAlign: TextAlign.center),
               const SizedBox(height: 10),
-              _customTextField(_relationController),
+              _customTextField(_relationController, errorText: _relationError, onChanged: (_) => setState(() => _relationError = null)),
               const SizedBox(height: 30),
               const Text("Their contact Number", textAlign: TextAlign.center),
               const SizedBox(height: 10),
-              _customTextField(_phoneController, isNumber: true),
+              _customTextField(_phoneController, isNumber: true, errorText: _phoneError, onChanged: (_) => setState(() => _phoneError = null)),
               const SizedBox(height: 50),
               Center(
                 child: SizedBox(
@@ -97,19 +99,46 @@ class _ContactInputScreenState extends State<EditEmergencyInfo> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
                     onPressed: () async {
-                      if (_relationController.text.isNotEmpty) {
-                        final entry = PatientContact(
-                          relationship: _relationController.text,
-                          contactNumber: _phoneController.text,
-                        );
-                        await ProfileService.saveEmergencyContact(entry);
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const PatientProfileFrame(),
-                          ),
-                        );
+                      final relationship = _relationController.text.trim();
+                      final phone = _phoneController.text.trim();
+                      final nameRegex = RegExp(r'^[a-zA-Z\s]+$');
+                      final phoneRegex = RegExp(r'^(?:\+94|0)?7\d{8}$');
+                      bool hasError = false;
+
+                      setState(() {
+                        _relationError = null;
+                        _phoneError = null;
+                      });
+
+                      if (relationship.isEmpty) {
+                        setState(() => _relationError = 'Relationship is required');
+                        hasError = true;
+                      } else if (!nameRegex.hasMatch(relationship)) {
+                        setState(() => _relationError = 'Only letters and spaces are allowed');
+                        hasError = true;
                       }
+
+                      if (phone.isEmpty) {
+                        setState(() => _phoneError = 'Contact number is required');
+                        hasError = true;
+                      } else if (!phoneRegex.hasMatch(phone)) {
+                        setState(() => _phoneError = 'Enter a valid phone number (e.g. 07XXXXXXXX)');
+                        hasError = true;
+                      }
+
+                      if (hasError) return;
+
+                      final entry = PatientContact(
+                        relationship: relationship,
+                        contactNumber: phone,
+                      );
+                      await ProfileService.saveEmergencyContact(entry);
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PatientProfileFrame(),
+                        ),
+                      );
                     },
                     child: const Text("Confirm", style: TextStyle(color: Colors.white, fontSize: 18)),
                   ),
@@ -122,15 +151,17 @@ class _ContactInputScreenState extends State<EditEmergencyInfo> {
     );
   }
 
-  Widget _customTextField(TextEditingController controller, {bool isNumber = false}) {
+  Widget _customTextField(TextEditingController controller, {bool isNumber = false, String? errorText, ValueChanged<String>? onChanged}) {
     return TextField(
       controller: controller,
       keyboardType: isNumber ? TextInputType.phone : TextInputType.text,
+      onChanged: onChanged,
       decoration: InputDecoration(
         filled: true,
         fillColor: const Color(0xFFD9E2E8),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        errorText: errorText,
       ),
     );
   }

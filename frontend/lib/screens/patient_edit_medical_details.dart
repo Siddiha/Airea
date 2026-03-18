@@ -25,6 +25,11 @@ class _MedicalInputScreenState extends State<EditMedicalInfo> {
   late TextEditingController _habitsController;
   late TextEditingController _workingEnvironmentController;
 
+  String? _ageError;
+  String? _heightError;
+  String? _weightError;
+  String? _genderError;
+
   @override
   void initState() {
     super.initState();
@@ -111,13 +116,13 @@ class _MedicalInputScreenState extends State<EditMedicalInfo> {
               const SizedBox(height: 30),
               
               // Input fields with the nicer style borrowed from patient_more_info.dart
-              _customTextField(_ageController, "Age", isNumber: true, icon: Icons.cake),
+              _customTextField(_ageController, "Age", isNumber: true, icon: Icons.cake, errorText: _ageError, onChanged: (_) => setState(() => _ageError = null)),
               const SizedBox(height: 15),
-              _customTextField(_heightController, "Height (cm)", isNumber: true, icon: Icons.height),
+              _customTextField(_heightController, "Height (cm)", isNumber: true, icon: Icons.height, errorText: _heightError, onChanged: (_) => setState(() => _heightError = null)),
               const SizedBox(height: 15),
-              _customTextField(_weightController, "Weight (kg)", isNumber: true, icon: Icons.monitor_weight),
+              _customTextField(_weightController, "Weight (kg)", isNumber: true, icon: Icons.monitor_weight, errorText: _weightError, onChanged: (_) => setState(() => _weightError = null)),
               const SizedBox(height: 15),
-              _customTextField(_genderController, "Gender", icon: Icons.transgender),
+              _customTextField(_genderController, "Gender", icon: Icons.transgender, errorText: _genderError, onChanged: (_) => setState(() => _genderError = null)),
               const SizedBox(height: 15),
               _customTextField(_habitsController, "Do you smoke or use tobacco?", icon: Icons.smoking_rooms),
               const SizedBox(height: 15),
@@ -135,15 +140,64 @@ class _MedicalInputScreenState extends State<EditMedicalInfo> {
                     ),
                     onPressed: () async {
                       // Data validation and parsing
-                      final age = int.tryParse(_ageController.text) ?? 0;
-                      final height = int.tryParse(_heightController.text) ?? 0;
-                      final weight = int.tryParse(_weightController.text) ?? 0;
+                      final ageText = _ageController.text.trim();
+                      final heightText = _heightController.text.trim();
+                      final weightText = _weightController.text.trim();
+                      final genderText = _genderController.text.trim();
+                      final genderRegex = RegExp(r'^[a-zA-Z\s]+$');
+                      bool hasError = false;
 
-                      if (age > 0) {
+                      setState(() {
+                        _ageError = null;
+                        _heightError = null;
+                        _weightError = null;
+                        _genderError = null;
+                      });
+
+                      final age = int.tryParse(ageText);
+                      if (ageText.isEmpty) {
+                        setState(() => _ageError = 'Age is required');
+                        hasError = true;
+                      } else if (age == null) {
+                        setState(() => _ageError = 'Age must be a number');
+                        hasError = true;
+                      } else if (age <= 0 || age > 150) {
+                        setState(() => _ageError = 'Age must be between 1 and 150');
+                        hasError = true;
+                      }
+
+                      final height = int.tryParse(heightText);
+                      if (heightText.isNotEmpty) {
+                        if (height == null) {
+                          setState(() => _heightError = 'Height must be a number');
+                          hasError = true;
+                        } else if (height <= 0 || height > 300) {
+                          setState(() => _heightError = 'Height must be between 1 and 300 cm');
+                          hasError = true;
+                        }
+                      }
+
+                      final weight = int.tryParse(weightText);
+                      if (weightText.isNotEmpty) {
+                        if (weight == null) {
+                          setState(() => _weightError = 'Weight must be a number');
+                          hasError = true;
+                        } else if (weight <= 0 || weight > 500) {
+                          setState(() => _weightError = 'Weight must be between 1 and 500 kg');
+                          hasError = true;
+                        }
+                      }
+
+                      if (genderText.isNotEmpty && !genderRegex.hasMatch(genderText)) {
+                        setState(() => _genderError = 'Gender should only contain letters');
+                        hasError = true;
+                      }
+
+                      if (hasError) return;
                         final entry = PatientMedicalDetails(
-                          age: age,
-                          height: height,
-                          weight: weight,
+                          age: age!,
+                          height: height ?? 0,
+                          weight: weight ?? 0,
                           gender: _genderController.text,
                           habbits: _habitsController.text,
                           workingEnvironment: _workingEnvironmentController.text,
@@ -156,11 +210,6 @@ class _MedicalInputScreenState extends State<EditMedicalInfo> {
                             builder: (context) => const PatientProfileFrame(),
                           ),
                         );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please enter a valid age')),
-                        );
-                      }
                     },
                     child: const Text("Confirm", style: TextStyle(color: Colors.white, fontSize: 18)),
                   ),
@@ -174,10 +223,11 @@ class _MedicalInputScreenState extends State<EditMedicalInfo> {
   }
 
   Widget _customTextField(TextEditingController controller, String label,
-      {bool isNumber = false, IconData? icon}) {
+      {bool isNumber = false, IconData? icon, String? errorText, ValueChanged<String>? onChanged}) {
     return TextField(
       controller: controller,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: icon != null ? Icon(icon) : null,
@@ -185,6 +235,7 @@ class _MedicalInputScreenState extends State<EditMedicalInfo> {
           borderRadius: BorderRadius.circular(12),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        errorText: errorText,
       ),
     );
   }

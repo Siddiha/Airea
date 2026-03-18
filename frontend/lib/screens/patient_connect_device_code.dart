@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../config/app_theme.dart';
 import 'patient_device_connected.dart';
 import 'patient_device_guidance.dart';
 import '../models/device_model.dart';
-import 'patient_homeScreen.dart';
-import 'patient_summary_overview.dart';
+import '../services/api_service.dart';
+import '../services/profile_service.dart';
+import '../widgets/bottom_nav_bar.dart';
 
 
 class PatientConnectDeviceCode extends StatefulWidget {
@@ -18,10 +17,13 @@ class PatientConnectDeviceCode extends StatefulWidget {
 class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
   final TextEditingController _codeController = TextEditingController();
   final DeviceController _deviceLogic = DeviceController();
+  final ApiService _apiService = ApiService();
+  bool _isLoading = false;
+  String? _codeError;
 
   @override
   void dispose() {
-    _codeController.dispose(); 
+    _codeController.dispose();
     super.dispose();
   }
 
@@ -53,21 +55,24 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
 
                 const SizedBox(height: 30),
 
-                // 2. Input Field 
+                // 2. Input Field
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFFC7D0D5),
                     borderRadius: BorderRadius.circular(50),
                   ),
                   child: TextField(
-                    controller: _codeController, 
+                    controller: _codeController,
                     textAlign: TextAlign.left,
-                    keyboardType: TextInputType.number, 
-                    decoration: const InputDecoration(
+                    keyboardType: TextInputType.text,
+                    onChanged: (_) => setState(() => _codeError = null),
+                    decoration: InputDecoration(
                       hintText: 'type',
-                      hintStyle: TextStyle(color: Colors.black54, fontSize: 16),
+                      hintStyle: const TextStyle(color: Colors.black54, fontSize: 16),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 25, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 14),
+                      errorText: _codeError,
+                      errorStyle: const TextStyle(fontSize: 12),
                     ),
                     style: const TextStyle(fontSize: 18),
                   ),
@@ -75,38 +80,57 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
 
                 const SizedBox(height: 30),
 
-                // 3. Confirm Button 
+                // 3. Confirm Button
                 SizedBox(
                   width: 180,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () async {
-                      // Get the text from the box
+                    onPressed: _isLoading ? null : () async {
                       String input = _codeController.text.trim();
-                      
-                      // Ask Controller to validate
-                      bool isSuccess = _deviceLogic.pairDevice(input);
 
-                      if (isSuccess) {
-                        // Save the device ID so the home screen uses it
-                        final prefs = await SharedPreferences.getInstance();
-                        await prefs.setString('linked_device_id', input);
+                      if (input.isEmpty) {
+                        setState(() => _codeError = 'Please enter the device code');
+                        return;
+                      }
+
+                      setState(() {
+                        _isLoading = true;
+                        _codeError = null;
+                      });
+
+                      try {
+                        // Verify the device exists in the backend
+                        final device = await _apiService.getDevice(input);
+                        if (device == null) {
+                          setState(() {
+                            _codeError = 'Device not found. Please verify the device ID.';
+                            _isLoading = false;
+                          });
+                          return;
+                        }
+
+                        // Validate locally and save to SharedPreferences + Supabase
+                        _deviceLogic.pairDevice(input);
+                        await ProfileService.saveLinkedDevice(input);
 
                         if (context.mounted) {
-                          Navigator.push(
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
                               builder: (context) => const PatientDeviceConnected(),
                             ),
                           );
                         }
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Invalid Code! Please try again."),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Connection error: ${e.toString()}'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                        setState(() => _isLoading = false);
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -118,10 +142,19 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                       elevation: 4,
                       shadowColor: Colors.grey.withOpacity(0.5),
                     ),
-                    child: const Text(
-                      'Confirm',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : const Text(
+                            'Confirm',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
                   ),
                 ),
 
@@ -176,57 +209,7 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildCustomBottomNav(context),
-    );
-  }
-
-  // Navigation Bar 
-  Widget _buildCustomBottomNav(BuildContext context) {
-    return Container(
-      height: 80,
-      padding: const EdgeInsets.only(top: 10, bottom: 10),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(icon: Icons.home, label: "Home", isSelected: false, onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
-              );},),
-          _buildNavItem(icon: Icons.sensors, label: "Device", isSelected: true, onTap: () {
-            // Already on device page, do nothing
-          }),
-          _buildNavItem(icon: Icons.menu_book, label: "Trends &\nsummary", isSelected: false, onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => PatientSummaryOverview()),
-              );
-            },),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem({required IconData icon, required String label, required bool isSelected, required VoidCallback onTap,}) {
-    final Color itemColor = isSelected ? Colors.black : Colors.grey.shade400;
-    return GestureDetector(
-    onTap: onTap, // <--- Connects the tap to the action
-    behavior: HitTestBehavior.opaque, // Ensures the whole area is clickable
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 30, color: itemColor),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12, color: itemColor, height: 1.1),
-        ),
-      ],
-    ),
+      bottomNavigationBar: const PatientBottomNav(currentIndex: 1),
     );
   }
 }

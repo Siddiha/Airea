@@ -34,13 +34,38 @@ class _DoctorMoreDetailsState extends State<DoctorMoreDetails> {
   // ────────────────────────────────────────────────
 
   void _onFinish() {
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    final phoneRegex = RegExp(r'^(?:\+94|0)?7\d{8}$');
+    final mobile = _mobileController.text.trim();
+    final email = _emailController.text.trim();
+
+    // Type-safety checks (format validation)
+    if (mobile.isNotEmpty && !phoneRegex.hasMatch(mobile)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid phone number. Use format: 07XXXXXXXX or +947XXXXXXXX'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+    if (email.isNotEmpty && !emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid email address format'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     // Build a DoctorDetails object from current field values.
     final details = DoctorDetails(
       specialization:          _specializationController.text,
       medicalLicenseNumber:    _licenseController.text,
       clinicOrHospitalAddress: _addressController.text,
-      primaryMobileNumber:     _mobileController.text,
-      emailAddress:            _emailController.text,
+      primaryMobileNumber:     mobile,
+      emailAddress:            email,
     );
 
     final empty = details.emptyFields;

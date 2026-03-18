@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
+import '../widgets/bottom_nav_bar.dart';
 
 class PatientCoughCount extends StatelessWidget {
   const PatientCoughCount({super.key});
@@ -120,7 +121,7 @@ class PatientCoughCount extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context),
+      bottomNavigationBar: const PatientBottomNav(currentIndex: 0),
     );
   }
 
@@ -143,40 +144,6 @@ class PatientCoughCount extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomNav(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade300,
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        backgroundColor: Colors.white,
-        selectedItemColor: AppTheme.primaryTeal,
-        unselectedItemColor: Colors.grey,
-        currentIndex: 1,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.watch),
-            label: 'Device',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: 'Trends &\nsummary',
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // Custom painter for waveform

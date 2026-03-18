@@ -20,6 +20,7 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
 
   // 1. Add the controller to capture the Doctor's ID
   final TextEditingController _idController = TextEditingController();
+  String? _idError;
 
   Future<void> _handleConnect() async {
     final String doctorCodeInput = _idController.text.trim();
@@ -37,11 +38,17 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
     }
 
     if (doctorCodeInput.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a Doctor Code")),
-      );
+      setState(() => _idError = 'Please enter a Doctor Code');
       return;
     }
+
+    final codeRegex = RegExp(r'^[a-zA-Z0-9_-]+$');
+    if (!codeRegex.hasMatch(doctorCodeInput)) {
+      setState(() => _idError = 'Doctor code can only contain letters, numbers, hyphens, and underscores');
+      return;
+    }
+
+    setState(() => _idError = null);
 
     final url = Uri.parse('${ApiConfig.baseUrl}/connections/add-by-code');
 
@@ -120,6 +127,7 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
                 width: 350,
                 child: TextField(
                   controller: _idController, 
+                  onChanged: (_) => setState(() => _idError = null),
                   decoration: InputDecoration(
                     hintText: 'type',
                     filled: true,
@@ -128,6 +136,7 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
+                    errorText: _idError,
                   ),
                 ),
               ),

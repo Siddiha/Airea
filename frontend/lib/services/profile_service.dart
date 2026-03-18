@@ -44,6 +44,43 @@ class ProfileService {
     }
   }
 
+  static const _linkedDeviceKey = 'linked_device_id';
+
+  /// Save the linked device ID to local storage and sync to Supabase.
+  static Future<void> saveLinkedDevice(String deviceId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_linkedDeviceKey, deviceId);
+    await _syncDeviceToDatabase(deviceId);
+  }
+
+  /// Clear the linked device from local storage and Supabase.
+  static Future<void> clearLinkedDevice() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_linkedDeviceKey);
+    await _syncDeviceToDatabase(null);
+  }
+
+  static Future<void> _syncDeviceToDatabase(String? deviceId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+
+      if (user == null || user.email == null) {
+        print('⚠️ No authenticated user - device ID not synced to database');
+        return;
+      }
+
+      await supabase
+          .from('patients')
+          .update({'device_id': deviceId})
+          .eq('email', user.email!);
+
+      print('✅ Device ID synced to database: $deviceId');
+    } catch (e) {
+      print('❌ Failed to sync device ID to database: $e');
+    }
+  }
+
   /// Save an emergency contact entry.
   /// Also syncs to backend database to enable SMS alerts.
   static Future<void> saveEmergencyContact(PatientContact contact) async {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../models/summary_record.dart';
 import '../services/summary_service.dart';
+import '../widgets/bottom_nav_bar.dart';
 
 class PatientWeeklySummaryDetail extends StatefulWidget {
   final DateTime weekStart;
@@ -138,46 +139,7 @@ class _PatientWeeklySummaryDetailState extends State<PatientWeeklySummaryDetail>
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context),
-    );
-  }
-
-  Widget _buildBottomNav(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home, false),
-              _buildNavItem(Icons.wifi, false),
-              _buildNavItem(Icons.description, true),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, bool isActive) {
-    return IconButton(
-      icon: Icon(
-        icon,
-        color: isActive ? AppTheme.primaryTeal : Colors.grey,
-        size: 28,
-      ),
-      onPressed: () {},
+      bottomNavigationBar: const PatientBottomNav(currentIndex: 2),
     );
   }
 }

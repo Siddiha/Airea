@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'package:airea_cough_monitor/screens/patient_homescreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:intl/intl.dart';
 import '../models/cough_event.dart';
 import '../models/cough_statistics.dart';
 import '../services/api_service.dart';
-import 'device_screen.dart';
+import '../widgets/bottom_nav_bar.dart';
 
 class CoughAnalyzerScreen extends StatefulWidget {
   final String deviceId;
@@ -443,48 +442,7 @@ class _CoughAnalyzerScreenState extends State<CoughAnalyzerScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PatientHomeScreen(),
-                ),
-              );
-              break;
-            case 1:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const DeviceScreen(),
-                ),
-              );
-              break;
-            case 2:
-              // Navigate to Trends & Summary
-              break;
-          }
-        },
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.wifi_tethering),
-            label: 'Device',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book_outlined),
-            label: 'Trends &\nsummary',
-          ),
-        ],
-      ),
+      bottomNavigationBar: const PatientBottomNav(currentIndex: 0),
     );
   }
 

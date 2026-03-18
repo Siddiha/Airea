@@ -108,21 +108,34 @@ class _PatientMoreInfoState extends State<PatientMoreInfo> {
     if (ageText.isEmpty) {
       setState(() => _ageError = 'Age is required');
       hasError = true;
-    } else if (age == null || age <= 0) {
-      setState(() => _ageError = 'Please enter a valid age');
+    } else if (age == null) {
+      setState(() => _ageError = 'Age must be a whole number');
+      hasError = true;
+    } else if (age <= 0 || age > 150) {
+      setState(() => _ageError = 'Age must be between 1 and 150');
       hasError = true;
     }
 
     final height = int.tryParse(heightText);
-    if (heightText.isNotEmpty && (height == null || height <= 0)) {
-      setState(() => _heightError = 'Please enter a valid height');
-      hasError = true;
+    if (heightText.isNotEmpty) {
+      if (height == null) {
+        setState(() => _heightError = 'Height must be a whole number');
+        hasError = true;
+      } else if (height <= 0 || height > 300) {
+        setState(() => _heightError = 'Height must be between 1 and 300 cm');
+        hasError = true;
+      }
     }
 
     final weight = int.tryParse(weightText);
-    if (weightText.isNotEmpty && (weight == null || weight <= 0)) {
-      setState(() => _weightError = 'Please enter a valid weight');
-      hasError = true;
+    if (weightText.isNotEmpty) {
+      if (weight == null) {
+        setState(() => _weightError = 'Weight must be a whole number');
+        hasError = true;
+      } else if (weight <= 0 || weight > 500) {
+        setState(() => _weightError = 'Weight must be between 1 and 500 kg');
+        hasError = true;
+      }
     }
 
     if (hasError) return;

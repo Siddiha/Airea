@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/device_model.dart';
-import 'patient_connect_device_option.dart';
-import 'patient_summary_overview.dart';
+import '../widgets/bottom_nav_bar.dart';
 
 class PatientNotifications extends StatelessWidget {
   final List<PatientNotification> alerts;
@@ -70,60 +69,8 @@ class PatientNotifications extends StatelessWidget {
           ),
         ),
       ),
-      
       // --- Bottom Navigation Bar ---
-      bottomNavigationBar: Container(
-        height: 80,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(
-              icon: Icons.home_filled, 
-              label: "Home", 
-              isSelected: true, 
-              onTap: () {
-                Navigator.pop(context); 
-              }
-            ),
-            _buildNavItem(
-              icon: Icons.sensors, 
-              label: "Device", 
-              isSelected: false, 
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PatientConnectDeviceOption(), 
-                  ),
-                );
-              }
-            ),
-            _buildNavItem(
-              icon: Icons.menu_book_outlined, 
-              label: "Trends &\nsummary", 
-              isSelected: false, 
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => PatientSummaryOverview(),
-                  ),
-                );
-              }
-            ),
-          ],
-        ),
-      ),
+      bottomNavigationBar: const PatientBottomNav(currentIndex: 0),
     );
   }
 
@@ -181,36 +128,4 @@ class PatientNotifications extends StatelessWidget {
     );
   }
 
-  // Widget for Bottom Navigation Items
-  Widget _buildNavItem({
-    required IconData icon, 
-    required String label, 
-    required bool isSelected, 
-    required VoidCallback onTap
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isSelected ? Colors.black : Colors.grey,
-            size: 28,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 10,
-              color: isSelected ? Colors.black : Colors.grey,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../config/app_theme.dart';
-import 'patient_device_disconnected.dart';
 import 'patient_device_manual.dart';
-import 'patient_summary_overview.dart';
 import 'patient_homeScreen.dart';
-
-
-import '../models/device_model.dart'; 
+import '../models/device_model.dart';
+import '../services/profile_service.dart';
+import '../widgets/bottom_nav_bar.dart'; 
 
 class PatientDeviceDashboard extends StatefulWidget {
   const PatientDeviceDashboard({super.key});
@@ -236,7 +233,7 @@ class _PatientDeviceDashboardState extends State<PatientDeviceDashboard> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildCustomBottomNav(context),
+      bottomNavigationBar: const PatientBottomNav(currentIndex: 1),
     );
   }
 
@@ -263,8 +260,7 @@ class _PatientDeviceDashboardState extends State<PatientDeviceDashboard> {
               Navigator.pop(ctx); // close dialog
 
               controller.disconnectDevice();
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.remove('linked_device_id');
+              await ProfileService.clearLinkedDevice();
 
               if (context.mounted) {
                 // Go back to home, clearing device screens from the stack
@@ -287,78 +283,5 @@ class _PatientDeviceDashboardState extends State<PatientDeviceDashboard> {
     );
   }
 
-  // BOTTOM NAVIGATION 
-  Widget _buildCustomBottomNav(BuildContext context) {
-    return Container(
-      height: 100,
-      padding: const EdgeInsets.only(top: 10, bottom: 10),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.black12, width: 0.5)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(
-            icon: Icons.home,
-            label: "Home",
-            isSelected: false,
-            onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
-              );
-            },
-          ),
-          _buildNavItem(
-            icon: Icons.sensors,
-            label: "Device",
-            isSelected: true,
-            onTap: () {
-              // Already on device page, do nothing
-            },
-          ),
-          _buildNavItem(
-            icon: Icons.menu_book,
-            label: "Trends &\nsummary",
-            isSelected: false,
-            onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => PatientSummaryOverview()),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final Color itemColor = isSelected ? Colors.black : Colors.grey.shade400;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 30, color: itemColor),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: itemColor, height: 1.1),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
