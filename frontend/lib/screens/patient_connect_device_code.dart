@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../config/app_theme.dart';
 import 'patient_device_connected.dart';
 import 'patient_device_guidance.dart';
 import '../models/device_model.dart';
-import 'patient_homeScreen.dart';
-import 'patient_summary_overview.dart';
+import '../widgets/bottom_nav_bar.dart';
 
 
 class PatientConnectDeviceCode extends StatefulWidget {
@@ -93,7 +91,7 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                         await prefs.setString('linked_device_id', input);
 
                         if (context.mounted) {
-                          Navigator.push(
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
                               builder: (context) => const PatientDeviceConnected(),
@@ -176,57 +174,7 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildCustomBottomNav(context),
-    );
-  }
-
-  // Navigation Bar 
-  Widget _buildCustomBottomNav(BuildContext context) {
-    return Container(
-      height: 80,
-      padding: const EdgeInsets.only(top: 10, bottom: 10),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(icon: Icons.home, label: "Home", isSelected: false, onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
-              );},),
-          _buildNavItem(icon: Icons.sensors, label: "Device", isSelected: true, onTap: () {
-            // Already on device page, do nothing
-          }),
-          _buildNavItem(icon: Icons.menu_book, label: "Trends &\nsummary", isSelected: false, onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => PatientSummaryOverview()),
-              );
-            },),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem({required IconData icon, required String label, required bool isSelected, required VoidCallback onTap,}) {
-    final Color itemColor = isSelected ? Colors.black : Colors.grey.shade400;
-    return GestureDetector(
-    onTap: onTap, // <--- Connects the tap to the action
-    behavior: HitTestBehavior.opaque, // Ensures the whole area is clickable
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 30, color: itemColor),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12, color: itemColor, height: 1.1),
-        ),
-      ],
-    ),
+      bottomNavigationBar: const PatientBottomNav(currentIndex: 1),
     );
   }
 }

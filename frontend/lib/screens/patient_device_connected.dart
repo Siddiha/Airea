@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../config/app_theme.dart';
 import 'patient_device_dashboard.dart';
 
 class PatientDeviceConnected extends StatelessWidget {
@@ -20,12 +19,13 @@ class PatientDeviceConnected extends StatelessWidget {
                 child: IconButton(
                   icon: const Icon(Icons.close, size: 30, color: Colors.black),
                   onPressed: () {
-                     // Navigate to the Dashboard Page
-                    Navigator.pushReplacement(
+                    // Clear entire stack and go to dashboard via fresh home
+                    Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const PatientDeviceDashboard(),
                       ),
+                      (route) => false,
                     );
                   },
                 ),

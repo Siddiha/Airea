@@ -3,8 +3,7 @@ import '../config/app_theme.dart';
 import '../services/summary_service.dart';
 import 'patient_daily_calendar.dart';
 import 'patient_weekly_calendar.dart';
-import 'patient_homeScreen.dart';
-import 'patient_connect_device_option.dart';
+import '../widgets/bottom_nav_bar.dart';
 
 class PatientSummaryOverview extends StatelessWidget {
   final SummaryService _summaryService = SummaryService();
@@ -106,7 +105,7 @@ class PatientSummaryOverview extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context),
+      bottomNavigationBar: const PatientBottomNav(currentIndex: 2),
     );
   }
 
@@ -124,93 +123,6 @@ class PatientSummaryOverview extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (context) => PatientWeeklyCalendar(summaryService: _summaryService),
-      ),
-    );
-  }
-
-  Widget _buildBottomNav(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(
-                icon: Icons.home,
-                label: "Home",
-                isActive: false,
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const PatientHomeScreen(),
-                    ),
-                  );
-                },
-              ),
-              _buildNavItem(
-                icon: Icons.wifi,
-                label: "Device",
-                isActive: false,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const PatientConnectDeviceOption(),
-                    ),
-                  );
-                },
-              ),
-              _buildNavItem(
-                icon: Icons.description,
-                label: "Summary",
-                isActive: true,
-                onTap: () {},
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? AppTheme.primaryTeal : Colors.grey,
-            size: 28,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: isActive ? AppTheme.primaryTeal : Colors.grey,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-        ],
       ),
     );
   }

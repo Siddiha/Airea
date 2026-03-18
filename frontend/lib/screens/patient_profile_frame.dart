@@ -3,8 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'patient_homeScreen.dart';
-import 'device_screen.dart';
+import '../widgets/bottom_nav_bar.dart';
 import 'patient_edit_emergency_contact.dart';
 import 'patient_edit_medical_details.dart';
 import '../services/profile_service.dart';
@@ -182,48 +181,7 @@ class PatientProfileFrame extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PatientHomeScreen(),
-                ),
-              );
-              break;
-            case 1:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const DeviceScreen(),
-                ),
-              );
-              break;
-  case 2:
-    // TODO: Implement PatientSummaryPage
-    break;
-}
-        },
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.wifi_tethering),
-            label: 'Device',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book_outlined),
-            label: 'Trends &\nsummary',
-          ),
-        ],
-      ),
+      bottomNavigationBar: const PatientBottomNav(currentIndex: 0),
     ); // Added closing parenthesis and semicolon for Scaffold
   } // Added closing brace for build method
 
