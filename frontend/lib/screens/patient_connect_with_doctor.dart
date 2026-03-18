@@ -6,6 +6,8 @@ import 'patient_pending_message.dart';
 import 'patient_guidance_to_connect_with_doctor.dart';
 import 'patient_homeScreen.dart';
 import '../config/api_config.dart';
+import 'patient_summary_overview.dart';
+import 'patient_connect_device_option.dart';
 
 class PatientConnectWithDoctor extends StatefulWidget {
   const PatientConnectWithDoctor({super.key});
@@ -89,7 +91,26 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
         MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
         (route) => false,
       );
-    } else {
+    } 
+    else if (index == 1) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const PatientConnectDeviceOption(),
+      ),
+    );
+  } 
+     else if (index == 2) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PatientSummaryOverview(),
+      ),
+    );
+  } 
+    
+    
+    else {
       setState(() {
         _selectedIndex = index;
       });
@@ -163,7 +184,7 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
               const Text(
                 "Please contact with doctor to get his/her id",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13),
+                style: TextStyle(fontSize: 15),
               ),
               const SizedBox(height: 8),
 
