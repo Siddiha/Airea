@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../config/app_theme.dart';
 import 'edit_doctor_details.dart';
 import 'doctor_logout.dart';
 import 'doctor_manage_patients_screen.dart';
@@ -78,16 +79,8 @@ class DoctorProfileFrame extends StatelessWidget {
   Widget _buildButton(BuildContext context, String text) {
     return SizedBox(
       width: double.infinity,
-      height: 55,
       child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF66A399),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-          elevation: 2,
-          shadowColor: Colors.black.withOpacity(0.1),
-        ),
+        style: AppTheme.menuButton(),
         onPressed: () async {
           if (text == "Edit additional details") {
             Navigator.push(
@@ -156,14 +149,7 @@ class DoctorProfileFrame extends StatelessWidget {
             );
           }
         },
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
-          ),
-        ),
+        child: Text(text),
       ),
     );
   }

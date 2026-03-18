@@ -177,14 +177,7 @@ class _DoctorCreateAccountState extends State<DoctorCreateAccount> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handleContinue,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryTeal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
+                  style: AppTheme.primaryButton(),
                   child: _isLoading
                       ? const SizedBox(
                           height: 20,
@@ -194,10 +187,7 @@ class _DoctorCreateAccountState extends State<DoctorCreateAccount> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Continue',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                        ),
+                      : const Text('Continue'),
                 ),
               ),
               const SizedBox(height: 16),

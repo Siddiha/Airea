@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import '../services/auth_service.dart';
 
 class NewPasswordScreen extends StatefulWidget {
@@ -94,11 +95,18 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
             const SizedBox(height: 25),
             SizedBox(
               width: double.infinity,
-              height: 50,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _handleUpdate,
+                style: AppTheme.primaryButton(),
                 child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : const Text('Update Password'),
               ),
             ),

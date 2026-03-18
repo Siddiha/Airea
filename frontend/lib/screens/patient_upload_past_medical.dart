@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
+import '../config/app_theme.dart';
 import '../models/medical_report_model.dart';
 import '../models/registration_data.dart';
 import '../services/profile_service.dart';
@@ -142,14 +143,10 @@ class _UploadReportsScreenState extends State<UploadReportsScreen> {
               const Spacer(),
               SizedBox(
                 width: double.infinity,
-                height: 56,
                 child: ElevatedButton(
                   onPressed: _handleContinue,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0D214F),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                  ),
-                  child: const Text("Next", style: TextStyle(fontSize: 18, color: Colors.white)),
+                  style: AppTheme.primaryButton(),
+                  child: const Text('Next'),
                 ),
               ),
             ],

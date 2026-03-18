@@ -198,21 +198,8 @@ class _DoctorAccountCreatedState extends State<DoctorAccountCreated> {
                           (route) => false,
                         );
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryTeal,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: const Text(
-                        'Try Sign Up Again',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      style: AppTheme.primaryButton(),
+                      child: const Text('Try Sign Up Again'),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -229,24 +216,8 @@ class _DoctorAccountCreatedState extends State<DoctorAccountCreated> {
                           (route) => false,
                         );
                       },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.primaryTeal,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        side: const BorderSide(
-                          color: AppTheme.primaryTeal,
-                          width: 2,
-                        ),
-                      ),
-                      child: const Text(
-                        'Go to Login',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      style: AppTheme.outlineButton(),
+                      child: const Text('Go to Login'),
                     ),
                   ),
                 ],

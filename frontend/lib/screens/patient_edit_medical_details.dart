@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import '../models/patient_medical_info.dart';
 import '../services/profile_service.dart';
 import 'patient_profile_frame.dart';
@@ -136,13 +137,9 @@ class _MedicalInputScreenState extends State<EditMedicalInfo> {
               const SizedBox(height: 40),
               Center(
                 child: SizedBox(
-                  width: 200,
-                  height: 55,
+                  width: 220,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF132348),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                    ),
+                    style: AppTheme.primaryButton(),
                     onPressed: () async {
                       // Data validation and parsing
                       final ageText = _ageController.text.trim();
@@ -216,7 +213,7 @@ class _MedicalInputScreenState extends State<EditMedicalInfo> {
                           ),
                         );
                     },
-                    child: const Text("Confirm", style: TextStyle(color: Colors.white, fontSize: 18)),
+                    child: const Text("Confirm"),
                   ),
                 ),
               ),
@@ -241,9 +238,21 @@ class _MedicalInputScreenState extends State<EditMedicalInfo> {
       ),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: icon != null ? Icon(icon) : null,
+        labelStyle: TextStyle(color: Colors.grey.shade500),
+        prefixIcon: icon != null ? Icon(icon, color: AppTheme.inputIconColor) : null,
+        filled: true,
+        fillColor: AppTheme.inputFillColor,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppTheme.primaryTeal, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         errorText: errorText,

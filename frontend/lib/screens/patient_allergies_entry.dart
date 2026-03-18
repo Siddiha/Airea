@@ -193,19 +193,8 @@ class _PatientAllergiesState extends State<PatientAllergies> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _completeRegistration,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryTeal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Finish',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                  style: AppTheme.primaryButton(),
+                  child: const Text('Finish'),
                 ),
               ),
               const SizedBox(height: 8),

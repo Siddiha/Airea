@@ -27,7 +27,7 @@ class CustomButton extends StatelessWidget {
         child: OutlinedButton(
           onPressed: onPressed,
           style: AppTheme.outlineButton(),
-          child: Text(text),
+          child: Text(text, style: AppTheme.buttonTextStyle),
         ),
       );
     }
@@ -36,21 +36,20 @@ class CustomButton extends StatelessWidget {
       width: width,
       child: ElevatedButton(
         onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor ?? (isPrimary ? AppTheme.primaryTeal : AppTheme.darkBlue),
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-          elevation: 2,
-        ),
+        style: isPrimary
+            ? AppTheme.primaryButton().copyWith(
+                backgroundColor: backgroundColor != null
+                    ? WidgetStatePropertyAll(backgroundColor)
+                    : null,
+              )
+            : AppTheme.secondaryButton().copyWith(
+                backgroundColor: backgroundColor != null
+                    ? WidgetStatePropertyAll(backgroundColor)
+                    : null,
+              ),
         child: Text(
           text,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppTheme.buttonTextStyle,
         ),
       ),
     );

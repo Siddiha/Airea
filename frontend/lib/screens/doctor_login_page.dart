@@ -7,6 +7,7 @@ import 'doctor_home_screen.dart';
 import '../services/auth_service.dart';
 import '../services/doctor_patient_service.dart';
 import '../config/api_config.dart';
+import '../config/app_theme.dart';
 import 'doctor_create_account.dart';
 import 'forgot_password_screen.dart';
 
@@ -244,18 +245,10 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
 
                 // Login Button
                 SizedBox(
-                  width: 200,
+                  width: 220,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1B3A5F),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      elevation: 3,
-                    ),
+                    style: AppTheme.primaryButton(),
                     child: _isLoading
                         ? const SizedBox(
                             height: 20,
@@ -265,13 +258,7 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text(
-                            'Login',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                        : const Text('Login'),
                   ),
                 ),
 

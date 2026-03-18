@@ -46,7 +46,7 @@ class WelcomePage extends StatelessWidget {
 
               // Get Started Button
               SizedBox(
-                width: 200,
+                width: 220,
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.push(
@@ -56,22 +56,8 @@ class WelcomePage extends StatelessWidget {
                       //builder: (context) => const PatientProfileFrame()), // Dont delete
                     );
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.darkBlue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 3,
-                  ),
-                  child: const Text(
-                    'Get started',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  style: AppTheme.primaryButton(),
+                  child: const Text('Get started'),
                 ),
               ),
 

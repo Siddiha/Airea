@@ -9,6 +9,7 @@ import 'patient_connect_device_option.dart';
 import 'patient_device_dashboard.dart';
 import 'cough_analyzer_screen.dart';
 import 'doctor_details.dart';
+import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../services/doctor_patient_service.dart';
 import '../models/device_model.dart';
@@ -522,7 +523,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                             CoughAnalyzerScreen(deviceId: _deviceId!)))
                 : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4DB6AC),
+              backgroundColor: AppTheme.primaryTeal,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
@@ -565,7 +566,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           ElevatedButton(
             onPressed: onTap,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4DB6AC),
+              backgroundColor: AppTheme.primaryTeal,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
@@ -619,10 +620,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               height: 44,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF4DB6AC).withValues(alpha: 0.15),
+                color: AppTheme.primaryTeal.withValues(alpha: 0.15),
               ),
               child: const Icon(Icons.medical_services_outlined,
-                  color: Color(0xFF4DB6AC), size: 24),
+                  color: AppTheme.primaryTeal, size: 24),
             ),
             const SizedBox(width: 12),
             Expanded(

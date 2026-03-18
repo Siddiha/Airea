@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_theme.dart';
 import 'connection_success_screen.dart';
 
 class AireaSetupScreen extends StatefulWidget {
@@ -206,8 +207,21 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
               onChanged: (_) => setState(() => _ssidError = null),
               decoration: InputDecoration(
                 labelText: 'Home Wi-Fi Name (SSID)',
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.wifi),
+                filled: true,
+                fillColor: AppTheme.inputFillColor,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: AppTheme.primaryTeal, width: 1.5),
+                ),
+                prefixIcon: const Icon(Icons.wifi, color: AppTheme.inputIconColor),
                 errorText: _ssidError,
               ),
             ),
@@ -219,24 +233,30 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
               onChanged: (_) => setState(() => _passwordError = null),
               decoration: InputDecoration(
                 labelText: 'Wi-Fi Password',
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.lock),
+                filled: true,
+                fillColor: AppTheme.inputFillColor,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: AppTheme.primaryTeal, width: 1.5),
+                ),
+                prefixIcon: const Icon(Icons.lock, color: AppTheme.inputIconColor),
                 errorText: _passwordError,
               ),
             ),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
-              height: 55,
               child: ElevatedButton(
                 onPressed: _isConnecting ? null : _sendCredentialsToESP32,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF66A399),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
+                style: AppTheme.primaryButton(),
                 child: _isConnecting
                     ? const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -257,11 +277,7 @@ class _AireaSetupScreenState extends State<AireaSetupScreen> {
                           ),
                         ],
                       )
-                    : const Text(
-                        'Send to Airea Board',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w500),
-                      ),
+                    : const Text('Send to Airea Board'),
               ),
             ),
             // We can keep the manual link as a backup

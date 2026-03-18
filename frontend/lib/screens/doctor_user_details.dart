@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import '../models/doctor_details.dart';
 
 class DoctorMoreDetails extends StatefulWidget {
@@ -203,19 +204,8 @@ class _DoctorMoreDetailsState extends State<DoctorMoreDetails> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _onFinish,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A2B5F),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Finish',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-                  ),
+                  style: AppTheme.primaryButton(),
+                  child: const Text('Finish'),
                 ),
               ),
               const SizedBox(height: 28),

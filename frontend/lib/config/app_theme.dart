@@ -15,6 +15,10 @@ class AppTheme {
   static const Color backgroundColor = Color(0xFFF5F5F5);
   static const Color cardBackground = Colors.white;
 
+  // Input Field Colors
+  static const Color inputFillColor = Color(0xFFF0F5F3);    // Light mint tint
+  static const Color inputIconColor = Color(0xFF90BEB3);     // Soft teal for icons
+
   // Text Colors
   static const Color textPrimary = Color(0xFF212121);
   static const Color textSecondary = Color(0xFF757575);
@@ -39,16 +43,17 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryTeal,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          minimumSize: const Size(0, buttonHeight),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(buttonRadius),
           ),
-          elevation: 2,
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          elevation: buttonElevation,
+          textStyle: buttonTextStyle,
         ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: outlineButton(),
       ),
 
       cardTheme: CardThemeData(
@@ -61,16 +66,25 @@ class AppTheme {
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFFE8E8E8),
+        fillColor: inputFillColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(25),
           borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(25),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(25),
+          borderSide: const BorderSide(color: primaryTeal, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         hintStyle: const TextStyle(
           color: textHint,
           fontSize: 14,
         ),
+        prefixIconColor: inputIconColor,
       ),
 
       colorScheme: ColorScheme.fromSeed(
@@ -81,41 +95,95 @@ class AppTheme {
     );
   }
 
-  // Button Styles
-  static ButtonStyle primaryButton() {
-    return ElevatedButton.styleFrom(
-      backgroundColor: primaryTeal,
-      foregroundColor: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
-      ),
-      elevation: 2,
-    );
-  }
+  // ── Standard Button Dimensions ──
+  static const double buttonHeight = 52;
+  static const double buttonRadius = 30;
+  static const double buttonFontSize = 16;
+  static const FontWeight buttonFontWeight = FontWeight.w600;
+  static const double buttonElevation = 2;
 
-  static ButtonStyle darkButton() {
+  // ── Button Text Style ──
+  static const TextStyle buttonTextStyle = TextStyle(
+    fontSize: buttonFontSize,
+    fontWeight: buttonFontWeight,
+  );
+
+  // ── Primary Action (Save, Submit, Confirm, Login, Continue) — Dark Blue ──
+  static ButtonStyle primaryButton() {
     return ElevatedButton.styleFrom(
       backgroundColor: darkBlue,
       foregroundColor: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+      minimumSize: const Size(0, buttonHeight),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(buttonRadius),
       ),
-      elevation: 2,
+      elevation: buttonElevation,
+      textStyle: buttonTextStyle,
     );
   }
 
+  // ── Secondary Action (Yes, No, Back, Guidance, View, navigation) — Teal ──
+  static ButtonStyle secondaryButton() {
+    return ElevatedButton.styleFrom(
+      backgroundColor: primaryTeal,
+      foregroundColor: Colors.white,
+      minimumSize: const Size(0, buttonHeight),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(buttonRadius),
+      ),
+      elevation: buttonElevation,
+      textStyle: buttonTextStyle,
+    );
+  }
+
+  // ── Danger Action (Disconnect, Remove) — Red ──
+  static ButtonStyle dangerButton() {
+    return ElevatedButton.styleFrom(
+      backgroundColor: criticalRed,
+      foregroundColor: Colors.white,
+      minimumSize: const Size(0, buttonHeight),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(buttonRadius),
+      ),
+      elevation: buttonElevation,
+      textStyle: buttonTextStyle,
+    );
+  }
+
+  // ── Outline / Tertiary (Go to Login, Cancel) ──
   static ButtonStyle outlineButton() {
     return OutlinedButton.styleFrom(
       foregroundColor: primaryTeal,
       side: const BorderSide(color: primaryTeal, width: 2),
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+      minimumSize: const Size(0, buttonHeight),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(buttonRadius),
       ),
+      textStyle: buttonTextStyle,
     );
   }
+
+  // ── Menu / Profile buttons (full-width teal) ──
+  static ButtonStyle menuButton() {
+    return ElevatedButton.styleFrom(
+      backgroundColor: primaryTeal,
+      foregroundColor: Colors.white,
+      minimumSize: const Size(double.infinity, buttonHeight),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(buttonRadius),
+      ),
+      elevation: 0,
+      textStyle: buttonTextStyle,
+    );
+  }
+
+  // Legacy alias
+  static ButtonStyle darkButton() => primaryButton();
 
   // Text Styles
   static const TextStyle heading1 = TextStyle(

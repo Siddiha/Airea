@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import 'doctor_patient_removed_success_screen.dart';
 
 class DoctorRemovePatientScreen extends StatelessWidget {
@@ -29,33 +30,14 @@ class DoctorRemovePatientScreen extends StatelessWidget {
               const SizedBox(height: 40), 
 
               // --- YES Button ---
-              GestureDetector(
-                onTap: () {
-                  Navigator.pop(context, true); 
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF66A399), 
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: const Text(
-                    "Yes",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 20,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context, true); 
+                  },
+                  style: AppTheme.secondaryButton(),
+                  child: const Text('Yes'),
                 ),
               ),
 
@@ -73,33 +55,14 @@ class DoctorRemovePatientScreen extends StatelessWidget {
               const SizedBox(height: 15),
 
               // --- NO Button ---
-              GestureDetector(
-                onTap: () {
-                  Navigator.pop(context, false); 
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF66A399), 
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: const Text(
-                    "No",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 20,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context, false); 
+                  },
+                  style: AppTheme.secondaryButton(),
+                  child: const Text('No'),
                 ),
               ),
 

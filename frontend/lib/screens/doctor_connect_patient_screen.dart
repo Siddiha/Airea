@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import '../services/doctor_patient_service.dart';
 
 class DoctorConnectPatientScreen extends StatefulWidget {
@@ -164,9 +165,13 @@ class _DoctorConnectPatientScreenState extends State<DoctorConnectPatientScreen>
           const SizedBox(height: 30),
           _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : _buildButton(
-                  label: 'Connect',
-                  onPressed: _handleConnect,
+              : SizedBox(
+                  height: AppTheme.buttonHeight,
+                  child: ElevatedButton(
+                    onPressed: _handleConnect,
+                    style: AppTheme.primaryButton(),
+                    child: const Text('Connect'),
+                  ),
                 ),
           const SizedBox(height: 15),
           _buildButton(
@@ -189,11 +194,20 @@ class _DoctorConnectPatientScreenState extends State<DoctorConnectPatientScreen>
       enabled: enabled,
       decoration: InputDecoration(
         hintText: hintText,
+        labelText: 'Patient Code',
         filled: true,
-        fillColor: const Color(0xFFD9E2E8),
+        fillColor: AppTheme.inputFillColor,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(50),
           borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(50),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(50),
+          borderSide: const BorderSide(color: AppTheme.primaryTeal, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,
@@ -209,23 +223,11 @@ class _DoctorConnectPatientScreenState extends State<DoctorConnectPatientScreen>
     bool isSecondary = false,
   }) {
     return SizedBox(
-      height: 55,
+      height: AppTheme.buttonHeight,
       child: ElevatedButton(
         onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF66A399),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        style: isSecondary ? AppTheme.secondaryButton() : AppTheme.secondaryButton(),
+        child: Text(label),
       ),
     );
   }

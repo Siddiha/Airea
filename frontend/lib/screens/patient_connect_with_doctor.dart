@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; 
 import 'dart:convert'; 
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_theme.dart';
 import 'patient_pending_message.dart';
 import 'patient_guidance_to_connect_with_doctor.dart';
 import 'patient_homeScreen.dart';
@@ -150,12 +151,21 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
                   controller: _idController, 
                   onChanged: (_) => setState(() => _idError = null),
                   decoration: InputDecoration(
-                    hintText: 'type',
+                    hintText: 'Enter doctor ID',
+                    labelText: 'Doctor ID',
                     filled: true,
-                    fillColor: Colors.grey.shade200,
+                    fillColor: AppTheme.inputFillColor,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(50),
                       borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                      borderSide: const BorderSide(color: AppTheme.primaryTeal, width: 1.5),
                     ),
                     errorText: _idError,
                   ),
@@ -167,14 +177,8 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
               // 4. Confirm Button now calls _handleConnect
               SizedBox(
                 width: 220,
-                height: 45,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                  ),
+                  style: AppTheme.primaryButton(),
                   onPressed: _handleConnect, 
                   child: const Text("Confirm"),
                 ),
@@ -191,12 +195,7 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
               SizedBox(
                 width: 260,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                  ),
+                  style: AppTheme.secondaryButton(),
                   onPressed: () {
                     Navigator.push(
                       context,

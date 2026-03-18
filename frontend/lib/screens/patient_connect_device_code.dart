@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import 'patient_device_connected.dart';
 import 'patient_device_guidance.dart';
 import '../models/device_model.dart';
@@ -56,34 +57,41 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                 const SizedBox(height: 30),
 
                 // 2. Input Field
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFC7D0D5),
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  child: TextField(
-                    controller: _codeController,
-                    textAlign: TextAlign.left,
-                    keyboardType: TextInputType.text,
-                    onChanged: (_) => setState(() => _codeError = null),
-                    decoration: InputDecoration(
-                      hintText: 'type',
-                      hintStyle: const TextStyle(color: Colors.black54, fontSize: 16),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 14),
-                      errorText: _codeError,
-                      errorStyle: const TextStyle(fontSize: 12),
+                TextField(
+                  controller: _codeController,
+                  textAlign: TextAlign.left,
+                  keyboardType: TextInputType.text,
+                  onChanged: (_) => setState(() => _codeError = null),
+                  decoration: InputDecoration(
+                    hintText: 'Enter device code',
+                    labelText: 'Device ID',
+                    hintStyle: const TextStyle(color: Colors.black38, fontSize: 16),
+                    filled: true,
+                    fillColor: AppTheme.inputFillColor,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                      borderSide: BorderSide.none,
                     ),
-                    style: const TextStyle(fontSize: 18),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                      borderSide: const BorderSide(color: AppTheme.primaryTeal, width: 1.5),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 14),
+                    errorText: _codeError,
+                    errorStyle: const TextStyle(fontSize: 12),
                   ),
+                  style: const TextStyle(fontSize: 18),
                 ),
 
                 const SizedBox(height: 30),
 
                 // 3. Confirm Button
                 SizedBox(
-                  width: 180,
-                  height: 50,
+                  width: 220,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : () async {
                       String input = _codeController.text.trim();
@@ -133,15 +141,7 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                         setState(() => _isLoading = false);
                       }
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF5F9EA0),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      elevation: 4,
-                      shadowColor: Colors.grey.withOpacity(0.5),
-                    ),
+                    style: AppTheme.primaryButton(),
                     child: _isLoading
                         ? const SizedBox(
                             width: 22,
@@ -151,10 +151,7 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                               strokeWidth: 2.5,
                             ),
                           )
-                        : const Text(
-                            'Confirm',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
+                        : const Text('Confirm'),
                   ),
                 ),
 
@@ -176,8 +173,7 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
 
                 // 5. Guidance Button
                 SizedBox(
-                  width: 180,
-                  height: 50,
+                  width: 220,
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.push(
@@ -187,19 +183,8 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                         ),
                       );
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF5F9EA0),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      elevation: 4,
-                      shadowColor: Colors.grey.withOpacity(0.5),
-                    ),
-                    child: const Text(
-                      'Guidance',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
+                    style: AppTheme.secondaryButton(),
+                    child: const Text('Guidance'),
                   ),
                 ),
 
