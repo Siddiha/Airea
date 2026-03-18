@@ -5,6 +5,7 @@ import '../repositories/summary_repository.dart';
 import '../services/summary_service.dart';
 import '../widgets/custom_calendar_widget.dart';
 import 'daily_summary_detail_screen_new.dart';
+import '../widgets/bottom_nav_bar.dart';
 
 class PatientDailyCalendar extends StatefulWidget {
   final SummaryService summaryService;
@@ -85,7 +86,7 @@ class _PatientDailyCalendarState extends State<PatientDailyCalendar> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context),
+      bottomNavigationBar: const PatientBottomNav(currentIndex: 2),
     );
   }
 
@@ -103,42 +104,4 @@ class _PatientDailyCalendarState extends State<PatientDailyCalendar> {
     );
   }
 
-  Widget _buildBottomNav(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home, false),
-              _buildNavItem(Icons.wifi, false),
-              _buildNavItem(Icons.description, true),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, bool isActive) {
-    return IconButton(
-      icon: Icon(
-        icon,
-        color: isActive ? AppTheme.primaryTeal : Colors.grey,
-        size: 28,
-      ),
-      onPressed: () {},
-    );
-  }
 }

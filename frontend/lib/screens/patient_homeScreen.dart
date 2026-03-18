@@ -7,14 +7,13 @@ import 'patient_notifications.dart';
 import 'patient_profile_frame.dart';
 import 'patient_connect_device_option.dart';
 import 'patient_device_dashboard.dart';
-import 'patient_summary_overview.dart';
 import 'cough_analyzer_screen.dart';
 import 'doctor_details.dart';
 import '../services/api_service.dart';
 import '../services/doctor_patient_service.dart';
-import '../config/api_config.dart';
 import '../models/device_model.dart';
 import 'patient_contact_doctor.dart';
+import '../widgets/bottom_nav_bar.dart';
 
 class PatientHomeScreen extends StatefulWidget {
   const PatientHomeScreen({super.key});
@@ -39,7 +38,6 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   String coughStatus = "No device connected";
 
   List<PatientNotification> _alerts = [];
-  int _selectedIndex = 0;
   Timer? _refreshTimer;
   Map<String, dynamic>? _connectedDoctor;
   String _userName = 'user';
@@ -58,18 +56,16 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     final linkedId = prefs.getString('linked_device_id');
-    final effectiveDeviceId = (linkedId == null || linkedId.isEmpty)
-        ? ApiConfig.defaultDeviceId
-        : linkedId;
+    final hasLinkedDevice = linkedId != null && linkedId.isNotEmpty;
     final savedName = prefs.getString('user_full_name');
     if (mounted) {
       setState(() {
-        _deviceId = effectiveDeviceId;
+        _deviceId = hasLinkedDevice ? linkedId : null;
         if (savedName != null && savedName.isNotEmpty) {
           _userName = savedName;
         }
         // Reset vitals display when no device is linked, but keep _alerts intact
-        if (_deviceId == null || _deviceId!.isEmpty) {
+        if (!hasLinkedDevice) {
           temperature = 0.0;
           temperatureStatus = "No device connected";
           heartRate = 0;
@@ -323,7 +319,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: const PatientBottomNav(currentIndex: 0),
     );
   }
 
@@ -655,89 +651,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     );
   }
 
-  Widget _buildBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 3))
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(
-                  icon: Icons.home,
-                  label: "Home",
-                  isSelected: _selectedIndex == 0,
-                  onTap: () => setState(() => _selectedIndex = 0)),
-              _buildNavItem(
-                  icon: Icons.sensors,
-                  label: "Device",
-                  isSelected: _selectedIndex == 1,
-                  onTap: () {
-                    setState(() => _selectedIndex = 1);
-                    final destination =
-                        _deviceId != null && _deviceId!.isNotEmpty
-                            ? const PatientDeviceDashboard()
-                            : const PatientConnectDeviceOption();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => destination),
-                    ).then((_) => _initDeviceAndLoad());
-                  }),
-              _buildNavItem(
-                  icon: Icons.menu_book_outlined,
-                  label: "Trends &\nsummary",
-                  isSelected: _selectedIndex == 2,
-                  onTap: () {
-                    setState(() => _selectedIndex = 2);
-                    Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => PatientSummaryOverview()));
-                  }),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildNavItem(
-      {required IconData icon,
-      required String label,
-      required bool isSelected,
-      required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon,
-                color: isSelected ? Colors.black87 : Colors.grey, size: 24),
-            const SizedBox(height: 4),
-            Text(label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 10,
-                    color: isSelected ? Colors.black87 : Colors.grey,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.normal)),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 // Updated ECG Painter to draw a flatline if leads are disconnected
