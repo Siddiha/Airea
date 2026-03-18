@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import 'new_password_screen.dart';
 
@@ -20,10 +21,26 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final _otpController = TextEditingController();
   final _authService = AuthService();
   bool _isLoading = false;
+  String? _otpError;
 
   Future<void> _handleVerify() async {
     final otp = _otpController.text.trim();
-    if (otp.length < 6) return;
+    final digitsOnly = RegExp(r'^\d+$');
+
+    setState(() => _otpError = null);
+
+    if (otp.isEmpty) {
+      setState(() => _otpError = 'Please enter the verification code');
+      return;
+    }
+    if (!digitsOnly.hasMatch(otp)) {
+      setState(() => _otpError = 'Code must contain only digits');
+      return;
+    }
+    if (otp.length < 6) {
+      setState(() => _otpError = 'Code must be exactly 6 digits');
+      return;
+    }
 
     setState(() => _isLoading = true);
     final result =
@@ -55,8 +72,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               controller: _otpController,
               textAlign: TextAlign.center,
               maxLength: 6,
-              decoration: const InputDecoration(
-                  hintText: '000000', border: OutlineInputBorder()),
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              onChanged: (_) => setState(() => _otpError = null),
+              decoration: InputDecoration(
+                  hintText: '000000',
+                  border: const OutlineInputBorder(),
+                  errorText: _otpError),
             ),
             const SizedBox(height: 20),
             ElevatedButton(

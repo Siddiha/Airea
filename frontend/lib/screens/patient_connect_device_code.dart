@@ -16,6 +16,7 @@ class PatientConnectDeviceCode extends StatefulWidget {
 class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
   final TextEditingController _codeController = TextEditingController();
   final DeviceController _deviceLogic = DeviceController();
+  String? _codeError;
 
   @override
   void dispose() {
@@ -61,11 +62,14 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                     controller: _codeController, 
                     textAlign: TextAlign.left,
                     keyboardType: TextInputType.number, 
-                    decoration: const InputDecoration(
+                    onChanged: (_) => setState(() => _codeError = null),
+                    decoration: InputDecoration(
                       hintText: 'type',
-                      hintStyle: TextStyle(color: Colors.black54, fontSize: 16),
+                      hintStyle: const TextStyle(color: Colors.black54, fontSize: 16),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 25, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 14),
+                      errorText: _codeError,
+                      errorStyle: const TextStyle(fontSize: 12),
                     ),
                     style: const TextStyle(fontSize: 18),
                   ),
@@ -79,10 +83,18 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                   height: 50,
                   child: ElevatedButton(
                     onPressed: () async {
-                      // Get the text from the box
                       String input = _codeController.text.trim();
-                      
-                      // Ask Controller to validate
+                      final digitsOnly = RegExp(r'^\d+$');
+
+                      if (input.isEmpty) {
+                        setState(() => _codeError = 'Please enter the device code');
+                        return;
+                      }
+                      if (!digitsOnly.hasMatch(input)) {
+                        setState(() => _codeError = 'Device code must contain only digits');
+                        return;
+                      }
+
                       bool isSuccess = _deviceLogic.pairDevice(input);
 
                       if (isSuccess) {

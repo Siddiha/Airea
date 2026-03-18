@@ -13,21 +13,36 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
   final _confirmController = TextEditingController();
   final _authService = AuthService();
   bool _isLoading = false;
+  String? _passError;
+  String? _confirmError;
 
   Future<void> _handleUpdate() async {
     final pass = _passController.text;
     final confirm = _confirmController.text;
+    bool hasError = false;
 
-    if (pass != confirm) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Passwords do not match')));
-      return;
+    setState(() {
+      _passError = null;
+      _confirmError = null;
+    });
+
+    if (pass.isEmpty) {
+      setState(() => _passError = 'Password is required');
+      hasError = true;
+    } else if (pass.length < 6) {
+      setState(() => _passError = 'Password must be at least 6 characters');
+      hasError = true;
     }
-    if (pass.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Password must be at least 6 characters')));
-      return;
+
+    if (confirm.isEmpty) {
+      setState(() => _confirmError = 'Please confirm your password');
+      hasError = true;
+    } else if (pass != confirm) {
+      setState(() => _confirmError = 'Passwords do not match');
+      hasError = true;
     }
+
+    if (hasError) return;
 
     setState(() => _isLoading = true);
     final result = await _authService.updatePassword(pass);
@@ -60,15 +75,21 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
             TextField(
               controller: _passController,
               obscureText: true,
-              decoration: const InputDecoration(
-                  labelText: 'New Password', border: OutlineInputBorder()),
+              onChanged: (_) => setState(() => _passError = null),
+              decoration: InputDecoration(
+                  labelText: 'New Password',
+                  border: const OutlineInputBorder(),
+                  errorText: _passError),
             ),
             const SizedBox(height: 15),
             TextField(
               controller: _confirmController,
               obscureText: true,
-              decoration: const InputDecoration(
-                  labelText: 'Confirm Password', border: OutlineInputBorder()),
+              onChanged: (_) => setState(() => _confirmError = null),
+              decoration: InputDecoration(
+                  labelText: 'Confirm Password',
+                  border: const OutlineInputBorder(),
+                  errorText: _confirmError),
             ),
             const SizedBox(height: 25),
             SizedBox(

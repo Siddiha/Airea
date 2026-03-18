@@ -212,7 +212,19 @@ class _DeviceScreenState extends State<DeviceScreen> {
           ElevatedButton(
             onPressed: () async {
               final deviceId = deviceIdController.text.trim();
-              if (deviceId.isEmpty) return;
+              if (deviceId.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Device ID is required')),
+                );
+                return;
+              }
+              final deviceIdRegex = RegExp(r'^[a-zA-Z0-9_-]+$');
+              if (!deviceIdRegex.hasMatch(deviceId)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Device ID can only contain letters, numbers, hyphens, and underscores')),
+                );
+                return;
+              }
 
               try {
                 await _apiService.registerDevice(
