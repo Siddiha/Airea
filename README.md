@@ -526,14 +526,29 @@ python train_fall.py
 # The backend is configured for Railway deployment
 # See railway.toml for configuration
 
-# Environment variables required:
-SUPABASE_URL=jdbc:postgresql://db.xxx.supabase.co:5432/postgres
-SUPABASE_USERNAME=postgres
-SUPABASE_PASSWORD=your_password
-NOTIFYLK_USER_ID=your_user_id
-NOTIFYLK_API_KEY=your_api_key
-NOTIFYLK_SENDER_ID=your_sender_id
-JWT_SECRET=your_jwt_secret
+# Database configuration (choose ONE approach)
+
+# Option A (recommended)
+SPRING_DATASOURCE_URL=jdbc:postgresql://db.xxx.supabase.co:5432/postgres?sslmode=require
+SPRING_DATASOURCE_USERNAME=postgres
+SPRING_DATASOURCE_PASSWORD=your_password
+
+# Option B
+DATABASE_URL=postgresql://postgres:your_password@db.xxx.supabase.co:5432/postgres
+
+# Required app variables
+JWT_SECRET=your_long_secure_secret_key
+CORS_ALLOWED_ORIGINS=https://your-frontend-domain.com
+
+# Optional mail (password reset)
+MAIL_USERNAME=your_gmail@gmail.com
+MAIL_PASSWORD=your_gmail_app_password
+
+# Optional SMS (alerts)
+TWILIO_ACCOUNT_SID=your_twilio_account_sid
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_PHONE_NUMBER=+1234567890
+SMS_ALERTS_ENABLED=true
 ```
 
 **Production URL**: `https://airea-production.up.railway.app`

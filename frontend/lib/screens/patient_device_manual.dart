@@ -72,7 +72,30 @@ class _PatientDeviceManualState extends State<PatientDeviceManual> {
                       physics: const AlwaysScrollableScrollPhysics(), 
                       padding: const EdgeInsets.only(right: 15.0), 
                       child: const Text(
-                        "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
+                        "Airea Wearable Health Monitor\n\n"
+                        "Getting Started\n"
+                        "1. Charge the device fully before first use using the provided USB-C cable.\n"
+                        "2. Wear the device on your wrist or chest strap as directed by your doctor.\n"
+                        "3. Ensure the sensor pads make contact with your skin for accurate readings.\n\n"
+                        "Features\n"
+                        "• Heart Rate Monitoring — Continuously tracks your heart rate in BPM.\n"
+                        "• Temperature Sensing — Measures body temperature in real time.\n"
+                        "• Cough Detection — Uses an onboard microphone and AI model to detect and count coughs.\n"
+                        "• Fall Detection — Detects sudden falls and sends emergency alerts to your doctor and emergency contact.\n\n"
+                        "LED Indicators\n"
+                        "• Solid Green — Device is active and connected.\n"
+                        "• Blinking Blue — Attempting to connect to the server.\n"
+                        "• Red — Low battery or sensor error.\n\n"
+                        "Troubleshooting\n"
+                        "• If readings show 'No Data', ensure the device is worn correctly and the sensor pads are clean.\n"
+                        "• If the device won't turn on, charge it for at least 30 minutes.\n"
+                        "• If connection is lost, restart the device by holding the side button for 5 seconds.\n\n"
+                        "Safety\n"
+                        "• This device is for health monitoring purposes only and is not a medical diagnostic tool.\n"
+                        "• Keep the device dry — remove before showering or swimming.\n"
+                        "• If you experience skin irritation, discontinue use and consult your doctor.\n\n"
+                        "Support\n"
+                        "For technical support, contact our team or speak with your connected doctor through the app.",
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.black87,

@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'patient_homeScreen.dart';
 import 'device_screen.dart';
 import 'patient_edit_emergency_contact.dart';
 import 'patient_edit_medical_details.dart';
 import '../services/profile_service.dart';
+import '../config/api_config.dart';
 import 'patient_logout.dart';
 import 'patient_view_past_medical_reports.dart';
 import 'patient_view_allergies.dart';
@@ -105,6 +110,72 @@ class PatientProfileFrame extends StatelessWidget {
               // 2. Add the Connect Device button here
               _buildMenuButton(
                   context, 'Connect Airea Device', const AireaSetupScreen()),
+
+              // View Patient ID Button
+              Padding(
+                padding: const EdgeInsets.only(bottom: 18.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final prefs = await SharedPreferences.getInstance();
+                      String? patientCode = prefs.getString('patient_code');
+                      // If not cached, fetch from backend API
+                      if (patientCode == null || patientCode.isEmpty) {
+                        final user = Supabase.instance.client.auth.currentUser;
+                        if (user != null) {
+                          try {
+                            final url = Uri.parse(
+                                '${ApiConfig.baseUrl}/auth/patient/code?email=${Uri.encodeComponent(user.email!)}');
+                            final resp = await http.get(url).timeout(const Duration(seconds: 10));
+                            if (resp.statusCode == 200) {
+                              final data = jsonDecode(resp.body);
+                              if (data['code'] != null) {
+                                patientCode = data['code'];
+                                await prefs.setString('patient_code', patientCode!);
+                              }
+                            }
+                          } catch (e) {
+                            debugPrint('Error fetching patient code: $e');
+                          }
+                        }
+                      }
+                      if (context.mounted) {
+                        showDialog(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            title: const Text('Your Patient ID'),
+                            content: Text(
+                              patientCode != null ? 'Your ID is $patientCode' : 'ID not found. Please re-login.',
+                              style: const TextStyle(fontSize: 18),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('OK'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF66A399),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text(
+                      'View ID',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ),
+              ),
 
               _buildMenuButton(context, 'Log out', const PatientLogoutScreen()),
             ],

@@ -5,7 +5,12 @@ import 'daily_summary_detail_screen_new.dart';
 import '../repositories/summary_repository.dart';
 
 class DoctorDailyRecordsCalendar extends StatefulWidget {
-  const DoctorDailyRecordsCalendar({super.key});
+  final String deviceId;
+
+  const DoctorDailyRecordsCalendar({
+    super.key,
+    required this.deviceId,
+  });
 
   @override
   State<DoctorDailyRecordsCalendar> createState() => _DoctorDailyRecordsCalendarState();
@@ -91,14 +96,12 @@ class _DoctorDailyRecordsCalendarState extends State<DoctorDailyRecordsCalendar>
                               _focusedDay = focusedDay; 
                             });
                             
-                            // Navigate to API-powered detail screen
-                            print('📱 Navigating with ApiSummaryRepository'); // DEBUG
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => DailySummaryDetailScreenNew(
                                   selectedDate: selectedDay,
-                                  deviceId: 'ESP32_COUGH_01',
+                                  deviceId: widget.deviceId,
                                   repository: ApiSummaryRepository(),
                                 ),
                               ),

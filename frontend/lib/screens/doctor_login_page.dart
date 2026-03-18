@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'doctor_home_screen.dart';
 import '../services/auth_service.dart';
+import '../services/doctor_patient_service.dart';
+import '../config/api_config.dart';
 import 'doctor_create_account.dart';
 import 'forgot_password_screen.dart';
 
@@ -39,17 +45,76 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
 
     final result = await _authService.doctorLogin(email, password);
 
-    setState(() => _isLoading = false);
-
     if (result['success']) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const DoctorHomeScreen()),
-      );
+      // Fetch doctor profile from backend to get doctorCode
+      await _fetchAndSaveDoctorCode(email, password);
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DoctorHomeScreen()),
+        );
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'])),
-      );
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'])),
+        );
+      }
+    }
+  }
+
+  Future<void> _fetchAndSaveDoctorCode(String email, String password) async {
+    try {
+      // Step 1: Ensure doctor record exists in backend DB by calling register
+      // If already registered, backend returns error which we ignore
+      try {
+        final registerUrl = Uri.parse('${ApiConfig.baseUrl}/auth/doctor/register');
+        await http.post(
+          registerUrl,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'email': email,
+            'password': password,
+            'fullName': '',
+          }),
+        ).timeout(const Duration(seconds: 10));
+      } catch (_) {
+        // Ignore - doctor may already exist or backend unavailable
+      }
+
+      // Step 2: Fetch doctor code from backend API
+      final codeUrl = Uri.parse(
+          '${ApiConfig.baseUrl}/auth/doctor/code?email=${Uri.encodeComponent(email)}');
+      final resp = await http.get(codeUrl).timeout(const Duration(seconds: 10));
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        if (data['code'] != null) {
+          await DoctorPatientService.saveDoctorCode(data['code']);
+          return;
+        }
+      }
+
+      // Step 3: Fallback - try Supabase direct query + fetch name
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('doctors')
+          .select('doctor_code, full_name')
+          .eq('email', email)
+          .maybeSingle();
+      if (response != null) {
+        if (response['doctor_code'] != null) {
+          await DoctorPatientService.saveDoctorCode(response['doctor_code']);
+        }
+        if (response['full_name'] != null && (response['full_name'] as String).isNotEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_full_name', response['full_name']);
+        }
+      }
+    } catch (e) {
+      print('Error fetching doctor code: $e');
     }
   }
 

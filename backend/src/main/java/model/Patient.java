@@ -84,6 +84,9 @@ public class Patient {
     protected void onCreate() {
         createdAt = Instant.now();
         updatedAt = Instant.now();
+        if (patientCode == null || patientCode.isEmpty()) {
+            patientCode = "P" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        }
     }
 
     @PreUpdate

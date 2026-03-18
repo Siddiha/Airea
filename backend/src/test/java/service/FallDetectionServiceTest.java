@@ -58,7 +58,7 @@ public class FallDetectionServiceTest {
         // Basic fall, normal vitals
         normalFallReq = new FallEventRequest();
         normalFallReq.setDeviceId("DEV123");
-        normalFallReq.setGForce(1.5f);
+        normalFallReq.setConfidence(0.60f);
         normalFallReq.setTemp(36.5f);
         normalFallReq.setBpm(75f);
         normalFallReq.setRr(16f);
@@ -67,7 +67,8 @@ public class FallDetectionServiceTest {
         // Severe fall, critical vitals (Hypothermia + Bradycardia)
         criticalFallReq = new FallEventRequest();
         criticalFallReq.setDeviceId("DEV123");
-        criticalFallReq.setGForce(3.5f);
+        criticalFallReq.setConfidence(0.95f);
+
         criticalFallReq.setTemp(34.0f); // Critical low
         criticalFallReq.setBpm(35f);    // Critical low
         criticalFallReq.setRr(10f);
@@ -84,7 +85,7 @@ public class FallDetectionServiceTest {
         assertTrue(response.isFallDetected());
         assertFalse(response.isEmergency());
         assertEquals("NORMAL", response.getEmergencyLevel());
-        verify(smsAlertService, never()).sendEmergencyAlert(anyString(), anyString(), anyString(), anyString(), anyFloat(), anyFloat(), anyFloat(), anyFloat());
+        verify(smsAlertService, never()).sendEmergencyAlert(anyString(), anyString(), anyString(), anyString(), anyFloat(), anyFloat(), anyFloat(), anyFloat(), anyString());
     }
 
     @Test
@@ -92,7 +93,7 @@ public class FallDetectionServiceTest {
         when(fallRepository.save(any(FallEvent.class))).thenReturn(savedFallEvent);
         when(fallRepository.findRecentEmergencyAlerts(anyString(), any())).thenReturn(Collections.emptyList()); // No cooldown
         when(patientRepository.findByDeviceId("DEV123")).thenReturn(Optional.of(testPatient));
-        when(smsAlertService.sendEmergencyAlert(anyString(), anyString(), anyString(), any(), anyFloat(), anyFloat(), anyFloat(), anyFloat())).thenReturn(true);
+        when(smsAlertService.sendEmergencyAlert(anyString(), anyString(), anyString(), any(), anyFloat(), anyFloat(), anyFloat(), anyFloat(), anyString())).thenReturn(true);
 
         EmergencyAlertResponse response = fallDetectionService.processFallEvent(criticalFallReq);
 
@@ -101,7 +102,7 @@ public class FallDetectionServiceTest {
         assertEquals("CRITICAL", response.getEmergencyLevel());
         assertTrue(response.isAlertSent());
         assertEquals("+1234567890", response.getAlertSentTo());
-        verify(smsAlertService).sendEmergencyAlert(eq("+1234567890"), eq("John Doe"), anyString(), any(), anyFloat(), anyFloat(), anyFloat(), anyFloat());
+        verify(smsAlertService).sendEmergencyAlert(eq("+1234567890"), eq("John Doe"), anyString(), any(), anyFloat(), anyFloat(), anyFloat(), anyFloat(), anyString());
     }
 
     @Test
@@ -109,12 +110,12 @@ public class FallDetectionServiceTest {
         when(fallRepository.save(any(FallEvent.class))).thenReturn(savedFallEvent);
         // Simulate an existing alert within the last 5 minutes
         when(fallRepository.findRecentEmergencyAlerts(anyString(), any())).thenReturn(Collections.singletonList(new FallEvent()));
-        
+
         EmergencyAlertResponse response = fallDetectionService.processFallEvent(criticalFallReq);
 
         assertTrue(response.isEmergency());
         assertFalse(response.isAlertSent()); // Alert blocked by cooldown
-        verify(smsAlertService, never()).sendEmergencyAlert(anyString(), anyString(), anyString(), anyString(), anyFloat(), anyFloat(), anyFloat(), anyFloat());
+        verify(smsAlertService, never()).sendEmergencyAlert(anyString(), anyString(), anyString(), anyString(), anyFloat(), anyFloat(), anyFloat(), anyFloat(), anyString());
     }
 
     @Test
@@ -128,6 +129,6 @@ public class FallDetectionServiceTest {
 
         assertTrue(response.isEmergency());
         assertFalse(response.isAlertSent());
-        verify(smsAlertService, never()).sendEmergencyAlert(anyString(), anyString(), anyString(), anyString(), anyFloat(), anyFloat(), anyFloat(), anyFloat());
+        verify(smsAlertService, never()).sendEmergencyAlert(anyString(), anyString(), anyString(), anyString(), anyFloat(), anyFloat(), anyFloat(), anyFloat(), anyString());
     }
 }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; 
 import 'dart:convert'; 
-import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'patient_pending_message.dart';
 import 'patient_guidance_to_connect_with_doctor.dart';
+import 'patient_homeScreen.dart';
+import '../config/api_config.dart';
 
 class PatientConnectWithDoctor extends StatefulWidget {
   const PatientConnectWithDoctor({super.key});
@@ -19,12 +21,20 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
   // 1. Add the controller to capture the Doctor's ID
   final TextEditingController _idController = TextEditingController();
 
-  // 2. Add the function to talk to your Java Backend
   Future<void> _handleConnect() async {
-    final String doctorCodeInput = _idController.text.trim(); // The patient types "D001"
-    
-    // Instead of the long UUID, we use the short code you added to Supabase
-    const String currentPatientCode = "P001";
+    final String doctorCodeInput = _idController.text.trim();
+
+    // Get the actual patient code from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final String? currentPatientCode = prefs.getString('patient_code');
+
+    if (currentPatientCode == null || currentPatientCode.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Patient code not found. Please check your profile first.")),
+      );
+      return;
+    }
 
     if (doctorCodeInput.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -33,10 +43,7 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
       return;
     }
 
-    final String host = kIsWeb ? "localhost" : "10.0.2.2";
-    
-    // 1. Pointing to the NEW endpoint that handles the short-code-to-UUID translation
-    final url = Uri.parse('http://$host:8080/api/connections/add-by-code');
+    final url = Uri.parse('${ApiConfig.baseUrl}/connections/add-by-code');
 
     try {
       final response = await http.post(
@@ -49,14 +56,12 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
       );
 
       if (response.statusCode == 200) {
-        // Success: Navigate to the pending message screen
         if (!mounted) return;
         Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const PatientPendingMessage()),
         );
       } else {
-        // Error: Show backend message (e.g., "Already linked")
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(response.body)),
@@ -65,15 +70,23 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Server Error: Is Spring Boot running?")),
+        const SnackBar(content: Text("Error: Could not connect. Is the server running?")),
       );
     }
   }
 
   void _onBottomNavTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (index == 0) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
+        (route) => false,
+      );
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   @override

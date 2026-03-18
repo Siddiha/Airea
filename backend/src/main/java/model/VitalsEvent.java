@@ -2,6 +2,7 @@ package model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 @Entity
@@ -22,8 +23,15 @@ public class VitalsEvent {
     @Column(name = "leads_off")
     private boolean leadsOff;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now(ZoneId.of("Asia/Colombo"));
+        }
+    }
 
     // Manual Getters and Setters (Bypassing Lombok)
     public UUID getId() {

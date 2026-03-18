@@ -191,7 +191,7 @@ class _DoctorPatientInfoState extends State<DoctorPatientInfo> {
                                                   ),
                                                   const SizedBox(height: 4),
                                                   Text(
-                                                    'ID: ${patient.patientId}',
+                                                    'ID: ${patient.patientCode}',
                                                     style: TextStyle(
                                                       color: Colors.white
                                                           .withOpacity(0.7),

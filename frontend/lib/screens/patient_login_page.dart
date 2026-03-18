@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'patient_homescreen.dart';
 import 'patient_create_account.dart';
 import 'forgot_password_screen.dart';
 import '../services/auth_service.dart';
+import '../config/api_config.dart';
 
 class PatientLoginPage extends StatefulWidget {
   const PatientLoginPage({super.key});
@@ -42,14 +47,69 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
     setState(() => _isLoading = false);
 
     if (result['success']) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => PatientHomeScreen()),
-      );
+      await _fetchAndSavePatientCode(email, password);
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => PatientHomeScreen()),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['message'])),
       );
+    }
+  }
+
+  Future<void> _fetchAndSavePatientCode(String email, String password) async {
+    try {
+      // Step 1: Ensure patient record exists in backend DB by calling register
+      // If already registered, backend returns error which we ignore
+      try {
+        final registerUrl = Uri.parse('${ApiConfig.baseUrl}/auth/register');
+        await http.post(
+          registerUrl,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'email': email,
+            'password': password,
+            'fullName': '',
+          }),
+        ).timeout(const Duration(seconds: 10));
+      } catch (_) {
+        // Ignore - patient may already exist or backend unavailable
+      }
+
+      // Step 2: Fetch patient code from backend API
+      final codeUrl = Uri.parse(
+          '${ApiConfig.baseUrl}/auth/patient/code?email=${Uri.encodeComponent(email)}');
+      final resp = await http.get(codeUrl).timeout(const Duration(seconds: 10));
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        if (data['code'] != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('patient_code', data['code']);
+        }
+      }
+
+      // Fetch and save the patient's full name
+      final supabase = Supabase.instance.client;
+      final nameResp = await supabase
+          .from('patients')
+          .select('patient_code, full_name')
+          .eq('email', email)
+          .maybeSingle();
+      if (nameResp != null) {
+        final prefs = await SharedPreferences.getInstance();
+        if (nameResp['patient_code'] != null && (prefs.getString('patient_code') == null || prefs.getString('patient_code')!.isEmpty)) {
+          await prefs.setString('patient_code', nameResp['patient_code']);
+        }
+        if (nameResp['full_name'] != null && (nameResp['full_name'] as String).isNotEmpty) {
+          await prefs.setString('user_full_name', nameResp['full_name']);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching patient code: $e');
     }
   }
 

@@ -301,4 +301,42 @@ public class AuthController {
     private String extractEmailFromJwt(String token) {
         return jwtUtil.extractEmail(token);
     }
+
+    @GetMapping("/patient/code")
+    public ResponseEntity<?> getPatientCode(@RequestParam String email) {
+        try {
+            Patient patient = authService.ensurePatientExists(email);
+            String code = patient.getPatientCode();
+            if (code == null || code.isEmpty()) {
+                code = "P" + java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+                patient.setPatientCode(code);
+                authService.savePatient(patient);
+            }
+            return ResponseEntity.ok(Map.of("code", code));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "error", true,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @GetMapping("/doctor/code")
+    public ResponseEntity<?> getDoctorCode(@RequestParam String email) {
+        try {
+            Doctor doctor = authService.ensureDoctorExists(email);
+            String code = doctor.getDoctorCode();
+            if (code == null || code.isEmpty()) {
+                code = "D" + java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+                doctor.setDoctorCode(code);
+                authService.saveDoctor(doctor);
+            }
+            return ResponseEntity.ok(Map.of("code", code));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "error", true,
+                    "message", e.getMessage()
+            ));
+        }
+    }
 }

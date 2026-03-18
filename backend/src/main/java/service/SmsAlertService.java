@@ -53,10 +53,10 @@ public class SmsAlertService {
      */
     public boolean sendEmergencyAlert(String toPhoneNumber, String patientName,
                                        String emergencyReason, String location,
-                                       Float temp, Float bpm, Float rr, Float gForce) {
+                                       Float temp, Float bpm, Float rr, Float confidence, String alertType) {
         
         String messageBody = buildEmergencyMessage(patientName, emergencyReason,
-                                                    location, temp, bpm, rr, gForce);
+                                                    location, temp, bpm, rr, confidence, alertType);
 
         if (!smsEnabled) {
             // Simulation mode - log what would be sent
@@ -129,15 +129,15 @@ public class SmsAlertService {
      * Build the emergency message content
      */
     private String buildEmergencyMessage(String patientName, String emergencyReason,
-                                          String location, Float temp, Float bpm, Float rr, Float gForce) {
+                                          String location, Float temp, Float bpm, Float rr, Float confidence, String alertType) {
         StringBuilder sb = new StringBuilder();
         
         sb.append("🚨 AIREA EMERGENCY ALERT 🚨\n\n");
         sb.append("Patient: ").append(patientName != null ? patientName : "Unknown").append("\n");
-        sb.append("Event: FALL DETECTED\n");
+        sb.append("Event: ").append(alertType != null ? alertType : "FALL DETECTED").append("\n");
         
-        if (gForce != null) {
-            sb.append("Impact: ").append(String.format("%.1fG", gForce)).append("\n");
+        if (confidence != null) {
+            sb.append("AI Confidence: ").append(String.format("%.1f%%", confidence * 100)).append("\n");
         }
         
         sb.append("\nStatus: ").append(emergencyReason != null ? emergencyReason : "Emergency").append("\n\n");

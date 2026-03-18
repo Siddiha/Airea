@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'guidance_to_connect_patient.dart';
 import 'patient_connection_message.dart';
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import '../services/doctor_patient_service.dart';
 
 class ConnectWithPatient extends StatefulWidget {
   const ConnectWithPatient({super.key});
@@ -17,10 +15,8 @@ class _ConnectWithPatientState extends State<ConnectWithPatient> {
   final TextEditingController _idController = TextEditingController();
   bool _isLoading = false;
 
-  // 2. Function to send the data to your Java backend
   Future<void> _handleConnect() async {
     final String patientCodeInput = _idController.text.trim();
-    const String currentDoctorCode = "D001"; // Matches your Supabase entry
 
     if (patientCodeInput.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -31,36 +27,27 @@ class _ConnectWithPatientState extends State<ConnectWithPatient> {
 
     setState(() => _isLoading = true);
 
-    final String host = kIsWeb ? "localhost" : "10.0.2.2";
-    // 1. Pointing to the new translation endpoint
-    final url = Uri.parse('http://$host:8080/api/connections/add-by-code');
-
     try {
-      final response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "doctorCode": currentDoctorCode, 
-          "patientCode": patientCodeInput, 
-        }),
+      final error = await DoctorPatientService.connectPatient(
+        patientCode: patientCodeInput,
       );
 
-      if (response.statusCode == 200) {
-        if (!mounted) return;
+      if (!mounted) return;
+
+      if (error == null) {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const PatientConnectionMessage()),
         );
       } else {
-        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response.body)), // Shows "Already connected" error
+          SnackBar(content: Text(error)),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error: Ensure Spring Boot is running")),
+        const SnackBar(content: Text("Error: Could not connect. Is the server running?")),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);

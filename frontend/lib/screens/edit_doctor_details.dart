@@ -6,78 +6,96 @@ class EditDoctorDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEDEFF0),
-
-    
-
+      backgroundColor: Colors.white,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                const SizedBox(height: 40),
-                const Text(
-                  "Edit additionally\nprovided details",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w500,
-                  ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, size: 28),
+                  onPressed: () => Navigator.pop(context),
                 ),
-
-                const SizedBox(height: 30),
-
-                _textField("Specializations"),
-                const SizedBox(height: 15),
-                _textField("Clinic or hospital address"),
-                const SizedBox(height: 15),
-                _textField("Primary mobile number"),
-                const SizedBox(height: 15),
-                _textField("Email address"),
-
-                const SizedBox(height: 40),
-
-                SizedBox(
-                  width: 160,
-                  height: 45,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E2D4E),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(25),
-                      ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                "Edit additionally\nprovided details",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 40),
+              _labeledField("Specializations"),
+              const SizedBox(height: 20),
+              _labeledField("Clinic or hospital address"),
+              const SizedBox(height: 20),
+              _labeledField("Primary mobile number"),
+              const SizedBox(height: 20),
+              _labeledField("Email address"),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: 180,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E2D4E),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
                     ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text("Confirm"),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    "Confirm",
+                    style: TextStyle(fontSize: 16),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _textField(String hint) {
-    return SizedBox(
-      width: 260,
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: hint,
-          filled: true,
-          fillColor: Colors.grey[300],
-          contentPadding: const EdgeInsets.symmetric(
-              horizontal: 15, vertical: 12),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide.none,
+  Widget _labeledField(String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
           ),
         ),
-      ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: TextField(
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: const Color(0xFFE8EAF0),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20, vertical: 16),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

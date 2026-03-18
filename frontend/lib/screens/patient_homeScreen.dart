@@ -1,13 +1,17 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'patient_notifications.dart';
 import 'patient_profile_frame.dart';
 import 'patient_connect_device_option.dart';
+import 'patient_device_dashboard.dart';
 import 'patient_summary_overview.dart';
 import 'cough_analyzer_screen.dart';
+import 'doctor_details.dart';
 import '../services/api_service.dart';
+import '../services/doctor_patient_service.dart';
 import '../config/api_config.dart';
 import '../models/device_model.dart';
 import 'patient_contact_doctor.dart';
@@ -21,37 +25,77 @@ class PatientHomeScreen extends StatefulWidget {
 
 class _PatientHomeScreenState extends State<PatientHomeScreen> {
   final ApiService _apiService = ApiService();
-  final String _deviceId = ApiConfig.defaultDeviceId;
+  String? _deviceId; // null until patient links a real device
 
   // Live Database Variables
   double temperature = 0.0;
-  String temperatureStatus = "Loading...";
+  String temperatureStatus = "No device connected";
 
   int heartRate = 0;
-  String heartRateStatus = "Loading...";
+  String heartRateStatus = "No device connected";
   bool leadsAreOff = false;
 
   int coughCount = 0;
-  String coughStatus = "Loading...";
+  String coughStatus = "No device connected";
 
   List<PatientNotification> _alerts = [];
   int _selectedIndex = 0;
   Timer? _refreshTimer;
+  Map<String, dynamic>? _connectedDoctor;
+  String _userName = 'user';
 
   @override
   void initState() {
     super.initState();
-    // Fetch immediately on load
-    _loadCoughData();
-    _loadVitalsData();
-    _loadAlerts();
+    _initDeviceAndLoad();
+  }
 
-    // Refresh every 10 seconds
-    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+  /// Load the patient's linked device ID, then start fetching data only if linked.
+  Future<void> _initDeviceAndLoad() async {
+    // Cancel any existing timer before potentially creating a new one
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+
+    final prefs = await SharedPreferences.getInstance();
+    final linkedId = prefs.getString('linked_device_id');
+    final effectiveDeviceId = (linkedId == null || linkedId.isEmpty)
+        ? ApiConfig.defaultDeviceId
+        : linkedId;
+    final savedName = prefs.getString('user_full_name');
+    if (mounted) {
+      setState(() {
+        _deviceId = effectiveDeviceId;
+        if (savedName != null && savedName.isNotEmpty) {
+          _userName = savedName;
+        }
+        // Reset vitals display when no device is linked, but keep _alerts intact
+        if (_deviceId == null || _deviceId!.isEmpty) {
+          temperature = 0.0;
+          temperatureStatus = "No device connected";
+          heartRate = 0;
+          heartRateStatus = "No device connected";
+          leadsAreOff = false;
+          coughCount = 0;
+          coughStatus = "No device connected";
+        }
+      });
+    }
+
+    // Only fetch device data if a device is actually linked
+    if (_deviceId != null && _deviceId!.isNotEmpty) {
       _loadCoughData();
       _loadVitalsData();
       _loadAlerts();
-    });
+
+      // Refresh every 10 seconds
+      _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+        _loadCoughData();
+        _loadVitalsData();
+        _loadAlerts();
+      });
+    }
+
+    _loadConnectedDoctor();
   }
 
   @override
@@ -63,8 +107,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   // --- DATA FETCHING ---
 
   Future<void> _loadCoughData() async {
+    if (_deviceId == null || _deviceId!.isEmpty) return;
     try {
-      final stats = await _apiService.getTodayStatistics(_deviceId);
+      final stats = await _apiService.getTodayStatistics(_deviceId!);
       if (mounted) {
         setState(() {
           coughCount = stats.totalCoughs;
@@ -78,8 +123,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   }
 
   Future<void> _loadVitalsData() async {
+    if (_deviceId == null || _deviceId!.isEmpty) return;
     try {
-      final vitals = await _apiService.getLatestVitals(_deviceId);
+      final vitals = await _apiService.getLatestVitals(_deviceId!);
       if (mounted && vitals != null) {
         setState(() {
           temperature = vitals.temp;
@@ -107,19 +153,41 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   bool _criticalBannerShown = false;
 
   Future<void> _loadAlerts() async {
+    if (_deviceId == null || _deviceId!.isEmpty) return;
     try {
-      final alerts = await _apiService.getFallAlerts(_deviceId);
+      final newAlerts = await _apiService.getFallAlerts(_deviceId!);
       if (mounted) {
-        setState(() => _alerts = alerts);
+        setState(() {
+          // Merge new alerts with existing ones, avoiding duplicates
+          final existingTitles =
+              _alerts.map((a) => '${a.title}_${a.time}').toSet();
+          for (final alert in newAlerts) {
+            if (!existingTitles.contains('${alert.title}_${alert.time}')) {
+              _alerts.add(alert);
+            }
+          }
+        });
         // Pop up a banner the first time we detect a CRITICAL alert
-        if (!_criticalBannerShown &&
-            alerts.any((a) => a.isHighAlert)) {
+        if (!_criticalBannerShown && _alerts.any((a) => a.isHighAlert)) {
           _criticalBannerShown = true;
-          _showCriticalBanner(alerts.firstWhere((a) => a.isHighAlert));
+          _showCriticalBanner(_alerts.firstWhere((a) => a.isHighAlert));
         }
       }
     } catch (e) {
       print('Error loading alerts: $e');
+    }
+  }
+
+  Future<void> _loadConnectedDoctor() async {
+    try {
+      final doctors = await DoctorPatientService.getConnectedDoctors();
+      if (mounted) {
+        setState(() {
+          _connectedDoctor = doctors.isNotEmpty ? doctors.first : null;
+        });
+      }
+    } catch (e) {
+      print('Error loading connected doctor: $e');
     }
   }
 
@@ -217,25 +285,38 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 _buildCoughCountCard(),
                 const SizedBox(height: 12),
                 _buildConnectionCard(
-                  title: "Connect with a\ndevice",
+                  title: _deviceId != null && _deviceId!.isNotEmpty
+                      ? "Device connected"
+                      : "Connect with a\ndevice",
+                  buttonLabel: _deviceId != null && _deviceId!.isNotEmpty
+                      ? "View Device"
+                      : "Connect",
                   onTap: () {
+                    final destination =
+                        _deviceId != null && _deviceId!.isNotEmpty
+                            ? const PatientDeviceDashboard()
+                            : const PatientConnectDeviceOption();
                     Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                const PatientConnectDeviceOption()));
+                      context,
+                      MaterialPageRoute(builder: (_) => destination),
+                    ).then((_) => _initDeviceAndLoad());
                   },
                 ),
                 const SizedBox(height: 10),
-                _buildConnectionCard(
-                  title: "Connect with a\ndoctor",
-                  onTap: () {
-                    Navigator.push(
+                if (_connectedDoctor != null) ...[
+                  _buildConnectedDoctorCard(),
+                ] else ...[
+                  _buildConnectionCard(
+                    title: "Connect with a\ndoctor",
+                    onTap: () {
+                      Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const PatientContactDoctor()));
-                  },
-                ),
+                            builder: (_) => const PatientContactDoctor()),
+                      ).then((_) => _initDeviceAndLoad());
+                    },
+                  ),
+                ],
                 const SizedBox(height: 16),
               ],
             ),
@@ -263,14 +344,19 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           ),
         ),
         const SizedBox(width: 12),
-        const Text("Hello user !",
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87)),
-        const Spacer(),
+        Expanded(
+          child: Text("Hello $_userName !",
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87)),
+        ),
+        const SizedBox(width: 8),
         GestureDetector(
-          onTap: () => Navigator.push(context,
+          onTap: () => Navigator.push(
+              context,
               MaterialPageRoute(
                   builder: (_) => PatientNotifications(alerts: _alerts))),
           child: Stack(
@@ -432,10 +518,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
             ],
           ),
           ElevatedButton(
-            onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => CoughAnalyzerScreen(deviceId: _deviceId))),
+            onPressed: _deviceId != null && _deviceId!.isNotEmpty
+                ? () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            CoughAnalyzerScreen(deviceId: _deviceId!)))
+                : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4DB6AC),
               foregroundColor: Colors.white,
@@ -453,7 +542,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   }
 
   Widget _buildConnectionCard(
-      {required String title, required VoidCallback onTap}) {
+      {required String title,
+      required VoidCallback onTap,
+      String buttonLabel = "Connect"}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
@@ -485,10 +576,81 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               elevation: 0,
             ),
-            child: const Text("Connect",
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            child: Text(buttonLabel,
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildConnectedDoctorCard() {
+    final name = _connectedDoctor!['doctorName'] ?? 'Unknown';
+    final specialization = _connectedDoctor!['specialization'] ?? '';
+    final code = _connectedDoctor!['doctorCode'] ?? '';
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DoctorDetails(
+              doctorName: name,
+              phoneNumber: _connectedDoctor!['phoneNumber'] ?? '',
+              specialization: specialization,
+              hospital: _connectedDoctor!['hospital'] ?? '',
+              doctorCode: code,
+            ),
+          ),
+        ).then((_) => _initDeviceAndLoad());
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.grey.withValues(alpha: 0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 3))
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF4DB6AC).withValues(alpha: 0.15),
+              ),
+              child: const Icon(Icons.medical_services_outlined,
+                  color: Color(0xFF4DB6AC), size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Your Doctor",
+                      style: TextStyle(color: Colors.grey, fontSize: 11)),
+                  const SizedBox(height: 2),
+                  Text(name,
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87)),
+                  if (specialization.isNotEmpty)
+                    Text(specialization,
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade600)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }
@@ -521,11 +683,14 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   isSelected: _selectedIndex == 1,
                   onTap: () {
                     setState(() => _selectedIndex = 1);
+                    final destination =
+                        _deviceId != null && _deviceId!.isNotEmpty
+                            ? const PatientDeviceDashboard()
+                            : const PatientConnectDeviceOption();
                     Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                const PatientConnectDeviceOption()));
+                      context,
+                      MaterialPageRoute(builder: (_) => destination),
+                    ).then((_) => _initDeviceAndLoad());
                   }),
               _buildNavItem(
                   icon: Icons.menu_book_outlined,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_theme.dart';
 import 'patient_device_disconnected.dart';
 import 'patient_device_manual.dart';
@@ -8,18 +9,37 @@ import 'patient_homeScreen.dart';
 
 import '../models/device_model.dart'; 
 
-class PatientDeviceDashboard extends StatelessWidget {
+class PatientDeviceDashboard extends StatefulWidget {
   const PatientDeviceDashboard({super.key});
 
   @override
+  State<PatientDeviceDashboard> createState() => _PatientDeviceDashboardState();
+}
+
+class _PatientDeviceDashboardState extends State<PatientDeviceDashboard> {
+  final DeviceController controller = DeviceController();
+  String _deviceID = '---';
+  int _batteryLevel = 70;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDeviceId();
+  }
+
+  Future<void> _loadDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final linkedId = prefs.getString('linked_device_id');
+    if (mounted && linkedId != null && linkedId.isNotEmpty) {
+      setState(() {
+        _deviceID = linkedId;
+        _batteryLevel = controller.currentDevice?.batteryLevel ?? 70;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Initialize the Controller
-    final DeviceController controller = DeviceController();
-    
-    // Get Real Data 
-    final int batteryLevel = controller.currentDevice?.batteryLevel ?? 70; 
-    final String deviceID = controller.currentDevice?.deviceID ?? "XXX XXX";
-    
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -80,7 +100,7 @@ class PatientDeviceDashboard extends StatelessWidget {
                         children: [
                           CircularProgressIndicator(
                             // Dynamic Value 
-                            value: batteryLevel / 100, 
+                            value: _batteryLevel / 100, 
                             strokeWidth: 8,
                             backgroundColor: Colors.grey.shade200,
                             valueColor: const AlwaysStoppedAnimation<Color>(
@@ -89,7 +109,7 @@ class PatientDeviceDashboard extends StatelessWidget {
                           ),
                           Center(
                             child: Text(
-                              '$batteryLevel%', 
+                              '$_batteryLevel%', 
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -111,17 +131,7 @@ class PatientDeviceDashboard extends StatelessWidget {
                 width: 220, 
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Call the Disconnect Logic
-                    controller.disconnectDevice(); 
-                    
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const PatientDeviceDisconnected(),
-                      ),
-                    );
-                  },
+                  onPressed: () => _showDisconnectConfirmation(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4FA095), 
                     foregroundColor: Colors.white,
@@ -166,7 +176,7 @@ class PatientDeviceDashboard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      deviceID, 
+                      _deviceID, 
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -180,38 +190,31 @@ class PatientDeviceDashboard extends StatelessWidget {
               const SizedBox(height: 20),
 
               // 4. USER MANUAL BUTTON 
-              Container(
-                 width: double.infinity,
-                 height: 60,
-                 decoration: BoxDecoration(
-                   color: Colors.white,
-                   borderRadius: BorderRadius.circular(20),
-                   boxShadow: [
-                     BoxShadow(
-                       color: Colors.grey.withOpacity(0.2),
-                       blurRadius: 10,
-                       offset: const Offset(0, 4),
-                     ),
-                   ],
-                 ),
-                 child: TextButton(
-                   onPressed: () {
+              SizedBox(
+                width: 220,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: () {
                     Navigator.push(
-                       context,
-                       MaterialPageRoute(
-                         builder: (context) => const PatientDeviceManual(),
-                       ),
-                     );
-                   },
-                   style: TextButton.styleFrom(
-                     foregroundColor: Colors.black,
-                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                   ),
-                   child: const Text(
-                     'User Manual',
-                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                   ),
-                 ),
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PatientDeviceManual(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4FA095),
+                    foregroundColor: Colors.white,
+                    elevation: 5,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child: const Text(
+                    'User Manual',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                  ),
+                ),
               ),
 
               const Spacer(), 
@@ -234,6 +237,53 @@ class PatientDeviceDashboard extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: _buildCustomBottomNav(context),
+    );
+  }
+
+  void _showDisconnectConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Disconnect Device',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        content: const Text(
+          'Are you sure you want to disconnect the device? '
+          'You will stop receiving live vitals and alerts until a new device is connected.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('No', style: TextStyle(color: Colors.grey, fontSize: 16)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx); // close dialog
+
+              controller.disconnectDevice();
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('linked_device_id');
+
+              if (context.mounted) {
+                // Go back to home, clearing device screens from the stack
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
+                  (route) => false,
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade400,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Yes, Disconnect', style: TextStyle(fontSize: 16)),
+          ),
+        ],
+      ),
     );
   }
 

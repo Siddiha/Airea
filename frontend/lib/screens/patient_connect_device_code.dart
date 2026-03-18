@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_theme.dart';
 import 'patient_device_connected.dart';
 import 'patient_device_guidance.dart';
@@ -79,20 +80,26 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                   width: 180,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       // Get the text from the box
-                      String input = _codeController.text;
+                      String input = _codeController.text.trim();
                       
                       // Ask Controller to validate
                       bool isSuccess = _deviceLogic.pairDevice(input);
 
                       if (isSuccess) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const PatientDeviceConnected(),
-                          ),
-                        );
+                        // Save the device ID so the home screen uses it
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setString('linked_device_id', input);
+
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PatientDeviceConnected(),
+                            ),
+                          );
+                        }
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(

@@ -2,9 +2,9 @@ Classification Report - Fall Detection Model
 ==================================================
                precision    recall  f1-score   support
 
-ADL (No Fall)       0.77      0.89      0.82      1000
-Fall Detected       0.83      0.66      0.74       804
+ADL (No Fall)       0.76      0.88      0.82      1000
+Fall Detected       0.81      0.66      0.73       804
 
-     accuracy                           0.79      1804
-    macro avg       0.80      0.78      0.78      1804
- weighted avg       0.80      0.79      0.79      1804
+     accuracy                           0.78      1804
+    macro avg       0.79      0.77      0.77      1804
+ weighted avg       0.79      0.78      0.78      1804

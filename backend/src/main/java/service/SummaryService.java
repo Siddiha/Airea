@@ -30,21 +30,21 @@ public class SummaryService {
 
     private static final ZoneId SRI_LANKA_ZONE = ZoneId.of("Asia/Colombo");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    
+
     // Clinical Ranges for Vitals
     // Heart Rate (bpm)
     private static final double HR_NORMAL_MIN = 60.0;
     private static final double HR_NORMAL_MAX = 100.0;
     private static final double HR_BRADYCARDIA = 50.0;
     private static final double HR_TACHYCARDIA = 110.0;
-    
+
     // Temperature (°C)
     private static final double TEMP_NORMAL_MIN = 36.1;
     private static final double TEMP_NORMAL_MAX = 37.5;
     private static final double TEMP_FEVER = 37.8;
     private static final double TEMP_HIGH_FEVER = 38.5;
     private static final double TEMP_HYPOTHERMIA = 35.0;
-    
+
     // Respiratory Rate (breaths/min)
     private static final double RR_NORMAL_MIN = 12.0;
     private static final double RR_NORMAL_MAX = 20.0;
@@ -58,7 +58,7 @@ public class SummaryService {
 
         // Get cough events for the day
         List<CoughEvent> events = getCoughEventsForDay(deviceId, date);
-        
+
         // Always calculate vitals summary (even if no cough data)
         VitalsSummary vitalsSummary = calculateVitalsSummary(deviceId, date);
 
@@ -92,8 +92,8 @@ public class SummaryService {
             response.setSeverityScore(vitalsSummary.getVitalsSeverityScore());
             response.setSeverityLevel(getSeverityLevel(vitalsSummary.getVitalsSeverityScore()));
             response.setHealthStatus(vitalsSummary.isHasVitalsData()
-                ? vitalsSummary.getVitalsStatus()
-                : fallEventsSummary.isHasFallData() ? "Fall Events Recorded" : "No data");
+                    ? vitalsSummary.getVitalsStatus()
+                    : fallEventsSummary.isHasFallData() ? "Fall Events Recorded" : "No data");
             response.setInsights(generateVitalsOnlyInsights(vitalsSummary));
             response.setRecommendations(generateVitalsOnlyRecommendations(vitalsSummary));
             response.setComparison(new DailyComparison(0, 0, 0.0, "STABLE"));
@@ -128,7 +128,6 @@ public class SummaryService {
         List<CoughPattern> patterns = detectPatterns(events, hourlyDist, nightPercentage);
 
         // Vitals summary already calculated at the top of the method
-
         // Calculate severity (now includes vitals)
         int coughSeverityScore = calculateCoughSeverityScore(totalCoughs, nightPercentage, patterns);
         int vitalsSeverityScore = vitalsSummary.getVitalsSeverityScore();
@@ -275,10 +274,15 @@ public class SummaryService {
         double score = 0;
 
         // Base score from cough count (0-50 points)
-        if (totalCoughs < 10) score += 10;
-        else if (totalCoughs < 30) score += 25;
-        else if (totalCoughs < 50) score += 40;
-        else score += 50;
+        if (totalCoughs < 10) {
+            score += 10; 
+        }else if (totalCoughs < 30) {
+            score += 25; 
+        }else if (totalCoughs < 50) {
+            score += 40; 
+        }else {
+            score += 50;
+        }
 
         // Night percentage (0-25 points)
         score += (nightPercentage / 100.0) * 25;
@@ -288,22 +292,27 @@ public class SummaryService {
 
         return Math.min((int) Math.round(score), 100);
     }
-    
+
     private int calculateCombinedSeverityScore(int coughScore, int vitalsScore) {
         // Weight: Cough 50%, Vitals 50% (RR has higher weight within vitals)
         return (int) Math.round((coughScore * 0.5) + (vitalsScore * 0.5));
     }
 
     private String getSeverityLevel(int score) {
-        if (score < 30) return "GOOD";
-        else if (score < 50) return "MODERATE";
-        else if (score < 70) return "HIGH";
-        else return "SEVERE";
+        if (score < 30) {
+            return "GOOD"; 
+        }else if (score < 50) {
+            return "MODERATE"; 
+        }else if (score < 70) {
+            return "HIGH"; 
+        }else {
+            return "SEVERE";
+        }
     }
 
     private String getHealthStatus(String level, int totalCoughs, VitalsSummary vitals) {
         StringBuilder status = new StringBuilder();
-        
+
         switch (level) {
             case "GOOD":
                 status.append("Health status good");
@@ -320,19 +329,19 @@ public class SummaryService {
             default:
                 status.append("Status unknown");
         }
-        
+
         // Add vitals context if available
         if (vitals != null && vitals.isHasVitalsData()) {
             if (vitals.getAnomalies() != null && !vitals.getAnomalies().isEmpty()) {
                 long criticalCount = vitals.getAnomalies().stream()
-                    .filter(a -> "CRITICAL".equals(a.getSeverity()))
-                    .count();
+                        .filter(a -> "CRITICAL".equals(a.getSeverity()))
+                        .count();
                 if (criticalCount > 0) {
                     status.append(" | ").append(criticalCount).append(" critical vital reading(s)");
                 }
             }
         }
-        
+
         return status.toString();
     }
 
@@ -386,7 +395,7 @@ public class SummaryService {
                     "POSITIVE"
             ));
         }
-        
+
         // Add vitals-based insights
         if (vitals != null && vitals.isHasVitalsData()) {
             // Heart rate insights
@@ -394,100 +403,100 @@ public class SummaryService {
                 String hrStatus = vitals.getHeartRate().getStatus();
                 if ("HIGH".equals(hrStatus) || "CRITICAL".equals(hrStatus)) {
                     insights.add(new HealthInsight(
-                        "Elevated Heart Rate",
-                        String.format("Average heart rate: %.0f bpm - %s", 
-                            vitals.getHeartRate().getAverage(),
-                            vitals.getHeartRate().getStatusMessage()),
-                        hrStatus.equals("CRITICAL") ? "HIGH" : "MODERATE",
-                        "VITAL"
+                            "Elevated Heart Rate",
+                            String.format("Average heart rate: %.0f bpm - %s",
+                                    vitals.getHeartRate().getAverage(),
+                                    vitals.getHeartRate().getStatusMessage()),
+                            hrStatus.equals("CRITICAL") ? "HIGH" : "MODERATE",
+                            "VITAL"
                     ));
                 } else if ("LOW".equals(hrStatus)) {
                     insights.add(new HealthInsight(
-                        "Low Heart Rate",
-                        String.format("Average heart rate: %.0f bpm - %s", 
-                            vitals.getHeartRate().getAverage(),
-                            vitals.getHeartRate().getStatusMessage()),
-                        "MODERATE",
-                        "VITAL"
+                            "Low Heart Rate",
+                            String.format("Average heart rate: %.0f bpm - %s",
+                                    vitals.getHeartRate().getAverage(),
+                                    vitals.getHeartRate().getStatusMessage()),
+                            "MODERATE",
+                            "VITAL"
                     ));
                 }
             }
-            
+
             // Temperature insights
             if (vitals.getTemperature() != null) {
                 String tempStatus = vitals.getTemperature().getStatus();
                 double avgTemp = vitals.getTemperature().getAverage();
-                
+
                 if ("HIGH".equals(tempStatus)) {
                     insights.add(new HealthInsight(
-                        "Elevated Temperature",
-                        String.format("Average temperature: %.1f°C - %s", 
-                            avgTemp,
-                            vitals.getTemperature().getStatusMessage()),
-                        "MODERATE",
-                        "VITAL"
+                            "Elevated Temperature",
+                            String.format("Average temperature: %.1f°C - %s",
+                                    avgTemp,
+                                    vitals.getTemperature().getStatusMessage()),
+                            "MODERATE",
+                            "VITAL"
                     ));
                 } else if ("CRITICAL".equals(tempStatus)) {
                     // Distinguish between high fever and hypothermia
                     if (avgTemp >= TEMP_HIGH_FEVER) {
                         insights.add(new HealthInsight(
-                            "High Fever Detected",
-                            String.format("Temperature reached %.1f°C - Immediate attention recommended", 
-                                vitals.getTemperature().getMax()),
-                            "HIGH",
-                            "VITAL"
+                                "High Fever Detected",
+                                String.format("Temperature reached %.1f°C - Immediate attention recommended",
+                                        vitals.getTemperature().getMax()),
+                                "HIGH",
+                                "VITAL"
                         ));
                     } else if (avgTemp <= TEMP_HYPOTHERMIA) {
                         insights.add(new HealthInsight(
-                            "Hypothermia Risk Detected",
-                            String.format("Temperature dropped to %.1f°C - Immediate warming needed", 
-                                vitals.getTemperature().getMin()),
-                            "HIGH",
-                            "VITAL"
+                                "Hypothermia Risk Detected",
+                                String.format("Temperature dropped to %.1f°C - Immediate warming needed",
+                                        vitals.getTemperature().getMin()),
+                                "HIGH",
+                                "VITAL"
                         ));
                     }
                 } else if ("LOW".equals(tempStatus)) {
                     insights.add(new HealthInsight(
-                        "Below Normal Temperature",
-                        String.format("Average temperature: %.1f°C - Monitor for hypothermia", 
-                            avgTemp),
-                        "MODERATE",
-                        "VITAL"
+                            "Below Normal Temperature",
+                            String.format("Average temperature: %.1f°C - Monitor for hypothermia",
+                                    avgTemp),
+                            "MODERATE",
+                            "VITAL"
                     ));
                 }
             }
-            
+
             // Respiratory rate insights (higher priority for respiratory system)
             if (vitals.getRespiratoryRate() != null) {
                 String rrStatus = vitals.getRespiratoryRate().getStatus();
                 if ("HIGH".equals(rrStatus) || "CRITICAL".equals(rrStatus)) {
                     insights.add(new HealthInsight(
-                        "Abnormal Breathing Rate",
-                        String.format("Average respiratory rate: %.0f breaths/min - %s. This is significant for respiratory health.", 
-                            vitals.getRespiratoryRate().getAverage(),
-                            vitals.getRespiratoryRate().getStatusMessage()),
-                        "HIGH",
-                        "VITAL"
+                            "Abnormal Breathing Rate",
+                            String.format("Average respiratory rate: %.0f breaths/min - %s. This is significant for respiratory health.",
+                                    vitals.getRespiratoryRate().getAverage(),
+                                    vitals.getRespiratoryRate().getStatusMessage()),
+                            "HIGH",
+                            "VITAL"
                     ));
                 } else if ("LOW".equals(rrStatus)) {
                     insights.add(new HealthInsight(
-                        "Low Respiratory Rate",
-                        String.format("Average respiratory rate: %.0f breaths/min - Monitor for respiratory depression", 
-                            vitals.getRespiratoryRate().getAverage()),
-                        "HIGH",
-                        "VITAL"
+                            "Low Respiratory Rate",
+                            String.format("Average respiratory rate: %.0f breaths/min - Monitor for respiratory depression",
+                                    vitals.getRespiratoryRate().getAverage()),
+                            "HIGH",
+                            "VITAL"
                     ));
                 }
             }
-            
+
             // Combined cough + fever insight
-            if (totalCoughs > 30 && vitals.getTemperature() != null && 
-                vitals.getTemperature().getAverage() >= TEMP_FEVER) {
+            if (totalCoughs > 30 && vitals.getTemperature() != null
+                    && vitals.getTemperature().getAverage() >= TEMP_FEVER) {
                 insights.add(new HealthInsight(
-                    "Cough with Fever",
-                    "Combination of frequent coughing and elevated temperature may indicate infection. Medical consultation advised.",
-                    "HIGH",
-                    "COMBINED"
+                        "Cough with Fever",
+                        "Combination of frequent coughing and elevated temperature may indicate infection. Medical consultation advised.",
+                        "HIGH",
+                        "COMBINED"
                 ));
             }
         }
@@ -529,7 +538,7 @@ public class SummaryService {
             recommendations.add("Use a humidifier in your bedroom");
             recommendations.add("Avoid eating 2-3 hours before bedtime");
         }
-        
+
         // Vitals-specific recommendations
         if (vitals != null && vitals.isHasVitalsData()) {
             // Fever recommendations
@@ -540,7 +549,7 @@ public class SummaryService {
                     recommendations.add("Consider fever-reducing medication after consulting healthcare provider");
                 }
             }
-            
+
             // Respiratory rate recommendations (high priority)
             if (vitals.getRespiratoryRate() != null) {
                 if (vitals.getRespiratoryRate().getAverage() >= RR_TACHYPNEA) {
@@ -551,7 +560,7 @@ public class SummaryService {
                     recommendations.add("Monitor breathing closely - seek immediate medical attention if worsens");
                 }
             }
-            
+
             // Heart rate recommendations
             if (vitals.getHeartRate() != null) {
                 if (vitals.getHeartRate().getAverage() >= HR_TACHYCARDIA) {
@@ -575,24 +584,27 @@ public class SummaryService {
                 : 0.0;
 
         String trend;
-        if (change > 0) trend = "INCREASING";
-        else if (change < 0) trend = "DECREASING";
-        else trend = "STABLE";
+        if (change > 0) {
+            trend = "INCREASING"; 
+        }else if (change < 0) {
+            trend = "DECREASING"; 
+        }else {
+            trend = "STABLE";
+        }
 
         return new DailyComparison(yesterdayCoughs, change, percentageChange, trend);
     }
-    
+
     // ==================== VITALS CALCULATION METHODS ====================
-    
     private VitalsSummary calculateVitalsSummary(String deviceId, LocalDate date) {
         VitalsSummary summary = new VitalsSummary();
-        
+
         // Get vitals for the day
         LocalDateTime startOfDay = date.atStartOfDay();
         LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
         List<VitalsEvent> vitalsEvents = vitalsRepository.findByDeviceIdAndCreatedAtBetween(
                 deviceId, startOfDay, endOfDay);
-        
+
         if (vitalsEvents.isEmpty()) {
             summary.setHasVitalsData(false);
             summary.setVitalsMessage("No vitals recorded for this date");
@@ -606,54 +618,54 @@ public class SummaryService {
             summary.setVitalsStatus("No vitals data");
             return summary;
         }
-        
+
         summary.setHasVitalsData(true);
         summary.setTotalReadings(vitalsEvents.size());
-        
+
         // Calculate individual vital summaries
         summary.setHeartRate(calculateHeartRateSummary(vitalsEvents));
         summary.setTemperature(calculateTemperatureSummary(vitalsEvents));
         summary.setRespiratoryRate(calculateRespiratoryRateSummary(vitalsEvents));
-        
+
         // Generate hourly data for combined chart
         summary.setHourlyVitals(calculateHourlyVitals(vitalsEvents));
-        
+
         // Detect anomalies
         List<VitalsAnomaly> anomalies = detectVitalsAnomalies(vitalsEvents);
         summary.setAnomalies(anomalies);
-        
+
         // Calculate vitals severity score
         int vitalsScore = calculateVitalsSeverityScore(summary);
         summary.setVitalsSeverityScore(vitalsScore);
         summary.setVitalsStatus(getVitalsStatus(summary));
         summary.setVitalsMessage(String.format("%d readings recorded", vitalsEvents.size()));
-        
+
         return summary;
     }
-    
+
     private SingleVitalSummary createEmptySingleVitalSummary(String vitalName) {
         return new SingleVitalSummary(0, 0, 0, "UNKNOWN", "No " + vitalName.toLowerCase() + " data", 0, 0);
     }
-    
+
     private SingleVitalSummary calculateHeartRateSummary(List<VitalsEvent> events) {
         // Filter out invalid readings (leads off)
         List<VitalsEvent> validEvents = events.stream()
                 .filter(e -> !e.isLeadsOff() && e.getBpm() > 0)
                 .collect(Collectors.toList());
-        
+
         if (validEvents.isEmpty()) {
             return new SingleVitalSummary(0, 0, 0, "UNKNOWN", "No valid heart rate readings (leads off)", 0, 0);
         }
-        
+
         double avg = validEvents.stream().mapToDouble(VitalsEvent::getBpm).average().orElse(0);
         double min = validEvents.stream().mapToDouble(VitalsEvent::getBpm).min().orElse(0);
         double max = validEvents.stream().mapToDouble(VitalsEvent::getBpm).max().orElse(0);
-        
+
         // Determine status based on average
         String status;
         String statusMessage;
         int anomalyCount = 0;
-        
+
         if (avg < HR_BRADYCARDIA) {
             status = "CRITICAL";
             statusMessage = "Bradycardia detected - heart rate very low";
@@ -674,7 +686,7 @@ public class SummaryService {
             status = "NORMAL";
             statusMessage = "Within normal range (60-100 bpm)";
         }
-        
+
         return new SingleVitalSummary(
                 Math.round(avg * 10.0) / 10.0,
                 Math.round(min * 10.0) / 10.0,
@@ -685,24 +697,24 @@ public class SummaryService {
                 anomalyCount
         );
     }
-    
+
     private SingleVitalSummary calculateTemperatureSummary(List<VitalsEvent> events) {
         List<VitalsEvent> validEvents = events.stream()
                 .filter(e -> e.getTemp() > 30 && e.getTemp() < 45) // Filter unrealistic readings
                 .collect(Collectors.toList());
-        
+
         if (validEvents.isEmpty()) {
             return new SingleVitalSummary(0, 0, 0, "UNKNOWN", "No valid temperature readings", 0, 0);
         }
-        
+
         double avg = validEvents.stream().mapToDouble(VitalsEvent::getTemp).average().orElse(0);
         double min = validEvents.stream().mapToDouble(VitalsEvent::getTemp).min().orElse(0);
         double max = validEvents.stream().mapToDouble(VitalsEvent::getTemp).max().orElse(0);
-        
+
         String status;
         String statusMessage;
         int anomalyCount = 0;
-        
+
         if (avg >= TEMP_HIGH_FEVER) {
             status = "CRITICAL";
             statusMessage = "High fever - immediate attention needed";
@@ -727,7 +739,7 @@ public class SummaryService {
             status = "NORMAL";
             statusMessage = "Within normal range (36.1-37.5°C)";
         }
-        
+
         return new SingleVitalSummary(
                 Math.round(avg * 10.0) / 10.0,
                 Math.round(min * 10.0) / 10.0,
@@ -738,24 +750,24 @@ public class SummaryService {
                 anomalyCount
         );
     }
-    
+
     private SingleVitalSummary calculateRespiratoryRateSummary(List<VitalsEvent> events) {
         List<VitalsEvent> validEvents = events.stream()
                 .filter(e -> e.getRr() > 0 && e.getRr() < 60) // Filter unrealistic readings
                 .collect(Collectors.toList());
-        
+
         if (validEvents.isEmpty()) {
             return new SingleVitalSummary(0, 0, 0, "UNKNOWN", "No valid respiratory rate readings", 0, 0);
         }
-        
+
         double avg = validEvents.stream().mapToDouble(VitalsEvent::getRr).average().orElse(0);
         double min = validEvents.stream().mapToDouble(VitalsEvent::getRr).min().orElse(0);
         double max = validEvents.stream().mapToDouble(VitalsEvent::getRr).max().orElse(0);
-        
+
         String status;
         String statusMessage;
         int anomalyCount = 0;
-        
+
         if (avg >= RR_TACHYPNEA) {
             status = "CRITICAL";
             statusMessage = "Tachypnea - rapid breathing detected";
@@ -776,7 +788,7 @@ public class SummaryService {
             status = "NORMAL";
             statusMessage = "Within normal range (12-20 breaths/min)";
         }
-        
+
         return new SingleVitalSummary(
                 Math.round(avg * 10.0) / 10.0,
                 Math.round(min * 10.0) / 10.0,
@@ -787,17 +799,17 @@ public class SummaryService {
                 anomalyCount
         );
     }
-    
+
     private List<VitalsHourlyData> calculateHourlyVitals(List<VitalsEvent> events) {
         Map<Integer, List<VitalsEvent>> hourlyGroups = events.stream()
                 .filter(e -> e.getCreatedAt() != null)
                 .collect(Collectors.groupingBy(e -> e.getCreatedAt().getHour()));
-        
+
         List<VitalsHourlyData> hourlyData = new ArrayList<>();
-        
+
         for (int hour = 0; hour < 24; hour++) {
             List<VitalsEvent> hourEvents = hourlyGroups.getOrDefault(hour, new ArrayList<>());
-            
+
             if (hourEvents.isEmpty()) {
                 hourlyData.add(new VitalsHourlyData(hour, null, null, null, 0));
             } else {
@@ -806,19 +818,19 @@ public class SummaryService {
                         .mapToDouble(VitalsEvent::getBpm)
                         .average()
                         .orElse(Double.NaN);
-                
+
                 Double avgTemp = hourEvents.stream()
                         .filter(e -> e.getTemp() > 30 && e.getTemp() < 45)
                         .mapToDouble(VitalsEvent::getTemp)
                         .average()
                         .orElse(Double.NaN);
-                
+
                 Double avgRR = hourEvents.stream()
                         .filter(e -> e.getRr() > 0 && e.getRr() < 60)
                         .mapToDouble(VitalsEvent::getRr)
                         .average()
                         .orElse(Double.NaN);
-                
+
                 hourlyData.add(new VitalsHourlyData(
                         hour,
                         Double.isNaN(avgHR) ? null : Math.round(avgHR * 10.0) / 10.0,
@@ -828,10 +840,10 @@ public class SummaryService {
                 ));
             }
         }
-        
+
         return hourlyData;
     }
-    
+
     private List<VitalsHourlyData> generateEmptyHourlyVitals() {
         List<VitalsHourlyData> hourlyData = new ArrayList<>();
         for (int hour = 0; hour < 24; hour++) {
@@ -839,15 +851,17 @@ public class SummaryService {
         }
         return hourlyData;
     }
-    
+
     private List<VitalsAnomaly> detectVitalsAnomalies(List<VitalsEvent> events) {
         List<VitalsAnomaly> anomalies = new ArrayList<>();
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
-        
+
         for (VitalsEvent event : events) {
-            if (event.getCreatedAt() == null) continue;
+            if (event.getCreatedAt() == null) {
+                continue;
+            }
             String timestamp = event.getCreatedAt().format(timeFormatter);
-            
+
             // Heart rate anomalies
             if (!event.isLeadsOff() && event.getBpm() > 0) {
                 if (event.getBpm() < HR_BRADYCARDIA) {
@@ -870,7 +884,7 @@ public class SummaryService {
                     ));
                 }
             }
-            
+
             // Temperature anomalies
             if (event.getTemp() > 30 && event.getTemp() < 45) {
                 if (event.getTemp() >= TEMP_HIGH_FEVER) {
@@ -902,7 +916,7 @@ public class SummaryService {
                     ));
                 }
             }
-            
+
             // Respiratory rate anomalies (higher priority)
             if (event.getRr() > 0 && event.getRr() < 60) {
                 if (event.getRr() >= RR_TACHYPNEA) {
@@ -926,64 +940,91 @@ public class SummaryService {
                 }
             }
         }
-        
+
         // Limit anomalies to most significant ones (avoid flooding)
         if (anomalies.size() > 20) {
             // Prioritize CRITICAL over WARNING, and RR over others
             anomalies.sort((a, b) -> {
                 int severityCompare = b.getSeverity().compareTo(a.getSeverity());
-                if (severityCompare != 0) return severityCompare;
+                if (severityCompare != 0) {
+                    return severityCompare;
+                }
                 // Prioritize respiratory rate
-                if (a.getType().equals("RESPIRATORY_RATE") && !b.getType().equals("RESPIRATORY_RATE")) return -1;
-                if (!a.getType().equals("RESPIRATORY_RATE") && b.getType().equals("RESPIRATORY_RATE")) return 1;
+                if (a.getType().equals("RESPIRATORY_RATE") && !b.getType().equals("RESPIRATORY_RATE")) {
+                    return -1;
+                }
+                if (!a.getType().equals("RESPIRATORY_RATE") && b.getType().equals("RESPIRATORY_RATE")) {
+                    return 1;
+                }
                 return 0;
             });
             anomalies = anomalies.subList(0, 20);
         }
-        
+
         return anomalies;
     }
-    
+
     private int calculateVitalsSeverityScore(VitalsSummary summary) {
         double score = 0;
-        
+
         // Heart rate contribution (0-25 points)
         if (summary.getHeartRate() != null && !"UNKNOWN".equals(summary.getHeartRate().getStatus())) {
             switch (summary.getHeartRate().getStatus()) {
-                case "NORMAL": score += 5; break;
-                case "LOW": case "HIGH": score += 15; break;
-                case "CRITICAL": score += 25; break;
+                case "NORMAL":
+                    score += 5;
+                    break;
+                case "LOW":
+                case "HIGH":
+                    score += 15;
+                    break;
+                case "CRITICAL":
+                    score += 25;
+                    break;
             }
         }
-        
+
         // Temperature contribution (0-25 points)
         if (summary.getTemperature() != null && !"UNKNOWN".equals(summary.getTemperature().getStatus())) {
             switch (summary.getTemperature().getStatus()) {
-                case "NORMAL": score += 5; break;
-                case "LOW": case "HIGH": score += 15; break;
-                case "CRITICAL": score += 25; break;
+                case "NORMAL":
+                    score += 5;
+                    break;
+                case "LOW":
+                case "HIGH":
+                    score += 15;
+                    break;
+                case "CRITICAL":
+                    score += 25;
+                    break;
             }
         }
-        
+
         // Respiratory rate contribution (0-50 points) - HIGHER WEIGHT for respiratory system
         if (summary.getRespiratoryRate() != null && !"UNKNOWN".equals(summary.getRespiratoryRate().getStatus())) {
             switch (summary.getRespiratoryRate().getStatus()) {
-                case "NORMAL": score += 10; break;
-                case "LOW": case "HIGH": score += 30; break;
-                case "CRITICAL": score += 50; break;
+                case "NORMAL":
+                    score += 10;
+                    break;
+                case "LOW":
+                case "HIGH":
+                    score += 30;
+                    break;
+                case "CRITICAL":
+                    score += 50;
+                    break;
             }
         }
-        
+
         return Math.min((int) Math.round(score), 100);
     }
-    
+
     private String getVitalsStatus(VitalsSummary summary) {
         int score = summary.getVitalsSeverityScore();
-        
-        boolean hasCritical = (summary.getHeartRate() != null && "CRITICAL".equals(summary.getHeartRate().getStatus())) ||
-                             (summary.getTemperature() != null && "CRITICAL".equals(summary.getTemperature().getStatus())) ||
-                             (summary.getRespiratoryRate() != null && "CRITICAL".equals(summary.getRespiratoryRate().getStatus()));
-        
+
+        boolean hasCritical = (summary.getHeartRate() != null && "CRITICAL".equals(summary.getHeartRate().getStatus()))
+                || (summary.getTemperature() != null && "CRITICAL".equals(summary.getTemperature().getStatus()))
+                || (summary.getRespiratoryRate() != null && "CRITICAL".equals(summary.getRespiratoryRate().getStatus()));
+
         if (hasCritical) {
             return "Critical vital signs detected - Medical attention recommended";
         } else if (score < 30) {
@@ -996,17 +1037,17 @@ public class SummaryService {
             return "Significant vital sign abnormalities - Seek medical attention";
         }
     }
-    
+
     private List<HealthInsight> generateVitalsOnlyInsights(VitalsSummary vitals) {
         List<HealthInsight> insights = new ArrayList<>();
-        
+
         if (vitals == null || !vitals.isHasVitalsData()) {
             return insights;
         }
-        
+
         // Add vitals-based insights
-        if (vitals.getHeartRate() != null && !"NORMAL".equals(vitals.getHeartRate().getStatus()) 
-            && !"UNKNOWN".equals(vitals.getHeartRate().getStatus())) {
+        if (vitals.getHeartRate() != null && !"NORMAL".equals(vitals.getHeartRate().getStatus())
+                && !"UNKNOWN".equals(vitals.getHeartRate().getStatus())) {
             insights.add(new HealthInsight(
                     vitals.getHeartRate().getStatus().equals("CRITICAL") ? "Critical Heart Rate" : "Abnormal Heart Rate",
                     vitals.getHeartRate().getStatusMessage(),
@@ -1014,9 +1055,9 @@ public class SummaryService {
                     "VITAL"
             ));
         }
-        
+
         if (vitals.getTemperature() != null && !"NORMAL".equals(vitals.getTemperature().getStatus())
-            && !"UNKNOWN".equals(vitals.getTemperature().getStatus())) {
+                && !"UNKNOWN".equals(vitals.getTemperature().getStatus())) {
             insights.add(new HealthInsight(
                     vitals.getTemperature().getStatus().equals("CRITICAL") ? "Critical Temperature" : "Abnormal Temperature",
                     vitals.getTemperature().getStatusMessage(),
@@ -1024,9 +1065,9 @@ public class SummaryService {
                     "VITAL"
             ));
         }
-        
+
         if (vitals.getRespiratoryRate() != null && !"NORMAL".equals(vitals.getRespiratoryRate().getStatus())
-            && !"UNKNOWN".equals(vitals.getRespiratoryRate().getStatus())) {
+                && !"UNKNOWN".equals(vitals.getRespiratoryRate().getStatus())) {
             insights.add(new HealthInsight(
                     vitals.getRespiratoryRate().getStatus().equals("CRITICAL") ? "Critical Respiratory Rate" : "Abnormal Respiratory Rate",
                     vitals.getRespiratoryRate().getStatusMessage(),
@@ -1034,7 +1075,7 @@ public class SummaryService {
                     "VITAL"
             ));
         }
-        
+
         if (insights.isEmpty() && vitals.isHasVitalsData()) {
             insights.add(new HealthInsight(
                     "Vitals Normal",
@@ -1043,125 +1084,124 @@ public class SummaryService {
                     "POSITIVE"
             ));
         }
-        
+
         return insights;
     }
-    
+
     private List<String> generateVitalsOnlyRecommendations(VitalsSummary vitals) {
         List<String> recommendations = new ArrayList<>();
-        
+
         if (vitals == null || !vitals.isHasVitalsData()) {
             recommendations.add("Ensure device is worn properly to record vitals");
             return recommendations;
         }
-        
+
         boolean hasIssues = false;
-        
-        if (vitals.getTemperature() != null && 
-            ("HIGH".equals(vitals.getTemperature().getStatus()) || "CRITICAL".equals(vitals.getTemperature().getStatus()))) {
+
+        if (vitals.getTemperature() != null
+                && ("HIGH".equals(vitals.getTemperature().getStatus()) || "CRITICAL".equals(vitals.getTemperature().getStatus()))) {
             recommendations.add("Monitor temperature regularly");
             recommendations.add("Stay hydrated and rest");
             hasIssues = true;
         }
-        
-        if (vitals.getRespiratoryRate() != null && 
-            ("HIGH".equals(vitals.getRespiratoryRate().getStatus()) || "CRITICAL".equals(vitals.getRespiratoryRate().getStatus()))) {
+
+        if (vitals.getRespiratoryRate() != null
+                && ("HIGH".equals(vitals.getRespiratoryRate().getStatus()) || "CRITICAL".equals(vitals.getRespiratoryRate().getStatus()))) {
             recommendations.add("Practice calm, controlled breathing");
             recommendations.add("Avoid physical exertion");
             hasIssues = true;
         }
-        
-        if (vitals.getHeartRate() != null && 
-            ("HIGH".equals(vitals.getHeartRate().getStatus()) || "CRITICAL".equals(vitals.getHeartRate().getStatus()))) {
+
+        if (vitals.getHeartRate() != null
+                && ("HIGH".equals(vitals.getHeartRate().getStatus()) || "CRITICAL".equals(vitals.getHeartRate().getStatus()))) {
             recommendations.add("Rest and avoid stimulants");
             hasIssues = true;
         }
-        
+
         if (!hasIssues) {
             recommendations.add("Continue regular monitoring");
             recommendations.add("Maintain healthy lifestyle habits");
         }
-        
+
         return recommendations;
     }
-    
+
     // ==================== WEEKLY SUMMARY METHODS ====================
-    
     public WeeklySummaryResponse generateWeeklySummary(String deviceId, LocalDate weekStart) {
         WeeklySummaryResponse response = new WeeklySummaryResponse();
         LocalDate weekEnd = weekStart.plusDays(6);
-        
+
         response.setWeekStart(weekStart.format(DATE_FORMATTER));
         response.setWeekEnd(weekEnd.format(DATE_FORMATTER));
         response.setDeviceId(deviceId);
-        
+
         // Day names for reference
         String[] dayNames = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
-        
+
         // Collect data for each day of the week
         List<DailyBreakdown> dailyBreakdowns = new ArrayList<>();
         List<Double> dailyHeartRateAverages = new ArrayList<>();
         List<Double> dailyTemperatureAverages = new ArrayList<>();
         List<Double> dailyRespiratoryRateAverages = new ArrayList<>();
-        
+
         int totalCoughs = 0;
         int totalDayCoughs = 0;
         int totalNightCoughs = 0;
         int daysWithData = 0;
         int daysWithVitalsData = 0;
         int totalVitalsReadings = 0;
-        
+
         // Weekly vitals aggregation
         List<Double> allHeartRates = new ArrayList<>();
         List<Double> allTemperatures = new ArrayList<>();
         List<Double> allRespiratoryRates = new ArrayList<>();
         List<VitalsAnomaly> allAnomalies = new ArrayList<>();
-        
+
         int peakDayIndex = 0;
         int peakDayCoughs = 0;
         int lowestDayIndex = 0;
         int lowestDayCoughs = Integer.MAX_VALUE;
         boolean firstDayWithData = true;
-        
+
         // Process each day
         for (int i = 0; i < 7; i++) {
             LocalDate currentDate = weekStart.plusDays(i);
             String dayName = dayNames[i];
-            
+
             // Get cough events for this day
             List<CoughEvent> dayEvents = getCoughEventsForDay(deviceId, currentDate);
-            
+
             // Get vitals for this day
             LocalDateTime startOfDay = currentDate.atStartOfDay();
             LocalDateTime endOfDay = currentDate.plusDays(1).atStartOfDay();
             List<VitalsEvent> dayVitals = vitalsRepository.findByDeviceIdAndCreatedAtBetween(
                     deviceId, startOfDay, endOfDay);
-            
+
             DailyBreakdown breakdown = new DailyBreakdown();
             breakdown.setDate(currentDate.format(DATE_FORMATTER));
             breakdown.setDayName(dayName);
             breakdown.setDayIndex(i);
-            
+
             int dayCoughs = dayEvents.size();
             breakdown.setTotalCoughs(dayCoughs);
             breakdown.setHasData(!dayEvents.isEmpty() || !dayVitals.isEmpty());
-            
+
             if (!dayEvents.isEmpty()) {
                 daysWithData++;
                 totalCoughs += dayCoughs;
-                
+
                 // Calculate day/night split
                 Map<String, Integer> dayNightSplit = calculateDayNightSplit(dayEvents);
                 int nightCoughs = dayNightSplit.get("night");
                 int dayTimeCoughs = dayNightSplit.get("day");
-                
+
                 breakdown.setDayCoughs(dayTimeCoughs);
                 breakdown.setNightCoughs(nightCoughs);
                 breakdown.setNightPercentage(dayCoughs > 0 ? Math.round(nightCoughs * 1000.0 / dayCoughs) / 10.0 : 0);
-                
+
                 totalDayCoughs += dayTimeCoughs;
                 totalNightCoughs += nightCoughs;
-                
+
                 // Track peak and lowest days
                 if (dayCoughs > peakDayCoughs) {
                     peakDayCoughs = dayCoughs;
@@ -1171,7 +1211,7 @@ public class SummaryService {
                     lowestDayCoughs = dayCoughs;
                     lowestDayIndex = i;
                 }
-                
+
                 // Calculate daily severity
                 int dailySeverity = calculateCoughSeverityScore(dayCoughs, breakdown.getNightPercentage(), new ArrayList<>());
                 breakdown.setSeverityLevel(getSeverityLevel(dailySeverity));
@@ -1181,12 +1221,12 @@ public class SummaryService {
                 breakdown.setNightPercentage(0);
                 breakdown.setSeverityLevel("GOOD");
             }
-            
+
             // Process vitals for this day
             if (!dayVitals.isEmpty()) {
                 daysWithVitalsData++;
                 totalVitalsReadings += dayVitals.size();
-                
+
                 // Heart rate
                 List<VitalsEvent> validHREvents = dayVitals.stream()
                         .filter(e -> !e.isLeadsOff() && e.getBpm() > 0)
@@ -1199,7 +1239,7 @@ public class SummaryService {
                 } else {
                     dailyHeartRateAverages.add(null);
                 }
-                
+
                 // Temperature
                 List<VitalsEvent> validTempEvents = dayVitals.stream()
                         .filter(e -> e.getTemp() > 30 && e.getTemp() < 45)
@@ -1212,7 +1252,7 @@ public class SummaryService {
                 } else {
                     dailyTemperatureAverages.add(null);
                 }
-                
+
                 // Respiratory rate
                 List<VitalsEvent> validRREvents = dayVitals.stream()
                         .filter(e -> e.getRr() > 0 && e.getRr() < 60)
@@ -1225,7 +1265,7 @@ public class SummaryService {
                 } else {
                     dailyRespiratoryRateAverages.add(null);
                 }
-                
+
                 // Collect anomalies
                 List<VitalsAnomaly> dayAnomalies = detectVitalsAnomalies(dayVitals);
                 allAnomalies.addAll(dayAnomalies);
@@ -1234,13 +1274,13 @@ public class SummaryService {
                 dailyTemperatureAverages.add(null);
                 dailyRespiratoryRateAverages.add(null);
             }
-            
+
             dailyBreakdowns.add(breakdown);
         }
-        
+
         response.setDailyBreakdown(dailyBreakdowns);
         response.setDaysWithData(daysWithData);
-        
+
         // Build Cough Weekly Summary
         CoughWeeklySummary coughSummary = new CoughWeeklySummary();
         coughSummary.setTotalCoughs(totalCoughs);
@@ -1256,11 +1296,11 @@ public class SummaryService {
         coughSummary.setLowestDayName(dayNames[lowestDayIndex]);
         coughSummary.setLowestDayCoughs(lowestDayCoughs == Integer.MAX_VALUE ? 0 : lowestDayCoughs);
         response.setCoughSummary(coughSummary);
-        
+
         // Build Week Over Week Comparison
         WeekOverWeekComparison comparison = compareWithPreviousWeek(deviceId, weekStart, totalCoughs);
         response.setWeekOverWeekComparison(comparison);
-        
+
         // Build Weekly Vitals Summary
         WeeklyVitalsSummary vitalsSummary = buildWeeklyVitalsSummary(
                 allHeartRates, allTemperatures, allRespiratoryRates,
@@ -1275,15 +1315,15 @@ public class SummaryService {
         // Generate weekly patterns
         List<String> weeklyPatterns = generateWeeklyPatterns(dailyBreakdowns, coughSummary, vitalsSummary);
         response.setWeeklyPatterns(weeklyPatterns);
-        
+
         // Generate weekly insights
         List<String> weeklyInsights = generateWeeklyInsights(coughSummary, comparison, vitalsSummary, daysWithData);
         response.setWeeklyInsights(weeklyInsights);
-        
+
         // Generate recommendations
         List<String> recommendations = generateWeeklyRecommendations(coughSummary, vitalsSummary, comparison);
         response.setRecommendations(recommendations);
-        
+
         // Calculate overall severity
         int coughScore = calculateWeeklyCoughSeverityScore(totalCoughs, coughSummary.getNightCoughPercentage(), daysWithData);
         int vitalsScore = vitalsSummary.getVitalsSeverityScore();
@@ -1291,15 +1331,15 @@ public class SummaryService {
         response.setSeverityScore(overallScore);
         response.setSeverityLevel(getSeverityLevel(overallScore));
         response.setHealthStatus(getWeeklyHealthStatus(response.getSeverityLevel(), totalCoughs, daysWithData, vitalsSummary));
-        
+
         response.setHasData(daysWithData > 0 || daysWithVitalsData > 0);
-        response.setMessage(response.isHasData() 
+        response.setMessage(response.isHasData()
                 ? String.format("Weekly summary generated with %d days of data", Math.max(daysWithData, daysWithVitalsData))
                 : "No data available for this week");
-        
+
         return response;
     }
-    
+
     private String determineWeeklyCoughSeverity(int totalCoughs, double nightPercentage) {
         // Weekly thresholds (7x daily thresholds approximately)
         if (totalCoughs > 350 || (totalCoughs > 200 && nightPercentage > 50)) {
@@ -1312,46 +1352,53 @@ public class SummaryService {
             return "GOOD";
         }
     }
-    
+
     private int calculateWeeklyCoughSeverityScore(int totalCoughs, double nightPercentage, int daysWithData) {
-        if (daysWithData == 0) return 0;
-        
+        if (daysWithData == 0) {
+            return 0;
+        }
+
         double score = 0;
         double avgDaily = (double) totalCoughs / daysWithData;
-        
+
         // Base score from average daily cough count (0-50 points)
-        if (avgDaily < 10) score += 10;
-        else if (avgDaily < 30) score += 25;
-        else if (avgDaily < 50) score += 40;
-        else score += 50;
-        
+        if (avgDaily < 10) {
+            score += 10; 
+        }else if (avgDaily < 30) {
+            score += 25; 
+        }else if (avgDaily < 50) {
+            score += 40; 
+        }else {
+            score += 50;
+        }
+
         // Night percentage (0-25 points)
         score += (nightPercentage / 100.0) * 25;
-        
+
         // Days with high coughs (0-25 points)
         score += Math.min((totalCoughs / 50.0) * 5, 25);
-        
+
         return Math.min((int) Math.round(score), 100);
     }
-    
+
     private WeekOverWeekComparison compareWithPreviousWeek(String deviceId, LocalDate weekStart, int currentWeekTotal) {
         LocalDate prevWeekStart = weekStart.minusWeeks(1);
         LocalDate prevWeekEnd = prevWeekStart.plusDays(6);
-        
+
         int prevWeekTotal = 0;
         for (int i = 0; i < 7; i++) {
             List<CoughEvent> dayEvents = getCoughEventsForDay(deviceId, prevWeekStart.plusDays(i));
             prevWeekTotal += dayEvents.size();
         }
-        
+
         int change = currentWeekTotal - prevWeekTotal;
-        double changePercentage = prevWeekTotal > 0 
-                ? Math.round((change * 1000.0 / prevWeekTotal)) / 10.0 
+        double changePercentage = prevWeekTotal > 0
+                ? Math.round((change * 1000.0 / prevWeekTotal)) / 10.0
                 : 0.0;
-        
+
         String trend;
         String trendMessage;
-        
+
         if (changePercentage < -10) {
             trend = "IMPROVING";
             trendMessage = String.format("%.1f%% decrease from last week - Good progress!", Math.abs(changePercentage));
@@ -1362,25 +1409,25 @@ public class SummaryService {
             trend = "STABLE";
             trendMessage = "Cough frequency similar to last week";
         }
-        
+
         return new WeekOverWeekComparison(prevWeekTotal, currentWeekTotal, change, changePercentage, trend, trendMessage);
     }
-    
+
     private WeeklyVitalsSummary buildWeeklyVitalsSummary(
             List<Double> allHeartRates, List<Double> allTemperatures, List<Double> allRespiratoryRates,
             List<Double> dailyHRAverages, List<Double> dailyTempAverages, List<Double> dailyRRAverages,
             int daysWithVitalsData, int totalReadings, List<VitalsAnomaly> anomalies) {
-        
+
         WeeklyVitalsSummary summary = new WeeklyVitalsSummary();
         summary.setDaysWithVitalsData(daysWithVitalsData);
         summary.setTotalReadings(totalReadings);
         summary.setHasVitalsData(daysWithVitalsData > 0);
-        
+
         summary.setDailyHeartRateAverages(dailyHRAverages);
         summary.setDailyTemperatureAverages(dailyTempAverages);
         summary.setDailyRespiratoryRateAverages(dailyRRAverages);
         summary.setWeeklyAnomalies(anomalies);
-        
+
         if (!summary.isHasVitalsData()) {
             summary.setVitalsMessage("No vitals data for this week");
             summary.setVitalsSeverityScore(0);
@@ -1390,42 +1437,42 @@ public class SummaryService {
             summary.setRespiratoryRate(createEmptyWeeklyVitalStats("Respiratory Rate"));
             return summary;
         }
-        
+
         // Calculate weekly heart rate stats
         summary.setHeartRate(calculateWeeklyHeartRateStats(allHeartRates, dailyHRAverages));
-        
+
         // Calculate weekly temperature stats
         summary.setTemperature(calculateWeeklyTemperatureStats(allTemperatures, dailyTempAverages));
-        
+
         // Calculate weekly respiratory rate stats
         summary.setRespiratoryRate(calculateWeeklyRespiratoryRateStats(allRespiratoryRates, dailyRRAverages));
-        
+
         // Calculate overall vitals severity
         int vitalsScore = calculateWeeklyVitalsSeverityScore(summary);
         summary.setVitalsSeverityScore(vitalsScore);
         summary.setVitalsStatus(getWeeklyVitalsStatus(summary));
         summary.setVitalsMessage(String.format("%d readings across %d days", totalReadings, daysWithVitalsData));
-        
+
         return summary;
     }
-    
+
     private WeeklyVitalStats createEmptyWeeklyVitalStats(String vitalName) {
         return new WeeklyVitalStats(0, 0, 0, "UNKNOWN", "No " + vitalName.toLowerCase() + " data", 0, 0, "UNKNOWN");
     }
-    
+
     private WeeklyVitalStats calculateWeeklyHeartRateStats(List<Double> allReadings, List<Double> dailyAverages) {
         if (allReadings.isEmpty()) {
             return createEmptyWeeklyVitalStats("Heart Rate");
         }
-        
+
         double avg = allReadings.stream().mapToDouble(d -> d).average().orElse(0);
         double min = allReadings.stream().mapToDouble(d -> d).min().orElse(0);
         double max = allReadings.stream().mapToDouble(d -> d).max().orElse(0);
-        
+
         String status;
         String statusMessage;
         int anomalyCount = 0;
-        
+
         if (avg < HR_BRADYCARDIA) {
             status = "CRITICAL";
             statusMessage = "Weekly average indicates bradycardia";
@@ -1446,10 +1493,10 @@ public class SummaryService {
             status = "NORMAL";
             statusMessage = "Within normal range (60-100 bpm)";
         }
-        
+
         // Calculate trend from daily averages
         String trend = calculateVitalTrend(dailyAverages);
-        
+
         return new WeeklyVitalStats(
                 Math.round(avg * 10.0) / 10.0,
                 Math.round(min * 10.0) / 10.0,
@@ -1460,20 +1507,20 @@ public class SummaryService {
                 trend
         );
     }
-    
+
     private WeeklyVitalStats calculateWeeklyTemperatureStats(List<Double> allReadings, List<Double> dailyAverages) {
         if (allReadings.isEmpty()) {
             return createEmptyWeeklyVitalStats("Temperature");
         }
-        
+
         double avg = allReadings.stream().mapToDouble(d -> d).average().orElse(0);
         double min = allReadings.stream().mapToDouble(d -> d).min().orElse(0);
         double max = allReadings.stream().mapToDouble(d -> d).max().orElse(0);
-        
+
         String status;
         String statusMessage;
         int anomalyCount = 0;
-        
+
         if (avg >= TEMP_HIGH_FEVER) {
             status = "CRITICAL";
             statusMessage = "High fever detected during the week";
@@ -1498,9 +1545,9 @@ public class SummaryService {
             status = "NORMAL";
             statusMessage = "Within normal range (36.1-37.5°C)";
         }
-        
+
         String trend = calculateVitalTrend(dailyAverages);
-        
+
         return new WeeklyVitalStats(
                 Math.round(avg * 10.0) / 10.0,
                 Math.round(min * 10.0) / 10.0,
@@ -1511,20 +1558,20 @@ public class SummaryService {
                 trend
         );
     }
-    
+
     private WeeklyVitalStats calculateWeeklyRespiratoryRateStats(List<Double> allReadings, List<Double> dailyAverages) {
         if (allReadings.isEmpty()) {
             return createEmptyWeeklyVitalStats("Respiratory Rate");
         }
-        
+
         double avg = allReadings.stream().mapToDouble(d -> d).average().orElse(0);
         double min = allReadings.stream().mapToDouble(d -> d).min().orElse(0);
         double max = allReadings.stream().mapToDouble(d -> d).max().orElse(0);
-        
+
         String status;
         String statusMessage;
         int anomalyCount = 0;
-        
+
         if (avg >= RR_TACHYPNEA) {
             status = "CRITICAL";
             statusMessage = "Tachypnea - rapid breathing detected";
@@ -1545,9 +1592,9 @@ public class SummaryService {
             status = "NORMAL";
             statusMessage = "Within normal range (12-20 breaths/min)";
         }
-        
+
         String trend = calculateVitalTrend(dailyAverages);
-        
+
         return new WeeklyVitalStats(
                 Math.round(avg * 10.0) / 10.0,
                 Math.round(min * 10.0) / 10.0,
@@ -1558,24 +1605,24 @@ public class SummaryService {
                 trend
         );
     }
-    
+
     private String calculateVitalTrend(List<Double> dailyAverages) {
         // Filter out nulls and get valid averages
         List<Double> validAverages = dailyAverages.stream()
                 .filter(d -> d != null)
                 .collect(Collectors.toList());
-        
+
         if (validAverages.size() < 2) {
             return "STABLE";
         }
-        
+
         // Simple linear trend: compare first half average to second half average
         int midpoint = validAverages.size() / 2;
         double firstHalfAvg = validAverages.subList(0, midpoint).stream().mapToDouble(d -> d).average().orElse(0);
         double secondHalfAvg = validAverages.subList(midpoint, validAverages.size()).stream().mapToDouble(d -> d).average().orElse(0);
-        
+
         double changePercent = firstHalfAvg > 0 ? ((secondHalfAvg - firstHalfAvg) / firstHalfAvg) * 100 : 0;
-        
+
         if (changePercent > 5) {
             return "INCREASING";
         } else if (changePercent < -5) {
@@ -1584,55 +1631,82 @@ public class SummaryService {
             return "STABLE";
         }
     }
-    
+
     private int calculateWeeklyVitalsSeverityScore(WeeklyVitalsSummary summary) {
         int score = 0;
-        
+
         if (summary.getHeartRate() != null) {
             switch (summary.getHeartRate().getStatus()) {
-                case "CRITICAL": score += 30; break;
-                case "HIGH": score += 20; break;
-                case "LOW": score += 15; break;
+                case "CRITICAL":
+                    score += 30;
+                    break;
+                case "HIGH":
+                    score += 20;
+                    break;
+                case "LOW":
+                    score += 15;
+                    break;
             }
         }
-        
+
         if (summary.getTemperature() != null) {
             switch (summary.getTemperature().getStatus()) {
-                case "CRITICAL": score += 30; break;
-                case "HIGH": score += 20; break;
-                case "LOW": score += 15; break;
+                case "CRITICAL":
+                    score += 30;
+                    break;
+                case "HIGH":
+                    score += 20;
+                    break;
+                case "LOW":
+                    score += 15;
+                    break;
             }
         }
-        
+
         if (summary.getRespiratoryRate() != null) {
             // Respiratory rate has higher weight for respiratory system
             switch (summary.getRespiratoryRate().getStatus()) {
-                case "CRITICAL": score += 40; break;
-                case "HIGH": score += 25; break;
-                case "LOW": score += 20; break;
+                case "CRITICAL":
+                    score += 40;
+                    break;
+                case "HIGH":
+                    score += 25;
+                    break;
+                case "LOW":
+                    score += 20;
+                    break;
             }
         }
-        
+
         return Math.min(score, 100);
     }
-    
+
     private String getWeeklyVitalsStatus(WeeklyVitalsSummary summary) {
         int criticalCount = 0;
         int highCount = 0;
-        
+
         if (summary.getHeartRate() != null) {
-            if ("CRITICAL".equals(summary.getHeartRate().getStatus())) criticalCount++;
-            else if ("HIGH".equals(summary.getHeartRate().getStatus())) highCount++;
+            if ("CRITICAL".equals(summary.getHeartRate().getStatus())) {
+                criticalCount++; 
+            }else if ("HIGH".equals(summary.getHeartRate().getStatus())) {
+                highCount++;
+            }
         }
         if (summary.getTemperature() != null) {
-            if ("CRITICAL".equals(summary.getTemperature().getStatus())) criticalCount++;
-            else if ("HIGH".equals(summary.getTemperature().getStatus())) highCount++;
+            if ("CRITICAL".equals(summary.getTemperature().getStatus())) {
+                criticalCount++; 
+            }else if ("HIGH".equals(summary.getTemperature().getStatus())) {
+                highCount++;
+            }
         }
         if (summary.getRespiratoryRate() != null) {
-            if ("CRITICAL".equals(summary.getRespiratoryRate().getStatus())) criticalCount++;
-            else if ("HIGH".equals(summary.getRespiratoryRate().getStatus())) highCount++;
+            if ("CRITICAL".equals(summary.getRespiratoryRate().getStatus())) {
+                criticalCount++; 
+            }else if ("HIGH".equals(summary.getRespiratoryRate().getStatus())) {
+                highCount++;
+            }
         }
-        
+
         if (criticalCount > 0) {
             return "Critical - Immediate attention recommended";
         } else if (highCount >= 2) {
@@ -1643,10 +1717,10 @@ public class SummaryService {
             return "Vitals stable throughout the week";
         }
     }
-    
+
     private List<String> generateWeeklyPatterns(List<DailyBreakdown> dailyBreakdowns, CoughWeeklySummary coughSummary, WeeklyVitalsSummary vitalsSummary) {
         List<String> patterns = new ArrayList<>();
-        
+
         // Weekend vs weekday pattern
         int weekdayCoughs = 0;
         int weekendCoughs = 0;
@@ -1657,28 +1731,28 @@ public class SummaryService {
                 weekdayCoughs += day.getTotalCoughs();
             }
         }
-        
+
         double weekdayAvg = weekdayCoughs / 5.0;
         double weekendAvg = weekendCoughs / 2.0;
-        
+
         if (weekendAvg > weekdayAvg * 1.3) {
             patterns.add(String.format("Weekend coughs %.0f%% higher than weekdays", ((weekendAvg - weekdayAvg) / weekdayAvg) * 100));
         } else if (weekdayAvg > weekendAvg * 1.3) {
             patterns.add(String.format("Weekday coughs %.0f%% higher than weekends", ((weekdayAvg - weekendAvg) / weekendAvg) * 100));
         }
-        
+
         // Nocturnal pattern
         if (coughSummary.getNightCoughPercentage() > 40) {
             patterns.add(String.format("High nocturnal coughing (%.1f%% at night)", coughSummary.getNightCoughPercentage()));
         }
-        
+
         // Peak day pattern
         if (coughSummary.getPeakDayCoughs() > coughSummary.getAvgCoughsPerDay() * 1.5) {
-            patterns.add(String.format("Peak on %s with %d coughs (%.0f%% above average)", 
+            patterns.add(String.format("Peak on %s with %d coughs (%.0f%% above average)",
                     coughSummary.getPeakDayName(), coughSummary.getPeakDayCoughs(),
                     ((coughSummary.getPeakDayCoughs() - coughSummary.getAvgCoughsPerDay()) / coughSummary.getAvgCoughsPerDay()) * 100));
         }
-        
+
         // Vitals patterns
         if (vitalsSummary.isHasVitalsData()) {
             if (vitalsSummary.getTemperature() != null && "INCREASING".equals(vitalsSummary.getTemperature().getTrend())) {
@@ -1688,27 +1762,27 @@ public class SummaryService {
                 patterns.add("Respiratory rate increasing through the week");
             }
         }
-        
+
         return patterns;
     }
-    
+
     private List<String> generateWeeklyInsights(CoughWeeklySummary coughSummary, WeekOverWeekComparison comparison, WeeklyVitalsSummary vitalsSummary, int daysWithData) {
         List<String> insights = new ArrayList<>();
-        
+
         // Week over week insight
         if ("IMPROVING".equals(comparison.getTrend())) {
             insights.add(String.format("Great progress! Cough frequency decreased by %.1f%% compared to last week", Math.abs(comparison.getChangePercentage())));
         } else if ("WORSENING".equals(comparison.getTrend())) {
             insights.add(String.format("Cough frequency increased by %.1f%% compared to last week - monitor closely", comparison.getChangePercentage()));
         }
-        
+
         // Best/worst day insight
         if (daysWithData > 1) {
-            insights.add(String.format("Best day: %s (%d coughs) | Worst day: %s (%d coughs)", 
+            insights.add(String.format("Best day: %s (%d coughs) | Worst day: %s (%d coughs)",
                     coughSummary.getLowestDayName(), coughSummary.getLowestDayCoughs(),
                     coughSummary.getPeakDayName(), coughSummary.getPeakDayCoughs()));
         }
-        
+
         // Severity insight
         switch (coughSummary.getSeverityLevel()) {
             case "GOOD":
@@ -1722,30 +1796,36 @@ public class SummaryService {
                 insights.add("Elevated cough frequency this week - consider medical consultation");
                 break;
         }
-        
+
         // Vitals insights
         if (vitalsSummary.isHasVitalsData()) {
             int abnormalVitals = 0;
-            if (vitalsSummary.getHeartRate() != null && !"NORMAL".equals(vitalsSummary.getHeartRate().getStatus()) 
-                && !"UNKNOWN".equals(vitalsSummary.getHeartRate().getStatus())) abnormalVitals++;
+            if (vitalsSummary.getHeartRate() != null && !"NORMAL".equals(vitalsSummary.getHeartRate().getStatus())
+                    && !"UNKNOWN".equals(vitalsSummary.getHeartRate().getStatus())) {
+                abnormalVitals++;
+            }
             if (vitalsSummary.getTemperature() != null && !"NORMAL".equals(vitalsSummary.getTemperature().getStatus())
-                && !"UNKNOWN".equals(vitalsSummary.getTemperature().getStatus())) abnormalVitals++;
+                    && !"UNKNOWN".equals(vitalsSummary.getTemperature().getStatus())) {
+                abnormalVitals++;
+            }
             if (vitalsSummary.getRespiratoryRate() != null && !"NORMAL".equals(vitalsSummary.getRespiratoryRate().getStatus())
-                && !"UNKNOWN".equals(vitalsSummary.getRespiratoryRate().getStatus())) abnormalVitals++;
-            
+                    && !"UNKNOWN".equals(vitalsSummary.getRespiratoryRate().getStatus())) {
+                abnormalVitals++;
+            }
+
             if (abnormalVitals == 0) {
                 insights.add("All vital signs remained within normal range throughout the week");
             } else {
                 insights.add(String.format("%d vital sign(s) showed abnormal readings during the week", abnormalVitals));
             }
         }
-        
+
         return insights;
     }
-    
+
     private List<String> generateWeeklyRecommendations(CoughWeeklySummary coughSummary, WeeklyVitalsSummary vitalsSummary, WeekOverWeekComparison comparison) {
         List<String> recommendations = new ArrayList<>();
-        
+
         // Based on severity level
         switch (coughSummary.getSeverityLevel()) {
             case "GOOD":
@@ -1768,38 +1848,38 @@ public class SummaryService {
                 recommendations.add("Rest and avoid physical exertion");
                 break;
         }
-        
+
         // Night cough recommendations
         if (coughSummary.getNightCoughPercentage() > 40) {
             recommendations.add("Elevate your head while sleeping");
             recommendations.add("Use a humidifier in your bedroom");
         }
-        
+
         // Worsening trend recommendations
         if ("WORSENING".equals(comparison.getTrend())) {
             recommendations.add("Review any recent changes in environment or activities");
             recommendations.add("Consider keeping a detailed symptom diary");
         }
-        
+
         // Vitals-based recommendations
         if (vitalsSummary.isHasVitalsData()) {
-            if (vitalsSummary.getTemperature() != null && 
-                ("HIGH".equals(vitalsSummary.getTemperature().getStatus()) || "CRITICAL".equals(vitalsSummary.getTemperature().getStatus()))) {
+            if (vitalsSummary.getTemperature() != null
+                    && ("HIGH".equals(vitalsSummary.getTemperature().getStatus()) || "CRITICAL".equals(vitalsSummary.getTemperature().getStatus()))) {
                 recommendations.add("Monitor temperature regularly and stay hydrated");
             }
-            
-            if (vitalsSummary.getRespiratoryRate() != null &&
-                ("HIGH".equals(vitalsSummary.getRespiratoryRate().getStatus()) || "CRITICAL".equals(vitalsSummary.getRespiratoryRate().getStatus()))) {
+
+            if (vitalsSummary.getRespiratoryRate() != null
+                    && ("HIGH".equals(vitalsSummary.getRespiratoryRate().getStatus()) || "CRITICAL".equals(vitalsSummary.getRespiratoryRate().getStatus()))) {
                 recommendations.add("Practice calm breathing exercises");
             }
         }
-        
+
         return recommendations;
     }
-    
+
     private String getWeeklyHealthStatus(String severityLevel, int totalCoughs, int daysWithData, WeeklyVitalsSummary vitalsSummary) {
         StringBuilder status = new StringBuilder();
-        
+
         switch (severityLevel) {
             case "GOOD":
                 status.append("Overall health status: Good");
@@ -1816,7 +1896,7 @@ public class SummaryService {
             default:
                 status.append("Status unknown");
         }
-        
+
         if (vitalsSummary != null && vitalsSummary.isHasVitalsData()) {
             if (vitalsSummary.getWeeklyAnomalies() != null && !vitalsSummary.getWeeklyAnomalies().isEmpty()) {
                 long criticalCount = vitalsSummary.getWeeklyAnomalies().stream()
@@ -1827,12 +1907,11 @@ public class SummaryService {
                 }
             }
         }
-        
+
         return status.toString();
     }
 
     // ==================== FALL EVENTS SUMMARY METHODS ====================
-
     private FallEventsSummary calculateFallEventsSummary(String deviceId, LocalDate date) {
         LocalDateTime startOfDay = date.atStartOfDay();
         LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
@@ -1859,8 +1938,8 @@ public class SummaryService {
         int emergencyFalls = (int) falls.stream().filter(f -> Boolean.TRUE.equals(f.getIsEmergency())).count();
         int nonEmergencyFalls = totalFalls - emergencyFalls;
 
-        double maxGForce = falls.stream().mapToDouble(f -> f.getGForce() != null ? f.getGForce() : 0).max().orElse(0);
-        double avgGForce = falls.stream().mapToDouble(f -> f.getGForce() != null ? f.getGForce() : 0).average().orElse(0);
+        double maxConfidence = falls.stream().mapToDouble(f -> f.getConfidence() != null ? f.getConfidence() : 0).max().orElse(0);
+        double avgConfidence = falls.stream().mapToDouble(f -> f.getConfidence() != null ? f.getConfidence() : 0).average().orElse(0);
 
         String latestFallTime = falls.stream()
                 .max(Comparator.comparing(FallEvent::getTimestamp))
@@ -1879,7 +1958,7 @@ public class SummaryService {
                 .sorted(Comparator.comparing(FallEvent::getTimestamp).reversed())
                 .map(f -> new FallEventDetail(
                         f.getTimestamp().format(timeFormatter),
-                        f.getGForce() != null ? f.getGForce() : 0,
+                        f.getConfidence() != null ? f.getConfidence() : 0,
                         Boolean.TRUE.equals(f.getIsEmergency()),
                         f.getEmergencyLevel() != null ? f.getEmergencyLevel() : "NORMAL",
                         f.getEmergencyReason(),
@@ -1893,8 +1972,8 @@ public class SummaryService {
         summary.setTotalFalls(totalFalls);
         summary.setEmergencyFalls(emergencyFalls);
         summary.setNonEmergencyFalls(nonEmergencyFalls);
-        summary.setMaxGForce(Math.round(maxGForce * 10.0) / 10.0);
-        summary.setAvgGForce(Math.round(avgGForce * 10.0) / 10.0);
+        summary.setMaxGForce(Math.round(maxConfidence * 100.0) / 100.0);
+        summary.setAvgGForce(Math.round(avgConfidence * 100.0) / 100.0);
         summary.setLatestFallTime(latestFallTime);
         summary.setWorstEmergencyLevel(worstLevel);
         summary.setFallRiskLevel(fallRiskLevel);
@@ -1928,8 +2007,8 @@ public class SummaryService {
 
         int totalFalls = falls.size();
         int emergencyFalls = (int) falls.stream().filter(f -> Boolean.TRUE.equals(f.getIsEmergency())).count();
-        double maxGForce = falls.stream().mapToDouble(f -> f.getGForce() != null ? f.getGForce() : 0).max().orElse(0);
-        double avgGForce = falls.stream().mapToDouble(f -> f.getGForce() != null ? f.getGForce() : 0).average().orElse(0);
+        double maxConfidence = falls.stream().mapToDouble(f -> f.getConfidence() != null ? f.getConfidence() : 0).max().orElse(0);
+        double avgConfidence = falls.stream().mapToDouble(f -> f.getConfidence() != null ? f.getConfidence() : 0).average().orElse(0);
 
         List<Integer> dailyFallCounts = new ArrayList<>();
         List<Integer> dailyEmergencyCounts = new ArrayList<>();
@@ -1944,11 +2023,13 @@ public class SummaryService {
                     .count();
             int dayEmergency = (int) falls.stream()
                     .filter(f -> !f.getTimestamp().isBefore(dayStart) && f.getTimestamp().isBefore(dayEnd)
-                            && Boolean.TRUE.equals(f.getIsEmergency()))
+                    && Boolean.TRUE.equals(f.getIsEmergency()))
                     .count();
             dailyFallCounts.add(dayCount);
             dailyEmergencyCounts.add(dayEmergency);
-            if (dayCount > 0) daysWithFalls++;
+            if (dayCount > 0) {
+                daysWithFalls++;
+            }
         }
 
         String worstLevel = falls.stream()
@@ -1961,8 +2042,8 @@ public class SummaryService {
         summary.setHasFallData(true);
         summary.setTotalFalls(totalFalls);
         summary.setTotalEmergencyFalls(emergencyFalls);
-        summary.setMaxGForce(Math.round(maxGForce * 10.0) / 10.0);
-        summary.setAvgGForce(Math.round(avgGForce * 10.0) / 10.0);
+        summary.setMaxGForce(Math.round(maxConfidence * 100.0) / 100.0);
+        summary.setAvgGForce(Math.round(avgConfidence * 100.0) / 100.0);
         summary.setDaysWithFalls(daysWithFalls);
         summary.setAvgFallsPerDay(daysWithFalls > 0 ? Math.round(totalFalls * 10.0 / 7) / 10.0 : 0);
         summary.setWorstEmergencyLevel(worstLevel);
@@ -1974,36 +2055,61 @@ public class SummaryService {
     }
 
     private int emergencyLevelRank(String level) {
-        if (level == null) return 0;
+        if (level == null) {
+            return 0;
+        }
         switch (level.toUpperCase()) {
-            case "CRITICAL": return 4;
-            case "WARNING": return 3;
-            case "MONITORING": return 2;
-            case "NORMAL": return 1;
-            default: return 0;
+            case "CRITICAL":
+                return 4;
+            case "WARNING":
+                return 3;
+            case "MONITORING":
+                return 2;
+            case "NORMAL":
+                return 1;
+            default:
+                return 0;
         }
     }
 
     private String determineFallRiskLevel(int totalFalls, int emergencyFalls, String worstLevel) {
-        if (totalFalls == 0) return "NONE";
-        if ("CRITICAL".equals(worstLevel) || emergencyFalls >= 2) return "CRITICAL";
-        if ("WARNING".equals(worstLevel) || emergencyFalls >= 1) return "HIGH";
-        if (totalFalls >= 3) return "MODERATE";
+        if (totalFalls == 0) {
+            return "NONE";
+        }
+        if ("CRITICAL".equals(worstLevel) || emergencyFalls >= 2) {
+            return "CRITICAL";
+        }
+        if ("WARNING".equals(worstLevel) || emergencyFalls >= 1) {
+            return "HIGH";
+        }
+        if (totalFalls >= 3) {
+            return "MODERATE";
+        }
         return "LOW";
     }
 
     private String buildFallRiskMessage(int totalFalls, int emergencyFalls, String riskLevel) {
-        if (totalFalls == 0) return "No falls detected";
+        if (totalFalls == 0) {
+            return "No falls detected";
+        }
         StringBuilder msg = new StringBuilder();
         msg.append(totalFalls).append(" fall").append(totalFalls > 1 ? "s" : "").append(" detected");
         if (emergencyFalls > 0) {
             msg.append(", ").append(emergencyFalls).append(" emergency");
         }
         switch (riskLevel) {
-            case "CRITICAL": msg.append(" - Immediate attention required"); break;
-            case "HIGH": msg.append(" - Medical review recommended"); break;
-            case "MODERATE": msg.append(" - Monitor closely"); break;
-            default: msg.append(" - Low risk"); break;
+            case "CRITICAL":
+                msg.append(" - Immediate attention required");
+                break;
+            case "HIGH":
+                msg.append(" - Medical review recommended");
+                break;
+            case "MODERATE":
+                msg.append(" - Monitor closely");
+                break;
+            default:
+                msg.append(" - Low risk");
+                break;
         }
         return msg.toString();
     }
