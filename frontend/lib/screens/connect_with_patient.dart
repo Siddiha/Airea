@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import 'guidance_to_connect_patient.dart';
 import 'patient_connection_message.dart';
 import '../services/doctor_patient_service.dart';
@@ -98,16 +99,25 @@ class _ConnectWithPatientState extends State<ConnectWithPatient> {
                             controller: _idController,
                             onChanged: (_) => setState(() => _idError = null),
                          decoration: InputDecoration(
-                             hintText: "type",
+                             hintText: 'Enter patient ID',
+                             labelText: 'Patient ID',
                               filled: true,
-                          fillColor: Colors.grey[300],
+                          fillColor: AppTheme.inputFillColor,
                          contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
+                          horizontal: 20,
                             vertical: 14,
                          ),
                            border: OutlineInputBorder(
-                             borderRadius: BorderRadius.circular(25), 
+                             borderRadius: BorderRadius.circular(50), 
                             borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                             borderRadius: BorderRadius.circular(50), 
+                            borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                             borderRadius: BorderRadius.circular(50), 
+                            borderSide: const BorderSide(color: AppTheme.primaryTeal, width: 1.5),
                       ),
                       errorText: _idError,
                         ),
@@ -118,13 +128,9 @@ class _ConnectWithPatientState extends State<ConnectWithPatient> {
 
                   // Confirm Button
                   SizedBox(
-                    width: 150,
-                    height: 50,
+                    width: 220,
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5DA092),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      ),
+                      style: AppTheme.primaryButton(),
                       onPressed: _handleConnect, // 5. Trigger the API call
                       child: const Text("Confirm"),
                     ),
@@ -146,15 +152,8 @@ class _ConnectWithPatientState extends State<ConnectWithPatient> {
                   // Guidance Button
                   SizedBox(
                     width: 280,
-                    height: 50,
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5DA092),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        elevation: 5,
-                      ),
+                      style: AppTheme.secondaryButton(),
                       onPressed: () {
                         Navigator.push(
                                context,
@@ -166,9 +165,6 @@ class _ConnectWithPatientState extends State<ConnectWithPatient> {
                       child: const Text(
                         "Guidance to connect \n with patient",
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                               fontSize: 14,   
-                        ),
                       ),
                     ),
                   ),

@@ -213,22 +213,15 @@ class _EditAllergySheetState extends State<EditAllergySheet> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: _hasChanges ? _saveChanges : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryTeal,
-                        disabledBackgroundColor: Colors.grey.shade300,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
+                      style: AppTheme.primaryButton().copyWith(
+                        backgroundColor: WidgetStateProperty.resolveWith(
+                          (states) => states.contains(WidgetState.disabled)
+                              ? Colors.grey.shade300
+                              : AppTheme.darkBlue,
                         ),
-                        elevation: 0,
                       ),
                       child: Text(
                         _hasChanges ? 'Save Changes' : 'No Changes',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
                       ),
                     ),
                   ),

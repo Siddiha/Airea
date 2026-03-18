@@ -14,6 +14,7 @@ import 'patient_view_allergies.dart';
 
 // 1. Import your new setup screen
 import 'airea_setup_screen.dart';
+import '../config/app_theme.dart';
 
 class PatientProfileFrame extends StatelessWidget {
   const PatientProfileFrame({super.key});
@@ -45,7 +46,6 @@ class PatientProfileFrame extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 18.0),
                 child: SizedBox(
                   width: double.infinity,
-                  height: 55,
                   child: ElevatedButton(
                     onPressed: () async {
                       // fetch saved medical details
@@ -57,18 +57,8 @@ class PatientProfileFrame extends StatelessWidget {
                         ),
                       );
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF66A399),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: const Text(
-                      'Edit medical details',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                    ),
+                    style: AppTheme.menuButton(),
+                    child: const Text('Edit medical details'),
                   ),
                 ),
               ),
@@ -76,7 +66,6 @@ class PatientProfileFrame extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 18.0),
                 child: SizedBox(
                   width: double.infinity,
-                  height: 55,
                   child: ElevatedButton(
                     onPressed: () async {
                       final contact = await ProfileService.loadEmergencyContact();
@@ -87,18 +76,8 @@ class PatientProfileFrame extends StatelessWidget {
                         ),
                       );
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF66A399),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: const Text(
-                      'Edit emergency contact',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                    ),
+                    style: AppTheme.menuButton(),
+                    child: const Text('Edit emergency contact'),
                   ),
                 ),
               ),
@@ -115,7 +94,6 @@ class PatientProfileFrame extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 18.0),
                 child: SizedBox(
                   width: double.infinity,
-                  height: 55,
                   child: ElevatedButton(
                     onPressed: () async {
                       final prefs = await SharedPreferences.getInstance();
@@ -160,18 +138,8 @@ class PatientProfileFrame extends StatelessWidget {
                         );
                       }
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF66A399),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: const Text(
-                      'View ID',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                    ),
+                    style: AppTheme.menuButton(),
+                    child: const Text('View ID'),
                   ),
                 ),
               ),
@@ -191,7 +159,6 @@ class PatientProfileFrame extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 18.0),
       child: SizedBox(
         width: double.infinity,
-        height: 55,
         child: ElevatedButton(
           onPressed: destinationPage == null
               ? () {}
@@ -201,18 +168,8 @@ class PatientProfileFrame extends StatelessWidget {
                     MaterialPageRoute(builder: (context) => destinationPage),
                   );
                 },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF66A399),
-            foregroundColor: Colors.white,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
-          ),
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-          ),
+          style: AppTheme.menuButton(),
+          child: Text(title),
         ),
       ),
     );

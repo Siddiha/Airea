@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import '../models/patient_contact.dart';
 import '../models/registration_data.dart';
 import '../services/profile_service.dart';
@@ -120,15 +121,11 @@ class _ContactInputScreenState extends State<ContactInputScreen> {
               const SizedBox(height: 50),
               Center(
                 child: SizedBox(
-                  width: 200,
-                  height: 55,
+                  width: 220,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF132348),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                    ),
+                    style: AppTheme.primaryButton(),
                     onPressed: _handleContinue,
-                    child: const Text("Continue", style: TextStyle(color: Colors.white, fontSize: 18)),
+                    child: const Text('Continue'),
                   ),
                 ),
               ),
@@ -146,8 +143,10 @@ class _ContactInputScreenState extends State<ContactInputScreen> {
       onChanged: onChanged,
       decoration: InputDecoration(
         filled: true,
-        fillColor: const Color(0xFFD9E2E8),
+        fillColor: AppTheme.inputFillColor,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: const BorderSide(color: AppTheme.primaryTeal, width: 1.5)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         errorText: errorText,
       ),

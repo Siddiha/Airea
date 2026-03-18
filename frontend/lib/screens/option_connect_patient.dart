@@ -1,5 +1,6 @@
 import 'package:airea_cough_monitor/screens/doctor_home_screen.dart';
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import 'connect_with_patient.dart';
 
 
@@ -28,15 +29,8 @@ class OptionConnectPatient extends StatelessWidget {
               // Yes Button
               SizedBox(
                 width: 220,
-                height: 50,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5DA092),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                    elevation: 5,
-                  ),
+                  style: AppTheme.secondaryButton(),
                   onPressed: () {
                     Navigator.push(
                               context,
@@ -45,10 +39,7 @@ class OptionConnectPatient extends StatelessWidget {
                              ),
                        );
                     },
-                  child: const Text(
-                    "Yes",
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  child: const Text('Yes'),
                 ),
               ),
 
@@ -57,15 +48,8 @@ class OptionConnectPatient extends StatelessWidget {
               // No Button
               SizedBox(
                 width: 220,
-                height: 50,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5DA092),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                    elevation: 5,
-                  ),
+                  style: AppTheme.secondaryButton(),
                   onPressed: () {
                        Navigator.push(
                               context,
@@ -73,12 +57,8 @@ class OptionConnectPatient extends StatelessWidget {
                                builder: (context) => const DoctorHomeScreen(),
                              ),
                        );
-                   
                   },
-                  child: const Text(
-                    "No",
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  child: const Text('No'),
                 ),
               ),
             ],

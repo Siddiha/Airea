@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import 'cough_analyzer_screen.dart';
 
@@ -119,15 +120,9 @@ class _HomeScreenState extends State<HomeScreen> {
               // Connect button
               SizedBox(
                 width: double.infinity,
-                height: 54,
                 child: ElevatedButton(
                   onPressed: _isChecking ? null : _connectToDevice,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.cyan.shade600,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                  style: AppTheme.primaryButton(),
                   child: _isChecking
                       ? const SizedBox(
                           width: 24,
@@ -137,14 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Connect',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      : const Text('Connect'),
                 ),
               ),
               const SizedBox(height: 24),

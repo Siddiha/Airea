@@ -65,14 +65,8 @@ class ContactDoctorSelection extends StatelessWidget {
   Widget _button(String text, VoidCallback onTap) {
     return SizedBox(
       width: double.infinity,
-      height: 48,
       child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.primaryTeal,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-        ),
+        style: AppTheme.secondaryButton(),
         onPressed: onTap,
         child: Text(text),
       ),

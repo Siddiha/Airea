@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 
 class EditDoctorDetails extends StatelessWidget {
   const EditDoctorDetails({super.key});
@@ -40,24 +41,13 @@ class EditDoctorDetails extends StatelessWidget {
               _labeledField("Email address"),
               const SizedBox(height: 40),
               SizedBox(
-                width: 180,
-                height: 50,
+                width: 220,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E2D4E),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 0,
-                  ),
+                  style: AppTheme.primaryButton(),
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: const Text(
-                    "Confirm",
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  child: const Text('Confirm'),
                 ),
               ),
             ],

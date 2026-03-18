@@ -54,22 +54,8 @@ class PatientSummaryOverview extends StatelessWidget {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () => _navigateToDailyCalendar(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryTeal,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Daily summary',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        style: AppTheme.secondaryButton(),
+                        child: const Text('Daily summary'),
                       ),
                     ),
                     
@@ -80,22 +66,8 @@ class PatientSummaryOverview extends StatelessWidget {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () => _navigateToWeeklyCalendar(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryTeal,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Weekly summary',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        style: AppTheme.secondaryButton(),
+                        child: const Text('Weekly summary'),
                       ),
                     ),
                   ],

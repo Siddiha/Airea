@@ -50,21 +50,10 @@ class DoctorDetails extends StatelessWidget {
             const SizedBox(height: 24),
             SizedBox(
               width: 220,
-              height: 50,
               child: ElevatedButton(
                 onPressed: () => _showDisconnectConfirmation(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade400,
-                  foregroundColor: Colors.white,
-                  elevation: 3,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: const Text(
-                  'Disconnect Doctor',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                ),
+                style: AppTheme.dangerButton(),
+                child: const Text('Disconnect Doctor'),
               ),
             ),
           ],
@@ -111,12 +100,8 @@ class DoctorDetails extends StatelessWidget {
                 }
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade400,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Yes, Disconnect', style: TextStyle(fontSize: 16)),
+            style: AppTheme.dangerButton(),
+            child: const Text('Yes, Disconnect'),
           ),
         ],
       ),

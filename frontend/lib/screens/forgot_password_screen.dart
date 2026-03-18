@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import '../services/auth_service.dart';
 import 'otp_verification_screen.dart';
 
@@ -75,11 +76,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   errorText: _emailError),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _handleSendOtp,
-              child: _isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text('Send Code'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _handleSendOtp,
+                style: AppTheme.primaryButton(),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text('Send Code'),
+              ),
             ),
           ],
         ),

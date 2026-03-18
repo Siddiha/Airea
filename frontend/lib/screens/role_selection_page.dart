@@ -34,7 +34,7 @@ class RoleSelectionPage extends StatelessWidget {
 
               // Patient Button
               SizedBox(
-                //width: double.infinity,
+                width: 260,
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.push(
@@ -42,22 +42,11 @@ class RoleSelectionPage extends StatelessWidget {
                       MaterialPageRoute(builder: (context) => const PatientLoginPage()),
                     );
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryTeal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 100),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 3,
+                  style: AppTheme.secondaryButton().copyWith(
+                    minimumSize: const WidgetStatePropertyAll(Size(260, 56)),
+                    textStyle: const WidgetStatePropertyAll(TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
                   ),
-                  child: const Text(
-                    'Patient',
-                    style: TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: const Text('Patient'),
                 ),
               ),
 
@@ -77,32 +66,20 @@ class RoleSelectionPage extends StatelessWidget {
 
               // Doctor Button
               SizedBox(
+                width: 260,
                 child: ElevatedButton(
                   onPressed: () {
-                    // <--- 2. COMMENT OUT THE NAVIGATION LOGIC HERE
                       print("Doctor login not ready yet");
                       Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const DoctorLoginPage ()),
                     );
-                    
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryTeal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 100),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 3,
+                  style: AppTheme.secondaryButton().copyWith(
+                    minimumSize: const WidgetStatePropertyAll(Size(260, 56)),
+                    textStyle: const WidgetStatePropertyAll(TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
                   ),
-                  child: const Text(
-                    'Doctor',
-                    style: TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: const Text('Doctor'),
                 ),
               ),
 

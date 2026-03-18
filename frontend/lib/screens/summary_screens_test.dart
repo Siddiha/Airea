@@ -40,18 +40,8 @@ class SummaryScreensTestPage extends StatelessWidget {
                     ),
                   );
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryTeal,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 16,
-                  ),
-                ),
-                child: const Text(
-                  'Open Summary Overview',
-                  style: TextStyle(fontSize: 16),
-                ),
+                style: AppTheme.secondaryButton(),
+                child: const Text('Open Summary Overview'),
               ),
               const SizedBox(height: 20),
               const Text(

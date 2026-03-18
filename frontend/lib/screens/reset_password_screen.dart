@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import '../services/auth_service.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
@@ -175,15 +176,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handleReset,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1B3A5F),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 3,
-                  ),
+                  style: AppTheme.primaryButton(),
                   child: _isLoading
                       ? const SizedBox(
                           height: 20,
@@ -193,13 +186,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Reset Password',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      : const Text('Reset Password'),
                 ),
               ),
             ],

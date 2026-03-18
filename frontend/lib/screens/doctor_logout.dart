@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import '../services/auth_service.dart';
 import 'role_selection_page.dart';
 
@@ -67,16 +68,12 @@ class _DoctorLogoutScreenState extends State<DoctorLogoutScreen> {
               padding: const EdgeInsets.all(24.0),
               child: SizedBox(
                 width: double.infinity,
-                height: 56,
                 child: ElevatedButton(
                   onPressed: _loading ? null : _performLogout,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF66A399),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                  ),
+                  style: AppTheme.secondaryButton(),
                   child: _loading
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Log out', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                      : const Text('Log out'),
                 ),
               ),
             ),

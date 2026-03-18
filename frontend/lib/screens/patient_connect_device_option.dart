@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import 'patient_connect_device_code.dart';
 import '../widgets/bottom_nav_bar.dart';
 
@@ -72,37 +73,12 @@ class PatientConnectDeviceOption extends StatelessWidget {
     required String label,
     required VoidCallback onTap,
   }) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      height: 55,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 3), 
-          ),
-        ],
-      ),
       child: ElevatedButton(
         onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF5F9EA0), 
-          foregroundColor: Colors.white,
-          elevation: 0, 
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        style: AppTheme.secondaryButton(),
+        child: Text(label),
       ),
     );
   }

@@ -359,19 +359,8 @@ class _PatientViewAllergiesState extends State<PatientViewAllergies> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _saveAllergies,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryTeal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Save changes',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                  style: AppTheme.primaryButton(),
+                  child: const Text('Save changes'),
                 ),
               ),
               const SizedBox(height: 16),

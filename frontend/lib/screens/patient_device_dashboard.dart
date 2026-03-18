@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_theme.dart';
 import 'patient_device_manual.dart';
 import 'patient_homeScreen.dart';
 import '../models/device_model.dart';
@@ -125,22 +126,11 @@ class _PatientDeviceDashboardState extends State<PatientDeviceDashboard> {
 
               // 2. DISCONNECT BUTTON 
               SizedBox(
-                width: 220, 
-                height: 55,
+                width: 220,
                 child: ElevatedButton(
                   onPressed: () => _showDisconnectConfirmation(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4FA095), 
-                    foregroundColor: Colors.white,
-                    elevation: 5,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: const Text(
-                    'Disconnect',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
-                  ),
+                  style: AppTheme.dangerButton(),
+                  child: const Text('Disconnect'),
                 ),
               ),
 
@@ -189,7 +179,6 @@ class _PatientDeviceDashboardState extends State<PatientDeviceDashboard> {
               // 4. USER MANUAL BUTTON 
               SizedBox(
                 width: 220,
-                height: 55,
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.push(
@@ -199,18 +188,8 @@ class _PatientDeviceDashboardState extends State<PatientDeviceDashboard> {
                       ),
                     );
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4FA095),
-                    foregroundColor: Colors.white,
-                    elevation: 5,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: const Text(
-                    'User Manual',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
-                  ),
+                  style: AppTheme.secondaryButton(),
+                  child: const Text('User Manual'),
                 ),
               ),
 
@@ -271,12 +250,8 @@ class _PatientDeviceDashboardState extends State<PatientDeviceDashboard> {
                 );
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade400,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Yes, Disconnect', style: TextStyle(fontSize: 16)),
+            style: AppTheme.dangerButton(),
+            child: const Text('Yes, Disconnect'),
           ),
         ],
       ),

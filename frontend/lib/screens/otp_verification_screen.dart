@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../config/app_theme.dart';
 import '../services/auth_service.dart';
 import 'new_password_screen.dart';
 
@@ -81,11 +82,22 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   errorText: _otpError),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _handleVerify,
-              child: _isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text('Verify'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _handleVerify,
+                style: AppTheme.primaryButton(),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text('Verify'),
+              ),
             ),
           ],
         ),
