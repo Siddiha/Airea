@@ -22,6 +22,8 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
   final _passwordController = TextEditingController();
   final _authService = AuthService();
   bool _isLoading = false;
+  String? _emailError;
+  String? _passwordError;
 
   @override
   void dispose() {
@@ -33,13 +35,28 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
   Future<void> _handleLogin() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    bool hasError = false;
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter email and password')),
-      );
-      return;
+    setState(() {
+      _emailError = null;
+      _passwordError = null;
+    });
+
+    if (email.isEmpty) {
+      setState(() => _emailError = 'Email is required');
+      hasError = true;
+    } else if (!emailRegex.hasMatch(email)) {
+      setState(() => _emailError = 'Please enter a valid email address');
+      hasError = true;
     }
+
+    if (password.isEmpty) {
+      setState(() => _passwordError = 'Password is required');
+      hasError = true;
+    }
+
+    if (hasError) return;
 
     setState(() => _isLoading = true);
 
@@ -152,6 +169,7 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                 // Email Field
                 TextField(
                   controller: _emailController,
+                  onChanged: (_) => setState(() => _emailError = null),
                   decoration: InputDecoration(
                     hintText: 'Email',
                     hintStyle: const TextStyle(
@@ -165,6 +183,7 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                       borderSide: BorderSide.none,
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                    errorText: _emailError,
                   ),
                   keyboardType: TextInputType.emailAddress,
                 ),
@@ -175,6 +194,7 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                 TextField(
                   controller: _passwordController,
                   obscureText: true,
+                  onChanged: (_) => setState(() => _passwordError = null),
                   decoration: InputDecoration(
                     hintText: 'Password',
                     hintStyle: const TextStyle(
@@ -188,6 +208,7 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                       borderSide: BorderSide.none,
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                    errorText: _passwordError,
                   ),
                 ),
 

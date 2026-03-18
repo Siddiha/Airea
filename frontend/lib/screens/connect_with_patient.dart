@@ -14,14 +14,21 @@ class _ConnectWithPatientState extends State<ConnectWithPatient> {
   // 1. Controller to capture the Patient ID from the text field
   final TextEditingController _idController = TextEditingController();
   bool _isLoading = false;
+  String? _idError;
 
   Future<void> _handleConnect() async {
     final String patientCodeInput = _idController.text.trim();
+    final codeRegex = RegExp(r'^[a-zA-Z0-9_-]+$');
+
+    setState(() => _idError = null);
 
     if (patientCodeInput.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a Patient Code")),
-      );
+      setState(() => _idError = 'Please enter a Patient Code');
+      return;
+    }
+
+    if (!codeRegex.hasMatch(patientCodeInput)) {
+      setState(() => _idError = 'Code can only contain letters, numbers, hyphens, and underscores');
       return;
     }
 
@@ -89,6 +96,7 @@ class _ConnectWithPatientState extends State<ConnectWithPatient> {
                         width: 250,
                           child: TextField(
                             controller: _idController,
+                            onChanged: (_) => setState(() => _idError = null),
                          decoration: InputDecoration(
                              hintText: "type",
                               filled: true,
@@ -101,6 +109,7 @@ class _ConnectWithPatientState extends State<ConnectWithPatient> {
                              borderRadius: BorderRadius.circular(25), 
                             borderSide: BorderSide.none,
                       ),
+                      errorText: _idError,
                         ),
                       ),
                    ),

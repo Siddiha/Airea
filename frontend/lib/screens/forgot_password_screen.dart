@@ -15,12 +15,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
   final _authService = AuthService();
   bool _isLoading = false;
+  String? _emailError;
 
   Future<void> _handleSendOtp() async {
     final email = _emailController.text.trim();
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+
+    setState(() => _emailError = null);
+
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter your email')));
+      setState(() => _emailError = 'Email is required');
+      return;
+    }
+    if (!emailRegex.hasMatch(email)) {
+      setState(() => _emailError = 'Please enter a valid email address');
       return;
     }
 
@@ -60,8 +68,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             TextField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                  labelText: 'Email Address', border: OutlineInputBorder()),
+              onChanged: (_) => setState(() => _emailError = null),
+              decoration: InputDecoration(
+                  labelText: 'Email Address',
+                  border: const OutlineInputBorder(),
+                  errorText: _emailError),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
