@@ -59,7 +59,7 @@ class ProfileService {
   /// fresh device install the gender field is fetched from Supabase.
   static Future<PatientMedicalDetails?> loadMedicalDetails() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString(_medicalKey);
+    final jsonString = prefs.getString(_key(_medicalBase));
     if (jsonString == null) return null;
     try {
       final map = jsonDecode(jsonString) as Map<String, dynamic>;
@@ -75,6 +75,23 @@ class ProfileService {
       return null;
     }
   }
+
+  static Future<void> _syncGenderToDatabase(String gender) async {
+    try {
+      final email = _currentEmail();
+      if (email == null || gender.isEmpty) return;
+      await Supabase.instance.client
+          .from('patients')
+          .update({'gender': gender})
+          .eq('email', email);
+    } catch (e) {
+      debugPrint('Failed to sync gender: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Emergency contact
+  // ---------------------------------------------------------------------------
 
   /// Save an emergency contact entry.
   /// Also syncs to backend database to enable SMS alerts.
@@ -217,6 +234,22 @@ class ProfileService {
     for (final key in _legacyKeys) {
       await prefs.remove(key);
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Device linking
+  // ---------------------------------------------------------------------------
+
+  /// Save the linked device ID to local storage (used on pairing).
+  static Future<void> saveLinkedDevice(String deviceId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('linked_device_id', deviceId);
+  }
+
+  /// Remove the linked device ID from local storage (used on disconnect).
+  static Future<void> clearLinkedDevice() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('linked_device_id');
   }
 
   // ---------------------------------------------------------------------------
