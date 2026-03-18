@@ -22,21 +22,25 @@ class _ContactInputScreenState extends State<EditEmergencyInfo> {
   late TextEditingController _phoneController;
   String? _relationError;
   String? _phoneError;
+  bool _isPreFilled = false;
 
   @override
   void initState() {
     super.initState();
-    // Pre-fill controllers if existing data is passed, otherwise try loading from storage
     _relationController = TextEditingController();
     _phoneController = TextEditingController();
     if (widget.existingContact != null) {
       _relationController.text = widget.existingContact!.relationship;
       _phoneController.text = widget.existingContact!.contactNumber;
+      _isPreFilled = _relationController.text.isNotEmpty || _phoneController.text.isNotEmpty;
     } else {
       ProfileService.loadEmergencyContact().then((c) {
-        if (c != null) {
+        if (c != null && mounted) {
           _relationController.text = c.relationship;
           _phoneController.text = c.contactNumber;
+          setState(() {
+            _isPreFilled = _relationController.text.isNotEmpty || _phoneController.text.isNotEmpty;
+          });
         }
       });
     }
@@ -155,7 +159,14 @@ class _ContactInputScreenState extends State<EditEmergencyInfo> {
     return TextField(
       controller: controller,
       keyboardType: isNumber ? TextInputType.phone : TextInputType.text,
-      onChanged: onChanged,
+      onChanged: (value) {
+        // Once the user starts editing, remove the pre-filled style
+        if (_isPreFilled) setState(() => _isPreFilled = false);
+        onChanged?.call(value);
+      },
+      style: TextStyle(
+        color: _isPreFilled ? Colors.grey.shade500 : Colors.black,
+      ),
       decoration: InputDecoration(
         filled: true,
         fillColor: const Color(0xFFD9E2E8),

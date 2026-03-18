@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/profile_service.dart';
 import 'role_selection_page.dart';
 
 /// Widget screen that lets the current user log out and returns to role selection.
@@ -95,6 +96,8 @@ class PatientLogout {
   /// Performs logout and then clears navigation to the role selection screen.
   Future<void> execute(BuildContext context) async {
     try {
+      // Clear old non-user-scoped profile data to prevent leakage
+      await ProfileService.clearLegacyLocalData();
       await _auth.logout();
     } catch (_) {
       // ignore logout errors and continue to navigate

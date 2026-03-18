@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -7,27 +8,58 @@ import '../models/patient_medical_info.dart';
 import '../models/patient_contact.dart';
 import '../models/patient_allergy.dart';
 
-/// Simple local storage for patient profile extras (medical details, emergency contact, etc.)
-/// Uses SharedPreferences so that values are persisted between app restarts.  This is
-/// intentionally lightweight; the backend is responsible for keeping real user data.
-/// 
-/// NOTE: Emergency contact is also synced to the backend database to enable SMS alerts.
+/// Patient profile storage service.
+///
+/// All SharedPreferences keys are scoped per-user (appended with the user's
+/// email) so that data never leaks between accounts on the same device.
+///
+/// Emergency contact phone number and gender are synced to the Supabase
+/// `patients` table so they survive across devices.
 class ProfileService {
-  static const _medicalKey = 'patient_medical_details';
-  static const _contactKey = 'patient_emergency_contact';
-  static const _allergiesKey = 'patient_allergies';
-  static const _reportsKey = 'patient_medical_reports';
+  // Base key names – actual keys have the user email appended via [_key].
+  static const _medicalBase = 'patient_medical_details';
+  static const _contactBase = 'patient_emergency_contact';
+  static const _allergiesBase = 'patient_allergies';
+  static const _reportsBase = 'patient_medical_reports';
 
-  /// Save medical details to local storage.
-  static Future<void> saveMedicalDetails(PatientMedicalDetails details) async {
-    final prefs = await SharedPreferences.getInstance();
-    prefs.setString(_medicalKey, jsonEncode(_toJson(details)));
+  // Old global (non-scoped) keys used before this fix – cleaned up on logout.
+  static const _legacyKeys = [
+    'patient_medical_details',
+    'patient_emergency_contact',
+    'patient_allergies',
+    'patient_medical_reports',
+  ];
+
+  /// Returns the current authenticated user's email, or null.
+  static String? _currentEmail() =>
+      Supabase.instance.client.auth.currentUser?.email;
+
+  /// Build a per-user SharedPreferences key.
+  static String _key(String base) {
+    final email = _currentEmail();
+    if (email == null) return base;
+    return '${base}_$email';
   }
 
-  /// Load previously saved medical details. Returns null if none stored.
+  // ---------------------------------------------------------------------------
+  // Medical details
+  // ---------------------------------------------------------------------------
+
+  /// Save medical details to user-scoped local storage AND sync gender to
+  /// the Supabase `patients` table.
+  static Future<void> saveMedicalDetails(PatientMedicalDetails details) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key(_medicalBase), jsonEncode(_toJson(details)));
+
+    // Sync gender to Supabase (column exists in patients table)
+    _syncGenderToDatabase(details.gender);
+  }
+
+  /// Load medical details.  Tries user-scoped local storage first; for a
+  /// fresh device install the gender field is fetched from Supabase.
   static Future<PatientMedicalDetails?> loadMedicalDetails() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString(_medicalKey);
+    final jsonString = prefs.getString(_key(_medicalBase));
     if (jsonString == null) return null;
     try {
       final map = jsonDecode(jsonString) as Map<String, dynamic>;
@@ -44,87 +76,86 @@ class ProfileService {
     }
   }
 
-  static const _linkedDeviceKey = 'linked_device_id';
-
-  /// Save the linked device ID to local storage and sync to Supabase.
-  static Future<void> saveLinkedDevice(String deviceId) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_linkedDeviceKey, deviceId);
-    await _syncDeviceToDatabase(deviceId);
-  }
-
-  /// Clear the linked device from local storage and Supabase.
-  static Future<void> clearLinkedDevice() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_linkedDeviceKey);
-    await _syncDeviceToDatabase(null);
-  }
-
-  static Future<void> _syncDeviceToDatabase(String? deviceId) async {
+  static Future<void> _syncGenderToDatabase(String gender) async {
     try {
-      final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
-
-      if (user == null || user.email == null) {
-        print('⚠️ No authenticated user - device ID not synced to database');
-        return;
-      }
-
-      await supabase
+      final email = _currentEmail();
+      if (email == null || gender.isEmpty) return;
+      await Supabase.instance.client
           .from('patients')
-          .update({'device_id': deviceId})
-          .eq('email', user.email!);
-
-      print('✅ Device ID synced to database: $deviceId');
+          .update({'gender': gender})
+          .eq('email', email);
     } catch (e) {
-      print('❌ Failed to sync device ID to database: $e');
+      debugPrint('Failed to sync gender: $e');
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Emergency contact
+  // ---------------------------------------------------------------------------
 
   /// Save an emergency contact entry.
   /// Also syncs to backend database to enable SMS alerts.
   static Future<void> saveEmergencyContact(PatientContact contact) async {
-    // Save to local storage
     final prefs = await SharedPreferences.getInstance();
-    prefs.setString(_contactKey, jsonEncode({
+    await prefs.setString(_key(_contactBase), jsonEncode({
       'relationship': contact.relationship,
       'contactNumber': contact.contactNumber,
     }));
-    
-    // Sync to backend database for SMS alerts
+
+    // Sync phone to Supabase
     await _syncEmergencyContactToDatabase(contact.contactNumber);
   }
 
-  /// Sync emergency contact to the patients table in Supabase.
-  /// This enables the backend to send SMS alerts when abnormal vitals are detected.
   static Future<void> _syncEmergencyContactToDatabase(String contactNumber) async {
     try {
-      final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
-      
-      if (user == null || user.email == null) {
-        print('⚠️ No authenticated user - emergency contact not synced to database');
-        return;
-      }
-      
-      // Update the patients table with the emergency contact
-      await supabase
+      final email = _currentEmail();
+      if (email == null) return;
+      await Supabase.instance.client
           .from('patients')
           .update({'emergency_contact': contactNumber})
-          .eq('email', user.email!);
-      
-      print('✅ Emergency contact synced to database: $contactNumber');
+          .eq('email', email);
     } catch (e) {
-      // Don't fail silently - log the error
-      print('❌ Failed to sync emergency contact to database: $e');
-      // Continue anyway - local storage was already saved
+      debugPrint('Failed to sync emergency contact: $e');
     }
   }
 
-  /// Load saved emergency contact, or null if none exists.
+  /// Load emergency contact.  The phone number is fetched from Supabase (real-
+  /// time); the relationship field is stored locally (no DB column for it).
   static Future<PatientContact?> loadEmergencyContact() async {
+    // Try Supabase first for the phone number
+    String? supabasePhone;
+    try {
+      final email = _currentEmail();
+      if (email != null) {
+        final row = await Supabase.instance.client
+            .from('patients')
+            .select('emergency_contact')
+            .eq('email', email)
+            .maybeSingle();
+        if (row != null && row['emergency_contact'] != null) {
+          final phone = row['emergency_contact'] as String;
+          if (phone.isNotEmpty) supabasePhone = phone;
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to load emergency contact from Supabase: $e');
+    }
+
+    // Load relationship (and fallback phone) from user-scoped local storage
+    final local = await _loadLocalContact();
+
+    if (supabasePhone != null || local != null) {
+      return PatientContact(
+        relationship: local?.relationship ?? '',
+        contactNumber: supabasePhone ?? local?.contactNumber ?? '',
+      );
+    }
+    return null;
+  }
+
+  static Future<PatientContact?> _loadLocalContact() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString(_contactKey);
+    final jsonString = prefs.getString(_key(_contactBase));
     if (jsonString == null) return null;
     try {
       final map = jsonDecode(jsonString) as Map<String, dynamic>;
@@ -146,17 +177,19 @@ class ProfileService {
         'workingEnvironment': d.workingEnvironment,
       };
 
-  /// Save allergies list to local storage.
+  // ---------------------------------------------------------------------------
+  // Allergies
+  // ---------------------------------------------------------------------------
+
   static Future<void> saveAllergies(List<AllergyEntry> allergies) async {
     final prefs = await SharedPreferences.getInstance();
     final jsonList = allergies.map((a) => _allergyToJson(a)).toList();
-    prefs.setString(_allergiesKey, jsonEncode(jsonList));
+    await prefs.setString(_key(_allergiesBase), jsonEncode(jsonList));
   }
 
-  /// Load previously saved allergies. Returns empty list if none stored.
   static Future<List<AllergyEntry>> loadAllergies() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString(_allergiesKey);
+    final jsonString = prefs.getString(_key(_allergiesBase));
     if (jsonString == null || jsonString.isEmpty) return [];
     try {
       final list = jsonDecode(jsonString) as List<dynamic>;
@@ -168,25 +201,60 @@ class ProfileService {
     }
   }
 
-  /// Save medical report file paths to local storage.
+  // ---------------------------------------------------------------------------
+  // Medical reports
+  // ---------------------------------------------------------------------------
+
   static Future<void> saveMedicalReports(List<String> filePaths) async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setStringList(_reportsKey, filePaths);
+    await prefs.setStringList(_key(_reportsBase), filePaths);
   }
 
-  /// Load previously saved medical report file paths. Returns empty list if none stored.
   static Future<List<String>> loadMedicalReports() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getStringList(_reportsKey) ?? [];
+    return prefs.getStringList(_key(_reportsBase)) ?? [];
   }
 
-  /// Delete a specific medical report by file path.
   static Future<void> deleteMedicalReport(String filePath) async {
     final prefs = await SharedPreferences.getInstance();
-    final reports = prefs.getStringList(_reportsKey) ?? [];
+    final key = _key(_reportsBase);
+    final reports = prefs.getStringList(key) ?? [];
     reports.removeWhere((path) => path == filePath);
-    await prefs.setStringList(_reportsKey, reports);
+    await prefs.setStringList(key, reports);
   }
+
+  // ---------------------------------------------------------------------------
+  // Logout cleanup
+  // ---------------------------------------------------------------------------
+
+  /// Remove old non-scoped (global) keys so stale data can never leak to
+  /// another user who logs in on the same device.
+  static Future<void> clearLegacyLocalData() async {
+    final prefs = await SharedPreferences.getInstance();
+    for (final key in _legacyKeys) {
+      await prefs.remove(key);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Device linking
+  // ---------------------------------------------------------------------------
+
+  /// Save the linked device ID to local storage (used on pairing).
+  static Future<void> saveLinkedDevice(String deviceId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('linked_device_id', deviceId);
+  }
+
+  /// Remove the linked device ID from local storage (used on disconnect).
+  static Future<void> clearLinkedDevice() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('linked_device_id');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
 
   static Map<String, dynamic> _allergyToJson(AllergyEntry a) => {
         'id': a.id,
