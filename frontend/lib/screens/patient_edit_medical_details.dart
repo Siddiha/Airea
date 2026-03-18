@@ -29,37 +29,42 @@ class _MedicalInputScreenState extends State<EditMedicalInfo> {
   String? _heightError;
   String? _weightError;
   String? _genderError;
+  bool _isPreFilled = false;
 
   @override
   void initState() {
     super.initState();
-    // If caller provided data use it, otherwise try loading from storage
+    _ageController = TextEditingController();
+    _heightController = TextEditingController();
+    _weightController = TextEditingController();
+    _genderController = TextEditingController();
+    _habitsController = TextEditingController();
+    _workingEnvironmentController = TextEditingController();
+
     if (widget.existingMedical != null) {
-      _ageController = TextEditingController(text: widget.existingMedical!.age.toString());
-      _heightController = TextEditingController(text: widget.existingMedical!.height.toString());
-      _weightController = TextEditingController(text: widget.existingMedical!.weight.toString());
-      _genderController = TextEditingController(text: widget.existingMedical!.gender);
-      _habitsController = TextEditingController(text: widget.existingMedical!.habbits);
-      _workingEnvironmentController = TextEditingController(text: widget.existingMedical!.workingEnvironment);
+      _populateControllers(widget.existingMedical!);
     } else {
-      // async load, but controllers must exist synchronously so fill later
-      _ageController = TextEditingController();
-      _heightController = TextEditingController();
-      _weightController = TextEditingController();
-      _genderController = TextEditingController();
-      _habitsController = TextEditingController();
-      _workingEnvironmentController = TextEditingController();
       ProfileService.loadMedicalDetails().then((m) {
-        if (m != null) {
-          _ageController.text = m.age.toString();
-          _heightController.text = m.height.toString();
-          _weightController.text = m.weight.toString();
-          _genderController.text = m.gender;
-          _habitsController.text = m.habbits;
-          _workingEnvironmentController.text = m.workingEnvironment;
+        if (m != null && mounted) {
+          _populateControllers(m);
+          setState(() {});
         }
       });
     }
+  }
+
+  void _populateControllers(PatientMedicalDetails m) {
+    if (m.age > 0) _ageController.text = m.age.toString();
+    if (m.height > 0) _heightController.text = m.height.toString();
+    if (m.weight > 0) _weightController.text = m.weight.toString();
+    if (m.gender.isNotEmpty) _genderController.text = m.gender;
+    if (m.habbits.isNotEmpty) _habitsController.text = m.habbits;
+    if (m.workingEnvironment.isNotEmpty) {
+      _workingEnvironmentController.text = m.workingEnvironment;
+    }
+    _isPreFilled = _ageController.text.isNotEmpty ||
+        _genderController.text.isNotEmpty ||
+        _heightController.text.isNotEmpty;
   }
 
   @override
@@ -227,7 +232,13 @@ class _MedicalInputScreenState extends State<EditMedicalInfo> {
     return TextField(
       controller: controller,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      onChanged: onChanged,
+      onChanged: (value) {
+        if (_isPreFilled) setState(() => _isPreFilled = false);
+        onChanged?.call(value);
+      },
+      style: TextStyle(
+        color: _isPreFilled ? Colors.grey.shade500 : Colors.black,
+      ),
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: icon != null ? Icon(icon) : null,
