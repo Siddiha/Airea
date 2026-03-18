@@ -59,73 +59,25 @@ class ProfileService {
   /// fresh device install the gender field is fetched from Supabase.
   static Future<PatientMedicalDetails?> loadMedicalDetails() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString(_key(_medicalBase));
-
-    if (jsonString != null) {
-      try {
-        final map = jsonDecode(jsonString) as Map<String, dynamic>;
-        return PatientMedicalDetails(
-          age: map['age'] as int,
-          height: map['height'] as int,
-          weight: map['weight'] as int,
-          gender: map['gender'] as String,
-          habbits: map['habbits'] as String,
-          workingEnvironment: map['workingEnvironment'] as String,
-        );
-      } catch (_) {
-        // Corrupted data – fall through to Supabase lookup
-      }
-    }
-
-    // Nothing locally – try to get at least the gender from Supabase
+    final jsonString = prefs.getString(_medicalKey);
+    if (jsonString == null) return null;
     try {
-      final email = _currentEmail();
-      if (email != null) {
-        final row = await Supabase.instance.client
-            .from('patients')
-            .select('gender')
-            .eq('email', email)
-            .maybeSingle();
-        if (row != null && row['gender'] != null) {
-          final gender = (row['gender'] as String?) ?? '';
-          if (gender.isNotEmpty) {
-            return PatientMedicalDetails(
-              age: 0,
-              height: 0,
-              weight: 0,
-              gender: gender,
-              habbits: '',
-              workingEnvironment: '',
-            );
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('Failed to load gender from Supabase: $e');
-    }
-
-    return null;
-  }
-
-  static Future<void> _syncGenderToDatabase(String gender) async {
-    try {
-      final email = _currentEmail();
-      if (email == null || gender.isEmpty) return;
-      await Supabase.instance.client
-          .from('patients')
-          .update({'gender': gender})
-          .eq('email', email);
-    } catch (e) {
-      debugPrint('Failed to sync gender: $e');
+      final map = jsonDecode(jsonString) as Map<String, dynamic>;
+      return PatientMedicalDetails(
+        age: map['age'] as int,
+        height: map['height'] as int,
+        weight: map['weight'] as int,
+        gender: map['gender'] as String,
+        habbits: map['habbits'] as String,
+        workingEnvironment: map['workingEnvironment'] as String,
+      );
+    } catch (_) {
+      return null;
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Emergency contact
-  // ---------------------------------------------------------------------------
-
-  /// Save emergency contact to user-scoped local storage AND sync the phone
-  /// number to the Supabase `patients` table.
+  /// Save an emergency contact entry.
+  /// Also syncs to backend database to enable SMS alerts.
   static Future<void> saveEmergencyContact(PatientContact contact) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key(_contactBase), jsonEncode({

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'patient_device_manual.dart';
 import 'patient_homeScreen.dart';
 import '../models/device_model.dart';
+import '../services/profile_service.dart';
 import '../widgets/bottom_nav_bar.dart'; 
 
 class PatientDeviceDashboard extends StatefulWidget {
@@ -259,8 +260,7 @@ class _PatientDeviceDashboardState extends State<PatientDeviceDashboard> {
               Navigator.pop(ctx); // close dialog
 
               controller.disconnectDevice();
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.remove('linked_device_id');
+              await ProfileService.clearLinkedDevice();
 
               if (context.mounted) {
                 // Go back to home, clearing device screens from the stack
