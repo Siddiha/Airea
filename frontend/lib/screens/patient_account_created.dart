@@ -85,7 +85,10 @@ class _PatientAccountCreatedState extends State<PatientAccountCreated> {
               }),
             ).timeout(const Duration(seconds: 10));
             print('Spring Boot register response: ${resp.statusCode} ${resp.body}');
+<<<<<<< Updated upstream
             // Store the backend JWT so device linking works right after sign-up
+=======
+>>>>>>> Stashed changes
             if (resp.statusCode == 201) {
               try {
                 final regData = jsonDecode(resp.body);
