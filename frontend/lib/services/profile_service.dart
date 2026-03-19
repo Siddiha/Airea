@@ -82,7 +82,8 @@ class ProfileService {
       if (email == null || gender.isEmpty) return;
       await Supabase.instance.client
           .from('patients')
-          .upsert({'email': email, 'gender': gender}, onConflict: 'email');
+          .update({'gender': gender})
+          .eq('email', email);
     } catch (e) {
       debugPrint('Failed to sync gender: $e');
     }
@@ -111,7 +112,8 @@ class ProfileService {
       if (email == null) return;
       await Supabase.instance.client
           .from('patients')
-          .upsert({'email': email, 'emergency_contact': contactNumber}, onConflict: 'email');
+          .update({'emergency_contact': contactNumber})
+          .eq('email', email);
     } catch (e) {
       debugPrint('Failed to sync emergency contact: $e');
     }
@@ -249,7 +251,8 @@ class ProfileService {
       if (email != null) {
         await Supabase.instance.client
             .from('patients')
-            .upsert({'email': email, 'device_id': deviceId}, onConflict: 'email');
+            .update({'device_id': deviceId})
+            .eq('email', email);
       }
     } catch (e) {
       debugPrint('Failed to sync linked device to Supabase: $e');
@@ -302,7 +305,8 @@ class ProfileService {
       if (email != null) {
         await Supabase.instance.client
             .from('patients')
-            .upsert({'email': email, 'device_id': null}, onConflict: 'email');
+            .update({'device_id': null})
+            .eq('email', email);
       }
     } catch (e) {
       debugPrint('Failed to clear linked device from Supabase: $e');
