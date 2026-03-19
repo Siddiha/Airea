@@ -27,6 +27,7 @@ class PatientHomeScreen extends StatefulWidget {
 
 class _PatientHomeScreenState extends State<PatientHomeScreen> {
   final ApiService _apiService = ApiService();
+  static const Duration _vitalsCacheTtl = Duration(hours: 1);
   String? _deviceId; // null until patient links a real device
 
   // Live Database Variables
@@ -53,6 +54,80 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   void initState() {
     super.initState();
     _initDeviceAndLoad();
+  }
+
+  String _cacheKey(String suffix) {
+    final id = _deviceId ?? 'unknown';
+    return 'patient_home_vitals_${id}_$suffix';
+  }
+
+  void _applyVitalsToState({
+    required double temp,
+    required int bpm,
+    required bool leadsOff,
+    required double rr,
+    required bool rrEstimatedValue,
+  }) {
+    temperature = temp;
+    heartRate = bpm;
+    leadsAreOff = leadsOff;
+    respiratoryRate = rr;
+    rrEstimated = rrEstimatedValue;
+
+    temperatureStatus = _getTemperatureStatus(temperature);
+    heartRateStatus =
+        leadsAreOff ? "Leads Disconnected" : _getHeartRateStatus(heartRate);
+    respiratoryRateStatus = leadsAreOff
+        ? "Leads Disconnected"
+        : _getRespiratoryRateStatus(respiratoryRate);
+  }
+
+  Future<void> _saveVitalsCache({
+    required int bpm,
+    required double rr,
+    required bool leadsOff,
+    required bool rrEstimatedValue,
+  }) async {
+    if (_deviceId == null || _deviceId!.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_cacheKey('bpm'), bpm);
+    await prefs.setDouble(_cacheKey('rr'), rr);
+    await prefs.setBool(_cacheKey('leadsOff'), leadsOff);
+    await prefs.setBool(_cacheKey('rrEstimated'), rrEstimatedValue);
+    await prefs.setInt(
+        _cacheKey('savedAtMs'), DateTime.now().millisecondsSinceEpoch);
+  }
+
+  Future<bool> _loadVitalsFromCacheIfFresh() async {
+    if (_deviceId == null || _deviceId!.isEmpty) return false;
+
+    final prefs = await SharedPreferences.getInstance();
+    final savedAtMs = prefs.getInt(_cacheKey('savedAtMs'));
+    if (savedAtMs == null) return false;
+
+    final age = DateTime.now().millisecondsSinceEpoch - savedAtMs;
+    if (age > _vitalsCacheTtl.inMilliseconds) return false;
+
+    final cachedBpm = prefs.getInt(_cacheKey('bpm'));
+    final cachedRr = prefs.getDouble(_cacheKey('rr'));
+    final cachedLeadsOff = prefs.getBool(_cacheKey('leadsOff'));
+    final cachedRrEstimated = prefs.getBool(_cacheKey('rrEstimated')) ?? false;
+
+    if (cachedBpm == null || cachedRr == null || cachedLeadsOff == null) {
+      return false;
+    }
+
+    if (!mounted) return false;
+    setState(() {
+      _applyVitalsToState(
+        temp: temperature,
+        bpm: cachedBpm,
+        leadsOff: cachedLeadsOff,
+        rr: cachedRr,
+        rrEstimatedValue: cachedRrEstimated,
+      );
+    });
+    return true;
   }
 
   /// Load the patient's linked device ID, then start fetching data only if linked.
@@ -112,6 +187,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
     // Only fetch device data if a device is actually linked
     if (_deviceId != null && _deviceId!.isNotEmpty) {
+      await _loadVitalsFromCacheIfFresh();
       _loadCoughData();
       _loadVitalsData();
       _loadAlerts();
@@ -157,25 +233,28 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       final vitals = await _apiService.getLatestVitals(_deviceId!);
       if (mounted && vitals != null) {
         setState(() {
-          temperature = vitals.temp;
-          heartRate = vitals.bpm;
-          leadsAreOff = vitals.leadsOff;
-          respiratoryRate = vitals.respiratoryRate;
-          rrEstimated = vitals.rrEstimated;
-
-          // Medical Logic for Statuses
-          temperatureStatus = _getTemperatureStatus(temperature);
-          heartRateStatus = leadsAreOff
-              ? "Leads Disconnected"
-              : _getHeartRateStatus(heartRate);
-          respiratoryRateStatus = leadsAreOff
-              ? "Leads Disconnected"
-              : _getRespiratoryRateStatus(respiratoryRate);
+          _applyVitalsToState(
+            temp: vitals.temp,
+            bpm: vitals.bpm,
+            leadsOff: vitals.leadsOff,
+            rr: vitals.respiratoryRate,
+            rrEstimatedValue: vitals.rrEstimated,
+          );
         });
+
+        await _saveVitalsCache(
+          bpm: vitals.bpm,
+          rr: vitals.respiratoryRate,
+          leadsOff: vitals.leadsOff,
+          rrEstimatedValue: vitals.rrEstimated,
+        );
+      } else {
+        await _loadVitalsFromCacheIfFresh();
       }
     } catch (e) {
       print('Error loading vitals: $e');
-      if (mounted) {
+      final loadedFromCache = await _loadVitalsFromCacheIfFresh();
+      if (mounted && !loadedFromCache) {
         setState(() {
           temperatureStatus = "Offline";
           heartRateStatus = "Offline";
