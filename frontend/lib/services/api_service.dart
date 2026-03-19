@@ -256,9 +256,11 @@ class ApiService {
   /// Get alert notifications from fall events history (deduplicated, newest first)
   Future<List<PatientNotification>> getFallAlerts(String deviceId) async {
     try {
-      final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/fall/history/$deviceId'),
-      ).timeout(const Duration(seconds: 5));
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.baseUrl}/fall/history/$deviceId'),
+          )
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonList = json.decode(response.body);
@@ -319,14 +321,16 @@ class ApiService {
   Future<Map<String, dynamic>> linkDeviceToPatient(
       String deviceId, String token) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/link-device'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode({'deviceId': deviceId}),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/link-device'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: json.encode({'deviceId': deviceId}),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return {'success': true};
@@ -366,12 +370,14 @@ class VitalsData {
   final int bpm;
   final bool leadsOff;
   final double respiratoryRate;
+  final bool rrEstimated;
 
   VitalsData({
     required this.temp,
     required this.bpm,
     required this.leadsOff,
     required this.respiratoryRate,
+    required this.rrEstimated,
   });
 
   factory VitalsData.fromJson(Map<String, dynamic> json) {
@@ -380,6 +386,7 @@ class VitalsData {
       bpm: (json['bpm'] ?? 0).toInt(),
       leadsOff: json['leadsOff'] ?? true,
       respiratoryRate: (json['rr'] ?? 0.0).toDouble(),
+      rrEstimated: json['rrEstimated'] ?? false,
     );
   }
 }

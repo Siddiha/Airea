@@ -118,6 +118,9 @@ int motion_buffer_index = 0;
 // --- Vitals ---
 float currentTemp = 0.0, currentBPM = 0.0, currentRR = 0.0;
 bool leadsAreOff = false;
+constexpr uint8_t LEAD_STATE_DEBOUNCE_SAMPLES = 5;
+static uint8_t leadOffStableCount = 0;
+static uint8_t leadOnStableCount = 0;
 
 constexpr unsigned long SAMPLE_INTERVAL_US = 4000;
 static float ecgEma = 0.0f, baselineEma = 0.0f, respEma = 0.0f;
@@ -420,7 +423,25 @@ void loop()
     if (nowUs - lastSampleUs >= SAMPLE_INTERVAL_US)
     {
         lastSampleUs += SAMPLE_INTERVAL_US;
-        leadsAreOff = (digitalRead(PIN_ECG_LO_PLUS) == 1 || digitalRead(PIN_ECG_LO_MINUS) == 1);
+        bool loPlusHigh = (digitalRead(PIN_ECG_LO_PLUS) == HIGH);
+        bool loMinusHigh = (digitalRead(PIN_ECG_LO_MINUS) == HIGH);
+        bool rawLeadOff = loPlusHigh && loMinusHigh;
+
+        if (rawLeadOff)
+        {
+            leadOffStableCount = min<uint8_t>(leadOffStableCount + 1, LEAD_STATE_DEBOUNCE_SAMPLES);
+            leadOnStableCount = 0;
+            if (leadOffStableCount >= LEAD_STATE_DEBOUNCE_SAMPLES)
+                leadsAreOff = true;
+        }
+        else
+        {
+            leadOnStableCount = min<uint8_t>(leadOnStableCount + 1, LEAD_STATE_DEBOUNCE_SAMPLES);
+            leadOffStableCount = 0;
+            if (leadOnStableCount >= LEAD_STATE_DEBOUNCE_SAMPLES)
+                leadsAreOff = false;
+        }
+
         if (!leadsAreOff)
         {
             int raw = analogRead(PIN_ECG_OUTPUT);
