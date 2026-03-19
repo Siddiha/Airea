@@ -88,8 +88,12 @@ int16_t *raw_audio_buffer;
 const int kAudioBufferSize = 32000;
 
 // THE GOLDILOCKS CALIBRATION
-#define COUGH_THRESHOLD 0.90 // 90% Confidence
-#define VOLUME_GATE 200      // Lowered for the *4 amplifier
+#define COUGH_THRESHOLD 0.75 // High-recall tuning (was 0.90)
+#define VOLUME_GATE 120      // High-recall tuning (was 200)
+#define SILENCE_FLOOR 30     // Ignore only very low ambient signal
+#define COUGH_COOLDOWN_MS 3000
+#define AUDIO_DEBUG_TELEMETRY true
+#define AUDIO_DEBUG_INTERVAL_MS 1500
 
 tflite::MicroErrorReporter micro_error_reporter;
 tflite::AllOpsResolver audio_resolver;
@@ -243,6 +247,7 @@ void audio_inference_task(void *parameter)
     size_t bytes_read;
     static unsigned long last_alert_time = 0;
     static unsigned long last_dot_time = 0;
+    static unsigned long last_debug_time = 0;
 
     const i2s_config_t i2s_config = {
         .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),
@@ -294,7 +299,7 @@ void audio_inference_task(void *parameter)
 
         float cough_score = (audio_output->type == kTfLiteInt8) ? (audio_output->data.int8[1] - audio_output->params.zero_point) * audio_output->params.scale : audio_output->data.f[1];
 
-        if (avg_vol < 50)
+        if (avg_vol < SILENCE_FLOOR)
         { // Silence floor
             cough_score = 0.0;
             if (millis() - last_dot_time > 2000)
@@ -307,7 +312,7 @@ void audio_inference_task(void *parameter)
         {
             if (millis() > 10000)
             {
-                if (avg_vol > VOLUME_GATE && cough_score > COUGH_THRESHOLD && (millis() - last_alert_time > 5000))
+                if (avg_vol > VOLUME_GATE && cough_score > COUGH_THRESHOLD && (millis() - last_alert_time > COUGH_COOLDOWN_MS))
                 {
                     Serial.println("\n🚨 COUGH DETECTED!");
                     Serial.printf("   Confidence: %.1f%% | Volume: %d\n", cough_score * 100, (int)avg_vol);
@@ -316,10 +321,11 @@ void audio_inference_task(void *parameter)
                     xQueueSend(cloudQueue, &event, 0);
                     last_alert_time = millis();
                 }
-                else if (avg_vol > 100)
-                { // Lower debug print so we can see what the AI is thinking
+                else if (AUDIO_DEBUG_TELEMETRY && (millis() - last_debug_time > AUDIO_DEBUG_INTERVAL_MS) && avg_vol > 60)
+                {
                     Serial.println();
-                    Serial.printf("🔊 Noise Filtered (Vol: %d, Cough Prob: %.1f%%)\n", (int)avg_vol, cough_score * 100);
+                    Serial.printf("🎛️ Audio Telemetry | Vol: %d | Cough Prob: %.1f%% | Gate:%d | Threshold:%.2f\n", (int)avg_vol, cough_score * 100, VOLUME_GATE, COUGH_THRESHOLD);
+                    last_debug_time = millis();
                 }
             }
         }
