@@ -3,4 +3,11 @@ class PatientContact {
   String contactNumber;
 
   PatientContact({required this.relationship, required this.contactNumber});
+
+  Map<String, dynamic> toJson() {
+    return {
+      'relationship': relationship,
+      'contactNumber': contactNumber,
+    };
+  }
 }

@@ -1,5 +1,7 @@
 package service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import config.JwtUtil;
 import dto.AuthResponse;
 import dto.DoctorAuthResponse;
@@ -32,43 +34,26 @@ public class AuthService {
     @Autowired
     private JwtUtil jwtUtil;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     public AuthResponse register(RegisterRequest request) {
-        // Check if email already exists
+        // If patient already exists (e.g., created via Supabase trigger), update profile fields instead of failing.
         if (patientRepository.existsByEmail(request.getEmail())) {
-            // Update full_name if a non-empty name is provided and the current value is null/empty
-            if (request.getFullName() != null && !request.getFullName().isEmpty()) {
-                patientRepository.findByEmail(request.getEmail()).ifPresent(existing -> {
-                    if (existing.getFullName() == null || existing.getFullName().isEmpty()) {
-                        existing.setFullName(request.getFullName());
-                        patientRepository.save(existing);
-                    }
-                });
-            }
-            throw new RuntimeException("Email already registered");
+            Patient existing = patientRepository.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new RuntimeException("Patient not found"));
+
+            applyProfileFields(existing, request);
+            Patient saved = patientRepository.save(existing);
+
+            String token = jwtUtil.generateToken(saved.getEmail());
+            return buildAuthResponse(saved, token);
         }
 
         // Create new patient
         Patient patient = new Patient();
         patient.setEmail(request.getEmail());
         patient.setPassword(passwordEncoder.encode(request.getPassword()));
-        patient.setFullName(request.getFullName());
-        patient.setGender(request.getGender());
-        patient.setAddress(request.getAddress());
-        patient.setPhoneNumber(request.getPhoneNumber());
-        patient.setAllergies(request.getAllergies());
-        patient.setEmergencyContact(request.getEmergencyContact());
-
-        // Parse date of birth if provided
-        if (request.getDateOfBirth() != null && !request.getDateOfBirth().isEmpty()) {
-            try {
-                // Try multiple date formats
-                LocalDate dob = parseDate(request.getDateOfBirth());
-                patient.setDateOfBirth(dob);
-            } catch (Exception e) {
-                // If parsing fails, leave it null
-                System.err.println("Failed to parse date of birth: " + request.getDateOfBirth());
-            }
-        }
+        applyProfileFields(patient, request);
 
         // Save patient
         Patient savedPatient = patientRepository.save(patient);
@@ -108,32 +93,7 @@ public class AuthService {
     public Patient updatePatient(String email, RegisterRequest request) {
         Patient patient = getPatientByEmail(email);
 
-        if (request.getFullName() != null) {
-            patient.setFullName(request.getFullName());
-        }
-        if (request.getGender() != null) {
-            patient.setGender(request.getGender());
-        }
-        if (request.getAddress() != null) {
-            patient.setAddress(request.getAddress());
-        }
-        if (request.getPhoneNumber() != null) {
-            patient.setPhoneNumber(request.getPhoneNumber());
-        }
-        if (request.getAllergies() != null) {
-            patient.setAllergies(request.getAllergies());
-        }
-        if (request.getEmergencyContact() != null) {
-            patient.setEmergencyContact(request.getEmergencyContact());
-        }
-        if (request.getDateOfBirth() != null && !request.getDateOfBirth().isEmpty()) {
-            try {
-                LocalDate dob = parseDate(request.getDateOfBirth());
-                patient.setDateOfBirth(dob);
-            } catch (Exception e) {
-                // Ignore parsing errors
-            }
-        }
+        applyProfileFields(patient, request);
 
         return patientRepository.save(patient);
     }
@@ -174,7 +134,6 @@ public class AuthService {
     }
 
     // ========== Doctor Authentication ==========
-
     public DoctorAuthResponse doctorRegister(DoctorRegisterRequest request) {
         // Check if email already exists
         if (doctorRepository.existsByEmail(request.getEmail())) {
@@ -226,9 +185,9 @@ public class AuthService {
     }
 
     /**
-     * Find doctor by email, or create a new record if not found.
-     * This handles doctors who registered via Supabase Auth but don't have
-     * a row in the doctors table yet.
+     * Find doctor by email, or create a new record if not found. This handles
+     * doctors who registered via Supabase Auth but don't have a row in the
+     * doctors table yet.
      */
     public Doctor ensureDoctorExists(String email) {
         return doctorRepository.findByEmail(email).orElseGet(() -> {
@@ -240,9 +199,9 @@ public class AuthService {
     }
 
     /**
-     * Find patient by email, or create a new record if not found.
-     * This handles patients who registered via Supabase Auth but don't have
-     * a row in the patients table yet.
+     * Find patient by email, or create a new record if not found. This handles
+     * patients who registered via Supabase Auth but don't have a row in the
+     * patients table yet.
      */
     public Patient ensurePatientExists(String email) {
         return patientRepository.findByEmail(email).orElseGet(() -> {
@@ -287,6 +246,54 @@ public class AuthService {
         } catch (Exception e) {
             // Try ISO format
             return LocalDate.parse(dateStr);
+        }
+    }
+
+    private void applyProfileFields(Patient patient, RegisterRequest request) {
+        if (request.getFullName() != null && !request.getFullName().isBlank()) {
+            patient.setFullName(request.getFullName());
+        }
+        if (request.getGender() != null && !request.getGender().isBlank()) {
+            patient.setGender(request.getGender());
+        }
+        if (request.getAddress() != null && !request.getAddress().isBlank()) {
+            patient.setAddress(request.getAddress());
+        }
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
+            patient.setPhoneNumber(request.getPhoneNumber());
+        }
+
+        String normalizedAllergies = toStorableString(request.getAllergies());
+        if (normalizedAllergies != null && !normalizedAllergies.isBlank()) {
+            patient.setAllergies(normalizedAllergies);
+        }
+
+        String normalizedEmergency = toStorableString(request.getEmergencyContact());
+        if (normalizedEmergency != null && !normalizedEmergency.isBlank()) {
+            patient.setEmergencyContact(normalizedEmergency);
+        }
+
+        if (request.getDateOfBirth() != null && !request.getDateOfBirth().isEmpty()) {
+            try {
+                LocalDate dob = parseDate(request.getDateOfBirth());
+                patient.setDateOfBirth(dob);
+            } catch (Exception e) {
+                System.err.println("Failed to parse date of birth: " + request.getDateOfBirth());
+            }
+        }
+    }
+
+    private String toStorableString(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof String str) {
+            return str;
+        }
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            return String.valueOf(value);
         }
     }
 }

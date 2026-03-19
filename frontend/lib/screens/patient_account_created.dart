@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/app_theme.dart';
@@ -50,90 +49,66 @@ class _PatientAccountCreatedState extends State<PatientAccountCreated> {
       final authService = AuthService();
       final registrationData = widget.registrationData!;
 
-      // Register the user with email and password
+      // Register user in Supabase auth
       final result = await authService.register(
         registrationData.email,
         registrationData.password,
       );
 
-      if (result['success']) {
-        // If registration is successful we can also persist other profile info locally
-        print('User registered successfully');
-        if (widget.registrationData?.medicalDetails != null) {
-          await ProfileService.saveMedicalDetails(widget.registrationData!.medicalDetails!);
-        }
-        // Save full name to SharedPreferences
-        final fullName = registrationData.fullName ?? '';
-        print('Registration fullName: "$fullName"');
-        if (fullName.isNotEmpty) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('user_full_name', fullName);
-        }
+      final String registerMessage = (result['message'] ?? '').toString();
+      final bool supabaseSuccess = result['success'] == true;
+      final bool alreadyRegistered =
+          registerMessage.toLowerCase().contains('already registered') ||
+              registerMessage.toLowerCase().contains('already exists');
 
-        // Create patient row in Spring Boot DB with the actual full name.
-        // At this point the Supabase auth user exists but the patients table
-        // row does not yet — calling register here creates it with the correct name.
-        if (fullName.isNotEmpty) {
-          try {
-            final resp = await http.post(
-              Uri.parse('${ApiConfig.baseUrl}/auth/register'),
-              headers: {'Content-Type': 'application/json'},
-              body: jsonEncode({
-                'email': registrationData.email,
-                'password': registrationData.password,
-                'fullName': fullName,
-              }),
-            ).timeout(const Duration(seconds: 10));
-            print('Spring Boot register response: ${resp.statusCode} ${resp.body}');
-            // Store the backend JWT so device linking works right after sign-up
-            if (resp.statusCode == 201) {
-              try {
-                final regData = jsonDecode(resp.body);
-                final token = regData['token'];
-                if (token != null) {
-                  final prefs2 = await SharedPreferences.getInstance();
-                  await prefs2.setString('backend_jwt_token', token as String);
-                }
-              } catch (_) {}
-            }
-          } catch (e) {
-            print('Spring Boot register failed: $e');
-          }
-
-          // Upsert to Supabase patients table (handles timing race with DB trigger)
-          try {
-            await Supabase.instance.client
-                .from('patients')
-                .upsert(
-                  {'email': registrationData.email, 'full_name': fullName},
-                  onConflict: 'email',
-                );
-            print('Supabase patients upsert succeeded');
-          } catch (e) {
-            print('Supabase patients upsert failed: $e');
-          }
-        }
-        setState(() {
-          _isLoading = false;
-          _success = true;
-          _message = 'User account created\nsuccessfully';
-        });
-
-        // Auto-navigate after 2 seconds
-        await Future.delayed(const Duration(seconds: 2));
-        if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const PatientHomeScreen()),
-            (route) => false,
-          );
-        }
-      } else {
+      if (!supabaseSuccess && !alreadyRegistered) {
         setState(() {
           _isLoading = false;
           _success = false;
-          _message = result['message'] ?? 'Failed to create account';
+          _message = registerMessage.isNotEmpty
+              ? registerMessage
+              : 'Failed to create account';
         });
+        return;
+      }
+
+      // Save local profile data
+      if (registrationData.medicalDetails != null) {
+        await ProfileService.saveMedicalDetails(
+            registrationData.medicalDetails!);
+      }
+
+      final fullName = registrationData.fullName ?? '';
+      if (fullName.isNotEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_full_name', fullName);
+      }
+
+      // Sync full profile to backend (single backend path)
+      final backendOk = await _syncBackendRegistration(registrationData);
+      if (!backendOk) {
+        setState(() {
+          _isLoading = false;
+          _success = false;
+          _message =
+              'Account created, but profile sync failed. Please try again.';
+        });
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _success = true;
+        _message = 'User account created\nsuccessfully';
+      });
+
+      await Future.delayed(const Duration(seconds: 2));
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const PatientHomeScreen()),
+          (route) => false,
+        );
       }
     } catch (e) {
       print('Error during registration: $e');
@@ -142,6 +117,52 @@ class _PatientAccountCreatedState extends State<PatientAccountCreated> {
         _success = false;
         _message = 'An error occurred during registration';
       });
+    }
+  }
+
+  Map<String, dynamic> _buildRegistrationPayload(RegistrationData data) {
+    return {
+      'email': data.email,
+      'password': data.password,
+      'fullName': data.fullName,
+      'dateOfBirth': data.dateOfBirth,
+      'gender': data.gender,
+      'address': data.address,
+      'emergencyContact': data.emergencyContact?.toJson(),
+      'medicalDetails': data.medicalDetails?.toJson(),
+      'allergies': data.allergies.map((a) => a.toJson()).toList(),
+      'medicalReportPaths': data.medicalReportPaths,
+    };
+  }
+
+  Future<bool> _syncBackendRegistration(RegistrationData data) async {
+    try {
+      final resp = await http
+          .post(
+            Uri.parse('${ApiConfig.baseUrl}/auth/register'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(_buildRegistrationPayload(data)),
+          )
+          .timeout(const Duration(seconds: 12));
+
+      print('Spring Boot register response: ${resp.statusCode} ${resp.body}');
+
+      if (resp.statusCode >= 200 && resp.statusCode < 300) {
+        try {
+          final regData = jsonDecode(resp.body);
+          final token = regData['token'];
+          if (token != null) {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('backend_jwt_token', token as String);
+          }
+        } catch (_) {}
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      print('Spring Boot register failed: $e');
+      return false;
     }
   }
 
@@ -156,7 +177,6 @@ class _PatientAccountCreatedState extends State<PatientAccountCreated> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(),
-
               if (_isLoading)
                 const Column(
                   mainAxisSize: MainAxisSize.min,
@@ -181,7 +201,8 @@ class _PatientAccountCreatedState extends State<PatientAccountCreated> {
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    color: _success ? AppTheme.normalGreen : Colors.red.shade300,
+                    color:
+                        _success ? AppTheme.normalGreen : Colors.red.shade300,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
