@@ -88,8 +88,8 @@ int16_t *raw_audio_buffer;
 const int kAudioBufferSize = 32000;
 
 // THE GOLDILOCKS CALIBRATION
-#define COUGH_THRESHOLD 0.90 // 90% Confidence
-#define VOLUME_GATE 200      // Lowered for the *4 amplifier
+#define COUGH_THRESHOLD 0.70 // 75% Confidence
+#define COUGH_COOLDOWN_MS 5000
 
 tflite::MicroErrorReporter micro_error_reporter;
 tflite::AllOpsResolver audio_resolver;
@@ -242,7 +242,6 @@ void audio_inference_task(void *parameter)
 {
     size_t bytes_read;
     static unsigned long last_alert_time = 0;
-    static unsigned long last_dot_time = 0;
 
     const i2s_config_t i2s_config = {
         .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),
@@ -270,22 +269,22 @@ void audio_inference_task(void *parameter)
 
         i2s_read(I2S_PORT, raw_audio_buffer, kAudioBufferSize * sizeof(int16_t), &bytes_read, portMAX_DELAY);
         int8_t *input_data = audio_input->data.int8;
-        float avg_vol = 0;
 
+        float avg_vol = 0;
         for (int i = 0; i < audio_input->bytes; i++)
         {
             int16_t sample = raw_audio_buffer[i * 2];
-
-            // THE GOLDILOCKS GAIN (*4)
             int32_t amplified = sample * 4;
 
             if (amplified > 32767)
                 amplified = 32767;
             if (amplified < -32768)
                 amplified = -32768;
+
+            int abs_amp = abs(amplified);
             input_data[i] = (int8_t)(amplified >> 8);
             if (i % 100 == 0)
-                avg_vol += abs(amplified);
+                avg_vol += abs_amp;
         }
         avg_vol /= (audio_input->bytes / 100);
 
@@ -294,33 +293,21 @@ void audio_inference_task(void *parameter)
 
         float cough_score = (audio_output->type == kTfLiteInt8) ? (audio_output->data.int8[1] - audio_output->params.zero_point) * audio_output->params.scale : audio_output->data.f[1];
 
-        if (avg_vol < 50)
-        { // Silence floor
-            cough_score = 0.0;
-            if (millis() - last_dot_time > 2000)
-            {
-                Serial.print(".");
-                last_dot_time = millis();
-            }
-        }
-        else
+        if (millis() > 10000)
         {
-            if (millis() > 10000)
+            if (cough_score > COUGH_THRESHOLD && (millis() - last_alert_time > COUGH_COOLDOWN_MS))
             {
-                if (avg_vol > VOLUME_GATE && cough_score > COUGH_THRESHOLD && (millis() - last_alert_time > 5000))
-                {
-                    Serial.println("\n🚨 COUGH DETECTED!");
-                    Serial.printf("   Confidence: %.1f%% | Volume: %d\n", cough_score * 100, (int)avg_vol);
-                    blinkLED(3, 150);
-                    CloudEvent event = {EVENT_COUGH, cough_score, avg_vol, 0.0, false};
-                    xQueueSend(cloudQueue, &event, 0);
-                    last_alert_time = millis();
-                }
-                else if (avg_vol > 100)
-                { // Lower debug print so we can see what the AI is thinking
-                    Serial.println();
-                    Serial.printf("🔊 Noise Filtered (Vol: %d, Cough Prob: %.1f%%)\n", (int)avg_vol, cough_score * 100);
-                }
+                Serial.println("\n🚨 COUGH DETECTED!");
+                Serial.printf("   Confidence: %.1f%% | Volume: %d\n", cough_score * 100, (int)avg_vol);
+                blinkLED(3, 150);
+                CloudEvent event = {EVENT_COUGH, cough_score, avg_vol, 0.0, false};
+                xQueueSend(cloudQueue, &event, 0);
+                last_alert_time = millis();
+            }
+            else if (avg_vol > 100)
+            {
+                Serial.println();
+                Serial.printf("🔊 Cough Prob: %.1f%% | Volume: %d\n", cough_score * 100, (int)avg_vol);
             }
         }
         vTaskDelay(10 / portTICK_PERIOD_MS);
