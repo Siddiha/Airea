@@ -82,8 +82,7 @@ class ProfileService {
       if (email == null || gender.isEmpty) return;
       await Supabase.instance.client
           .from('patients')
-          .update({'gender': gender})
-          .eq('email', email);
+          .upsert({'email': email, 'gender': gender}, onConflict: 'email');
     } catch (e) {
       debugPrint('Failed to sync gender: $e');
     }
@@ -112,8 +111,7 @@ class ProfileService {
       if (email == null) return;
       await Supabase.instance.client
           .from('patients')
-          .update({'emergency_contact': contactNumber})
-          .eq('email', email);
+          .upsert({'email': email, 'emergency_contact': contactNumber}, onConflict: 'email');
     } catch (e) {
       debugPrint('Failed to sync emergency contact: $e');
     }

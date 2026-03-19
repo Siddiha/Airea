@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'patient_notifications.dart';
 import 'patient_profile_frame.dart';
@@ -58,7 +59,30 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     final prefs = await SharedPreferences.getInstance();
     final linkedId = prefs.getString('linked_device_id');
     final hasLinkedDevice = linkedId != null && linkedId.isNotEmpty;
-    final savedName = prefs.getString('user_full_name');
+    String? savedName = prefs.getString('user_full_name');
+
+    // If name not cached locally, fetch from Supabase patients table
+    if (savedName == null || savedName.isEmpty) {
+      try {
+        final currentUser = Supabase.instance.client.auth.currentUser;
+        if (currentUser?.email != null) {
+          final row = await Supabase.instance.client
+              .from('patients')
+              .select('full_name')
+              .eq('email', currentUser!.email!)
+              .maybeSingle();
+          if (row != null &&
+              row['full_name'] != null &&
+              (row['full_name'] as String).isNotEmpty) {
+            savedName = row['full_name'] as String;
+            await prefs.setString('user_full_name', savedName!);
+          }
+        }
+      } catch (_) {
+        // Non-fatal – name stays as default 'user'
+      }
+    }
+
     if (mounted) {
       setState(() {
         _deviceId = hasLinkedDevice ? linkedId : null;

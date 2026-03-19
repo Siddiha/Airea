@@ -106,8 +106,10 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
         try {
           await Supabase.instance.client
               .from('patients')
-              .update({'full_name': savedFullName})
-              .eq('email', email);
+              .upsert(
+                {'email': email, 'full_name': savedFullName},
+                onConflict: 'email',
+              );
         } catch (_) {
           // Non-fatal — name sync will retry on next login
         }
