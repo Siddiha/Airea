@@ -332,14 +332,10 @@ class ApiService {
         return {'success': true};
       } else {
         final data = json.decode(response.body);
-<<<<<<< Updated upstream
         return {
           'success': false,
           'message': data['message'] ?? 'Failed to link device'
         };
-=======
-        return {'success': false, 'message': data['message'] ?? 'Failed to link device'};
->>>>>>> Stashed changes
       }
     } catch (e) {
       print('Error linking device to backend: $e');
