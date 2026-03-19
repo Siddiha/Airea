@@ -365,14 +365,21 @@ class VitalsData {
   final double temp;
   final int bpm;
   final bool leadsOff;
+  final double respiratoryRate;
 
-  VitalsData({required this.temp, required this.bpm, required this.leadsOff});
+  VitalsData({
+    required this.temp,
+    required this.bpm,
+    required this.leadsOff,
+    required this.respiratoryRate,
+  });
 
   factory VitalsData.fromJson(Map<String, dynamic> json) {
     return VitalsData(
       temp: (json['temp'] ?? 0.0).toDouble(),
       bpm: (json['bpm'] ?? 0).toInt(),
       leadsOff: json['leadsOff'] ?? true,
+      respiratoryRate: (json['rr'] ?? 0.0).toDouble(),
     );
   }
 }
