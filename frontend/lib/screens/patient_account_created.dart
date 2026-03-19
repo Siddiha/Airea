@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../config/app_theme.dart';
+import '../config/api_config.dart';
 import '../models/registration_data.dart';
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
@@ -56,6 +61,44 @@ class _PatientAccountCreatedState extends State<PatientAccountCreated> {
         print('User registered successfully');
         if (widget.registrationData?.medicalDetails != null) {
           await ProfileService.saveMedicalDetails(widget.registrationData!.medicalDetails!);
+        }
+        // Save full name to SharedPreferences
+        final fullName = registrationData.fullName ?? '';
+        print('Registration fullName: "$fullName"');
+        if (fullName.isNotEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_full_name', fullName);
+        }
+
+        // Create patient row in Spring Boot DB with the actual full name.
+        // At this point the Supabase auth user exists but the patients table
+        // row does not yet — calling register here creates it with the correct name.
+        if (fullName.isNotEmpty) {
+          try {
+            final resp = await http.post(
+              Uri.parse('${ApiConfig.baseUrl}/auth/register'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'email': registrationData.email,
+                'password': registrationData.password,
+                'fullName': fullName,
+              }),
+            ).timeout(const Duration(seconds: 10));
+            print('Spring Boot register response: ${resp.statusCode} ${resp.body}');
+          } catch (e) {
+            print('Spring Boot register failed: $e');
+          }
+
+          // Also update Supabase patients table directly as a safety net
+          try {
+            final updateResult = await Supabase.instance.client
+                .from('patients')
+                .update({'full_name': fullName})
+                .eq('email', registrationData.email);
+            print('Supabase full_name update result: $updateResult');
+          } catch (e) {
+            print('Supabase full_name update failed: $e');
+          }
         }
         setState(() {
           _isLoading = false;

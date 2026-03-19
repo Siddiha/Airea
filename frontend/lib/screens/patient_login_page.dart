@@ -83,6 +83,8 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
     try {
       // Step 1: Ensure patient record exists in backend DB by calling register
       // If already registered, backend returns error which we ignore
+      final prefs = await SharedPreferences.getInstance();
+      final savedFullName = prefs.getString('user_full_name') ?? '';
       try {
         final registerUrl = Uri.parse('${ApiConfig.baseUrl}/auth/register');
         await http.post(
@@ -91,11 +93,24 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
           body: jsonEncode({
             'email': email,
             'password': password,
-            'fullName': '',
+            'fullName': savedFullName,
           }),
         ).timeout(const Duration(seconds: 10));
       } catch (_) {
         // Ignore - patient may already exist or backend unavailable
+      }
+
+      // Sync full_name directly to Supabase in case the Spring Boot register
+      // call above was rejected (email already registered)
+      if (savedFullName.isNotEmpty) {
+        try {
+          await Supabase.instance.client
+              .from('patients')
+              .update({'full_name': savedFullName})
+              .eq('email', email);
+        } catch (_) {
+          // Non-fatal — name sync will retry on next login
+        }
       }
 
       // Step 2: Fetch patient code from backend API

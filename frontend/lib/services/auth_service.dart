@@ -146,6 +146,8 @@ class AuthService {
     await prefs.remove(_userTypeKey);
     await prefs.remove(_loginTimeKey);
     await prefs.remove('linked_device_id');
+    await prefs.remove('user_full_name');
+    await prefs.remove('patient_code');
 
     // Clear credentials
     await _secureStorage.delete(key: _secureEmailKey);
