@@ -121,12 +121,8 @@ class _PatientAccountCreatedState extends State<PatientAccountCreated> {
   }
 
   Map<String, dynamic> _buildRegistrationPayload(RegistrationData data) {
-    final relationship = data.emergencyContact?.relationship.trim() ?? '';
     final contactNumber = data.emergencyContact?.contactNumber.trim() ?? '';
-    final emergencyContact =
-        (relationship.isNotEmpty || contactNumber.isNotEmpty)
-            ? '$relationship - $contactNumber'
-            : null;
+    final emergencyContact = contactNumber.isNotEmpty ? contactNumber : null;
 
     return {
       'email': data.email,
