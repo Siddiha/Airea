@@ -58,8 +58,6 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     _refreshTimer = null;
 
     final prefs = await SharedPreferences.getInstance();
-    // Use ProfileService.getLinkedDevice() so it is per-user scoped and
-    // falls back to Supabase on a fresh install.
     final linkedId = await ProfileService.getLinkedDevice();
     final hasLinkedDevice = linkedId != null && linkedId.isNotEmpty;
     String? savedName = prefs.getString('user_full_name');
