@@ -37,6 +37,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   String heartRateStatus = "No device connected";
   bool leadsAreOff = false;
 
+  double respiratoryRate = 0.0;
+  String respiratoryRateStatus = "No device connected";
+
   int coughCount = 0;
   String coughStatus = "No device connected";
 
@@ -97,6 +100,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           heartRate = 0;
           heartRateStatus = "No device connected";
           leadsAreOff = false;
+          respiratoryRate = 0.0;
+          respiratoryRateStatus = "No device connected";
           coughCount = 0;
           coughStatus = "No device connected";
         }
@@ -153,12 +158,16 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           temperature = vitals.temp;
           heartRate = vitals.bpm;
           leadsAreOff = vitals.leadsOff;
+          respiratoryRate = vitals.respiratoryRate;
 
           // Medical Logic for Statuses
           temperatureStatus = _getTemperatureStatus(temperature);
           heartRateStatus = leadsAreOff
               ? "Leads Disconnected"
               : _getHeartRateStatus(heartRate);
+          respiratoryRateStatus = leadsAreOff
+              ? "Leads Disconnected"
+              : _getRespiratoryRateStatus(respiratoryRate);
         });
       }
     } catch (e) {
@@ -167,6 +176,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         setState(() {
           temperatureStatus = "Offline";
           heartRateStatus = "Offline";
+          respiratoryRateStatus = "Offline";
         });
       }
     }
@@ -261,6 +271,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     return "Normal";
   }
 
+  String _getRespiratoryRateStatus(double rr) {
+    if (rr == 0.0) return "No Data";
+    if (rr < 12) return "Low (Bradypnea)";
+    if (rr > 20) return "High (Tachypnea)";
+    return "Normal";
+  }
+
   Color _getStatusColor(String status) {
     if (status.contains("Normal") || status == "No coughs" || status == "Low") {
       return const Color(0xFF4CAF50); // Green
@@ -303,6 +320,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     Expanded(child: _buildHeartRateCard()),
                   ],
                 ),
+                const SizedBox(height: 12),
+                _buildRespiratoryRateCard(),
                 const SizedBox(height: 12),
                 _buildCoughCountCard(),
                 const SizedBox(height: 12),
@@ -500,6 +519,56 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 fontWeight: FontWeight.w600,
                 fontSize: 12),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRespiratoryRateCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.grey.withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 3))
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Respiratory Rate",
+                  style:
+                      TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              const SizedBox(height: 4),
+              Text(
+                (respiratoryRate == 0.0 || leadsAreOff)
+                    ? "--"
+                    : "${respiratoryRate.toStringAsFixed(1)} br/min",
+                style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: _getStatusColor(respiratoryRateStatus)),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                respiratoryRateStatus,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _getStatusColor(respiratoryRateStatus)),
+              ),
+            ],
+          ),
+          Icon(Icons.air_rounded,
+              size: 48,
+              color: _getStatusColor(respiratoryRateStatus).withValues(alpha: 0.7)),
         ],
       ),
     );
