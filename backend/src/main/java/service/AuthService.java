@@ -35,6 +35,15 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
         // Check if email already exists
         if (patientRepository.existsByEmail(request.getEmail())) {
+            // Update full_name if a non-empty name is provided and the current value is null/empty
+            if (request.getFullName() != null && !request.getFullName().isEmpty()) {
+                patientRepository.findByEmail(request.getEmail()).ifPresent(existing -> {
+                    if (existing.getFullName() == null || existing.getFullName().isEmpty()) {
+                        existing.setFullName(request.getFullName());
+                        patientRepository.save(existing);
+                    }
+                });
+            }
             throw new RuntimeException("Email already registered");
         }
 
