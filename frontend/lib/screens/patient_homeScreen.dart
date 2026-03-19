@@ -13,6 +13,7 @@ import 'doctor_details.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../services/doctor_patient_service.dart';
+import '../services/profile_service.dart';
 import '../models/device_model.dart';
 import 'patient_contact_doctor.dart';
 import '../widgets/bottom_nav_bar.dart';
@@ -57,7 +58,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     _refreshTimer = null;
 
     final prefs = await SharedPreferences.getInstance();
-    final linkedId = prefs.getString('linked_device_id');
+    // Use ProfileService.getLinkedDevice() so it is per-user scoped and
+    // falls back to Supabase on a fresh install.
+    final linkedId = await ProfileService.getLinkedDevice();
     final hasLinkedDevice = linkedId != null && linkedId.isNotEmpty;
     String? savedName = prefs.getString('user_full_name');
 

@@ -115,7 +115,27 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
         }
       }
 
-      // Step 2: Fetch patient code from backend API
+      // Step 2: Call Spring Boot login to get and store the backend JWT token.
+      // This token is needed later when linking a device via /auth/link-device.
+      try {
+        final loginUrl = Uri.parse('${ApiConfig.baseUrl}/auth/login');
+        final loginResp = await http.post(
+          loginUrl,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'password': password}),
+        ).timeout(const Duration(seconds: 10));
+        if (loginResp.statusCode == 200) {
+          final loginData = jsonDecode(loginResp.body);
+          final token = loginData['token'];
+          if (token != null) {
+            await prefs.setString('backend_jwt_token', token as String);
+          }
+        }
+      } catch (_) {
+        // Non-fatal — device linking will gracefully degrade without this token
+      }
+
+      // Step 3: Fetch patient code from backend API
       final codeUrl = Uri.parse(
           '${ApiConfig.baseUrl}/auth/patient/code?email=${Uri.encodeComponent(email)}');
       final resp = await http.get(codeUrl).timeout(const Duration(seconds: 10));
