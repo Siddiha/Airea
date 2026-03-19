@@ -139,11 +139,7 @@ public class AuthService {
     }
 
     public void linkDevice(String email, String deviceId) {
-<<<<<<< Updated upstream
-        // Ensure the device is not already linked to a DIFFERENT patient
-=======
         // Block if device is already linked to a DIFFERENT patient
->>>>>>> Stashed changes
         patientRepository.findByDeviceId(deviceId).ifPresent(existing -> {
             if (!existing.getEmail().equalsIgnoreCase(email)) {
                 throw new RuntimeException("Device is already linked to another patient");
