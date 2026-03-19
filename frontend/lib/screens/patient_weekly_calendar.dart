@@ -75,7 +75,7 @@ class _PatientWeeklyCalendarState extends State<PatientWeeklyCalendar> {
               // Calendar with week selection
               CustomCalendarWidget(
                 mode: CalendarMode.weekRange,
-                initialMonth: DateTime(2025, 11), // November 2025 as per Figma
+                initialMonth: DateTime.now(),
                 onWeekSelected: (weekStart, weekEnd) {
                   _navigateToSummaryDetail(context, weekStart, weekEnd);
                 },
