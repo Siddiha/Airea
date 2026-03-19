@@ -32,6 +32,7 @@
 // =========================================================
 bool enableFallDetection = false;
 bool enableCoughDetection = true;
+bool resetWifiCredentialsOnBoot = false;
 
 // =========================================================
 // 1. PIN DEFINITIONS & I2C ADDRESSES
@@ -40,7 +41,7 @@ bool enableCoughDetection = true;
 #define PIN_TEMP_SCL 18
 #define PIN_MOTION_SDA 15
 #define PIN_MOTION_SCL 16
-#define MAX30205_ADDR 0x4C
+#define MAX30205_ADDR 0x48
 #define MPU6050_ADDR 0x68
 
 #define PIN_ECG_OUTPUT 1
@@ -344,6 +345,14 @@ void setup()
     }
 
     WiFiManager wm;
+    if (resetWifiCredentialsOnBoot)
+    {
+        Serial.println("🧹 Reset flag is TRUE. Clearing saved WiFi credentials...");
+        wm.resetSettings();
+        WiFi.disconnect(true, true);
+        delay(300);
+        Serial.println("✅ WiFi credentials cleared. Set resetWifiCredentialsOnBoot=false and reboot/upload again.");
+    }
     wm.setConfigPortalTimeout(60);
     if (!wm.autoConnect("Airea-Setup"))
         Serial.println("⚠️ WiFi Failed - Continuing in Offline Mode");
