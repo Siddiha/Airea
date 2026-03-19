@@ -96,11 +96,18 @@ class ApiService {
           period: 'hour',
         );
       } else {
-        throw Exception('Failed to load statistics: ${response.statusCode}');
+        final start = DateTime(now.year, now.month, now.day, now.hour);
+        final end = start.add(const Duration(hours: 1));
+        final events = await getCoughEventsByTimeRange(deviceId, start, end);
+        return _buildStatsFromEvents(events, period: 'hour');
       }
     } catch (e) {
-      print('Error getting hourly statistics: $e');
-      rethrow;
+      print('Error getting hourly statistics, using fallback: $e');
+      final now = DateTime.now();
+      final start = DateTime(now.year, now.month, now.day, now.hour);
+      final end = start.add(const Duration(hours: 1));
+      final events = await getCoughEventsByTimeRange(deviceId, start, end);
+      return _buildStatsFromEvents(events, period: 'hour');
     }
   }
 
@@ -128,11 +135,18 @@ class ApiService {
           period: 'today',
         );
       } else {
-        throw Exception('Failed to load statistics: ${response.statusCode}');
+        final start = DateTime(now.year, now.month, now.day);
+        final end = start.add(const Duration(days: 1));
+        final events = await getCoughEventsByTimeRange(deviceId, start, end);
+        return _buildStatsFromEvents(events, period: 'today');
       }
     } catch (e) {
-      print('Error getting today statistics: $e');
-      rethrow;
+      print('Error getting today statistics, using fallback: $e');
+      final now = DateTime.now();
+      final start = DateTime(now.year, now.month, now.day);
+      final end = start.add(const Duration(days: 1));
+      final events = await getCoughEventsByTimeRange(deviceId, start, end);
+      return _buildStatsFromEvents(events, period: 'today');
     }
   }
 
@@ -140,32 +154,73 @@ class ApiService {
   Future<CoughStatistics> getWeeklyStatistics(String deviceId) async {
     try {
       final now = DateTime.now();
-      final dateStr =
-          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final weekStart = DateTime(now.year, now.month, now.day)
+          .subtract(Duration(days: now.weekday - 1));
+      final weekStartStr =
+          '${weekStart.year}-${weekStart.month.toString().padLeft(2, '0')}-${weekStart.day.toString().padLeft(2, '0')}';
 
       final response = await http.get(
-        Uri.parse('$baseUrl/summary/daily/$deviceId?date=$dateStr'),
+        Uri.parse('$baseUrl/summary/weekly/$deviceId?weekStart=$weekStartStr'),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        final coughSummary = data['coughSummary'] ?? <String, dynamic>{};
         return CoughStatistics(
-          totalCoughs: data['totalCoughs'] ?? 0,
+          totalCoughs: coughSummary['totalCoughs'] ?? 0,
           dryCoughs: 0,
           wetCoughs: 0,
-          unknownCoughs: data['totalCoughs'] ?? 0,
-          averageConfidence: (data['avgConfidence'] ?? 0.0).toDouble(),
-          coughsPerHour: (data['coughFrequency'] ?? 0.0).toDouble(),
+          unknownCoughs: coughSummary['totalCoughs'] ?? 0,
+          averageConfidence: 0.0,
+          coughsPerHour:
+              ((coughSummary['avgCoughsPerDay'] ?? 0.0) / 24.0).toDouble(),
           mostCommonType: 'cough',
           period: 'week',
         );
       } else {
-        throw Exception('Failed to load statistics: ${response.statusCode}');
+        final weekEnd = weekStart.add(const Duration(days: 7));
+        final events =
+            await getCoughEventsByTimeRange(deviceId, weekStart, weekEnd);
+        return _buildStatsFromEvents(events, period: 'week');
       }
     } catch (e) {
-      print('Error getting weekly statistics: $e');
-      rethrow;
+      print('Error getting weekly statistics, using fallback: $e');
+      final now = DateTime.now();
+      final weekStart = DateTime(now.year, now.month, now.day)
+          .subtract(Duration(days: now.weekday - 1));
+      final weekEnd = weekStart.add(const Duration(days: 7));
+      final events =
+          await getCoughEventsByTimeRange(deviceId, weekStart, weekEnd);
+      return _buildStatsFromEvents(events, period: 'week');
     }
+  }
+
+  CoughStatistics _buildStatsFromEvents(List<CoughEvent> events,
+      {required String period}) {
+    final total = events.length;
+    final avgConfidence = events.isEmpty
+        ? 0.0
+        : events.map((e) => e.confidence * 100.0).reduce((a, b) => a + b) /
+            events.length;
+    double coughsPerHour;
+    if (period == 'hour') {
+      coughsPerHour = total.toDouble();
+    } else if (period == 'week') {
+      coughsPerHour = total / (7.0 * 24.0);
+    } else {
+      coughsPerHour = total / 24.0;
+    }
+
+    return CoughStatistics(
+      totalCoughs: total,
+      dryCoughs: 0,
+      wetCoughs: 0,
+      unknownCoughs: total,
+      averageConfidence: avgConfidence,
+      coughsPerHour: coughsPerHour,
+      mostCommonType: 'cough',
+      period: period,
+    );
   }
 
   /// Get all active devices

@@ -60,10 +60,10 @@ public class SummaryService {
         List<CoughEvent> events = getCoughEventsForDay(deviceId, date);
 
         // Always calculate vitals summary (even if no cough data)
-        VitalsSummary vitalsSummary = calculateVitalsSummary(deviceId, date);
+        VitalsSummary vitalsSummary = safeCalculateVitalsSummary(deviceId, date);
 
         // Calculate fall events summary
-        FallEventsSummary fallEventsSummary = calculateFallEventsSummary(deviceId, date);
+        FallEventsSummary fallEventsSummary = safeCalculateFallEventsSummary(deviceId, date);
 
         if (events.isEmpty()) {
             boolean hasAnyData = vitalsSummary.isHasVitalsData() || fallEventsSummary.isHasFallData();
@@ -275,12 +275,12 @@ public class SummaryService {
 
         // Base score from cough count (0-50 points)
         if (totalCoughs < 10) {
-            score += 10; 
-        }else if (totalCoughs < 30) {
-            score += 25; 
-        }else if (totalCoughs < 50) {
-            score += 40; 
-        }else {
+            score += 10;
+        } else if (totalCoughs < 30) {
+            score += 25;
+        } else if (totalCoughs < 50) {
+            score += 40;
+        } else {
             score += 50;
         }
 
@@ -300,12 +300,12 @@ public class SummaryService {
 
     private String getSeverityLevel(int score) {
         if (score < 30) {
-            return "GOOD"; 
-        }else if (score < 50) {
-            return "MODERATE"; 
-        }else if (score < 70) {
-            return "HIGH"; 
-        }else {
+            return "GOOD";
+        } else if (score < 50) {
+            return "MODERATE";
+        } else if (score < 70) {
+            return "HIGH";
+        } else {
             return "SEVERE";
         }
     }
@@ -585,14 +585,55 @@ public class SummaryService {
 
         String trend;
         if (change > 0) {
-            trend = "INCREASING"; 
-        }else if (change < 0) {
-            trend = "DECREASING"; 
-        }else {
+            trend = "INCREASING";
+        } else if (change < 0) {
+            trend = "DECREASING";
+        } else {
             trend = "STABLE";
         }
 
         return new DailyComparison(yesterdayCoughs, change, percentageChange, trend);
+    }
+
+    private VitalsSummary safeCalculateVitalsSummary(String deviceId, LocalDate date) {
+        try {
+            return calculateVitalsSummary(deviceId, date);
+        } catch (Exception e) {
+            System.err.println("Failed to calculate vitals summary for device " + deviceId + " on " + date + ": " + e.getMessage());
+            VitalsSummary summary = new VitalsSummary();
+            summary.setHasVitalsData(false);
+            summary.setVitalsMessage("Vitals data unavailable");
+            summary.setTotalReadings(0);
+            summary.setHeartRate(createEmptySingleVitalSummary("Heart Rate"));
+            summary.setTemperature(createEmptySingleVitalSummary("Temperature"));
+            summary.setRespiratoryRate(createEmptySingleVitalSummary("Respiratory Rate"));
+            summary.setHourlyVitals(generateEmptyHourlyVitals());
+            summary.setAnomalies(new ArrayList<>());
+            summary.setVitalsSeverityScore(0);
+            summary.setVitalsStatus("Vitals unavailable");
+            return summary;
+        }
+    }
+
+    private FallEventsSummary safeCalculateFallEventsSummary(String deviceId, LocalDate date) {
+        try {
+            return calculateFallEventsSummary(deviceId, date);
+        } catch (Exception e) {
+            System.err.println("Failed to calculate fall summary for device " + deviceId + " on " + date + ": " + e.getMessage());
+            FallEventsSummary summary = new FallEventsSummary();
+            summary.setHasFallData(false);
+            summary.setTotalFalls(0);
+            summary.setEmergencyFalls(0);
+            summary.setNonEmergencyFalls(0);
+            summary.setMaxGForce(0);
+            summary.setAvgGForce(0);
+            summary.setLatestFallTime(null);
+            summary.setWorstEmergencyLevel("NORMAL");
+            summary.setFallRiskLevel("NONE");
+            summary.setFallRiskMessage("Fall data unavailable");
+            summary.setFallEvents(new ArrayList<>());
+            return summary;
+        }
     }
 
     // ==================== VITALS CALCULATION METHODS ====================
@@ -1174,8 +1215,14 @@ public class SummaryService {
             // Get vitals for this day
             LocalDateTime startOfDay = currentDate.atStartOfDay();
             LocalDateTime endOfDay = currentDate.plusDays(1).atStartOfDay();
-            List<VitalsEvent> dayVitals = vitalsRepository.findByDeviceIdAndCreatedAtBetween(
-                    deviceId, startOfDay, endOfDay);
+            List<VitalsEvent> dayVitals;
+            try {
+                dayVitals = vitalsRepository.findByDeviceIdAndCreatedAtBetween(
+                        deviceId, startOfDay, endOfDay);
+            } catch (Exception e) {
+                System.err.println("Failed to fetch daily vitals for weekly summary on " + currentDate + " for device " + deviceId + ": " + e.getMessage());
+                dayVitals = new ArrayList<>();
+            }
 
             DailyBreakdown breakdown = new DailyBreakdown();
             breakdown.setDate(currentDate.format(DATE_FORMATTER));
@@ -1309,7 +1356,25 @@ public class SummaryService {
         response.setVitalsSummary(vitalsSummary);
 
         // Calculate weekly fall events summary
-        WeeklyFallEventsSummary weeklyFallSummary = calculateWeeklyFallEventsSummary(deviceId, weekStart);
+        WeeklyFallEventsSummary weeklyFallSummary;
+        try {
+            weeklyFallSummary = calculateWeeklyFallEventsSummary(deviceId, weekStart);
+        } catch (Exception e) {
+            System.err.println("Failed to calculate weekly fall summary for device " + deviceId + " starting " + weekStart + ": " + e.getMessage());
+            weeklyFallSummary = new WeeklyFallEventsSummary();
+            weeklyFallSummary.setHasFallData(false);
+            weeklyFallSummary.setTotalFalls(0);
+            weeklyFallSummary.setTotalEmergencyFalls(0);
+            weeklyFallSummary.setMaxGForce(0);
+            weeklyFallSummary.setAvgGForce(0);
+            weeklyFallSummary.setDaysWithFalls(0);
+            weeklyFallSummary.setAvgFallsPerDay(0);
+            weeklyFallSummary.setWorstEmergencyLevel("NORMAL");
+            weeklyFallSummary.setFallRiskLevel("NONE");
+            weeklyFallSummary.setFallRiskMessage("Fall data unavailable");
+            weeklyFallSummary.setDailyFallCounts(Arrays.asList(0, 0, 0, 0, 0, 0, 0));
+            weeklyFallSummary.setDailyEmergencyCounts(Arrays.asList(0, 0, 0, 0, 0, 0, 0));
+        }
         response.setFallEventsSummary(weeklyFallSummary);
 
         // Generate weekly patterns
@@ -1363,12 +1428,12 @@ public class SummaryService {
 
         // Base score from average daily cough count (0-50 points)
         if (avgDaily < 10) {
-            score += 10; 
-        }else if (avgDaily < 30) {
-            score += 25; 
-        }else if (avgDaily < 50) {
-            score += 40; 
-        }else {
+            score += 10;
+        } else if (avgDaily < 30) {
+            score += 25;
+        } else if (avgDaily < 50) {
+            score += 40;
+        } else {
             score += 50;
         }
 
@@ -1687,22 +1752,22 @@ public class SummaryService {
 
         if (summary.getHeartRate() != null) {
             if ("CRITICAL".equals(summary.getHeartRate().getStatus())) {
-                criticalCount++; 
-            }else if ("HIGH".equals(summary.getHeartRate().getStatus())) {
+                criticalCount++;
+            } else if ("HIGH".equals(summary.getHeartRate().getStatus())) {
                 highCount++;
             }
         }
         if (summary.getTemperature() != null) {
             if ("CRITICAL".equals(summary.getTemperature().getStatus())) {
-                criticalCount++; 
-            }else if ("HIGH".equals(summary.getTemperature().getStatus())) {
+                criticalCount++;
+            } else if ("HIGH".equals(summary.getTemperature().getStatus())) {
                 highCount++;
             }
         }
         if (summary.getRespiratoryRate() != null) {
             if ("CRITICAL".equals(summary.getRespiratoryRate().getStatus())) {
-                criticalCount++; 
-            }else if ("HIGH".equals(summary.getRespiratoryRate().getStatus())) {
+                criticalCount++;
+            } else if ("HIGH".equals(summary.getRespiratoryRate().getStatus())) {
                 highCount++;
             }
         }
@@ -1957,15 +2022,15 @@ public class SummaryService {
         List<FallEventDetail> fallEventDetails = falls.stream()
                 .sorted(Comparator.comparing(FallEvent::getTimestamp).reversed())
                 .map(f -> new FallEventDetail(
-                        f.getTimestamp().format(timeFormatter),
-                        f.getConfidence() != null ? f.getConfidence() : 0,
-                        Boolean.TRUE.equals(f.getIsEmergency()),
-                        f.getEmergencyLevel() != null ? f.getEmergencyLevel() : "NORMAL",
-                        f.getEmergencyReason(),
-                        f.getBpm(),
-                        f.getTemp(),
-                        f.getRr()
-                ))
+                f.getTimestamp().format(timeFormatter),
+                f.getConfidence() != null ? f.getConfidence() : 0,
+                Boolean.TRUE.equals(f.getIsEmergency()),
+                f.getEmergencyLevel() != null ? f.getEmergencyLevel() : "NORMAL",
+                f.getEmergencyReason(),
+                f.getBpm(),
+                f.getTemp(),
+                f.getRr()
+        ))
                 .collect(Collectors.toList());
 
         summary.setHasFallData(true);
