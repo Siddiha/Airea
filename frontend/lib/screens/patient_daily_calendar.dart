@@ -75,7 +75,7 @@ class _PatientDailyCalendarState extends State<PatientDailyCalendar> {
               // Calendar
               CustomCalendarWidget(
                 mode: CalendarMode.singleDate,
-                initialMonth: DateTime(2025, 11), // November 2025 as per Figma
+                initialMonth: DateTime.now(),
                 onDateSelected: (date) {
                   _navigateToSummaryDetail(context, date);
                 },

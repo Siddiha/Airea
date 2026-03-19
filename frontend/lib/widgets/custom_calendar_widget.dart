@@ -113,7 +113,7 @@ class _CustomCalendarWidgetState extends State<CustomCalendarWidget> {
                 onPressed: _previousMonth,
               ),
               Text(
-                monthName,
+                '$monthName ${_currentMonth.year}',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
