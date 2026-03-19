@@ -89,15 +89,17 @@ class _PatientAccountCreatedState extends State<PatientAccountCreated> {
             print('Spring Boot register failed: $e');
           }
 
-          // Also update Supabase patients table directly as a safety net
+          // Upsert to Supabase patients table (handles timing race with DB trigger)
           try {
-            final updateResult = await Supabase.instance.client
+            await Supabase.instance.client
                 .from('patients')
-                .update({'full_name': fullName})
-                .eq('email', registrationData.email);
-            print('Supabase full_name update result: $updateResult');
+                .upsert(
+                  {'email': registrationData.email, 'full_name': fullName},
+                  onConflict: 'email',
+                );
+            print('Supabase patients upsert succeeded');
           } catch (e) {
-            print('Supabase full_name update failed: $e');
+            print('Supabase patients upsert failed: $e');
           }
         }
         setState(() {
