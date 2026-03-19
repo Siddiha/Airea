@@ -132,30 +132,30 @@ public class SmsAlertService {
                                           String location, Float temp, Float bpm, Float rr, Float confidence, String alertType) {
         StringBuilder sb = new StringBuilder();
         
-        sb.append("🚨 AIREA EMERGENCY ALERT 🚨\n\n");
+        sb.append("** AIREA EMERGENCY ALERT **\n\n");
         sb.append("Patient: ").append(patientName != null ? patientName : "Unknown").append("\n");
         sb.append("Event: ").append(alertType != null ? alertType : "FALL DETECTED").append("\n");
-        
+
         if (confidence != null) {
             sb.append("AI Confidence: ").append(String.format("%.1f%%", confidence * 100)).append("\n");
         }
-        
+
         sb.append("\nStatus: ").append(emergencyReason != null ? emergencyReason : "Emergency").append("\n\n");
 
-        sb.append("📊 Vitals at Fall:\n");
+        sb.append("Vitals at Fall:\n");
         if (temp != null && temp > 30 && temp < 45) {
-            sb.append("• Temp: ").append(String.format("%.1f°C", temp)).append("\n");
+            sb.append("- Temp: ").append(String.format("%.1f°C", temp)).append("\n");
         }
         if (bpm != null && bpm > 0) {
-            sb.append("• Heart Rate: ").append(String.format("%.0f bpm", bpm)).append("\n");
+            sb.append("- Heart Rate: ").append(String.format("%.0f bpm", bpm)).append("\n");
         }
         if (rr != null && rr > 0) {
-            sb.append("• Resp Rate: ").append(String.format("%.0f /min", rr)).append("\n");
+            sb.append("- Resp Rate: ").append(String.format("%.0f /min", rr)).append("\n");
         }
 
-        sb.append("\n📍 Location:\n");
+        sb.append("\nLocation:\n");
         sb.append(location != null && !location.isEmpty() ? location : "Unknown");
-        sb.append("\n\n⚠️ Please check on the patient immediately!");
+        sb.append("\n\nPlease check on the patient immediately!");
 
         return sb.toString();
     }
