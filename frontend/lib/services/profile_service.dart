@@ -241,12 +241,9 @@ class ProfileService {
   /// Save the linked device ID to per-user local storage AND sync to Supabase.
   static Future<void> saveLinkedDevice(String deviceId) async {
     final prefs = await SharedPreferences.getInstance();
-    // Per-user scoped key so two patients on the same device never share data
-    await prefs.setString(_key('device_id'), deviceId);
-    // Also keep the legacy unscoped key so existing reads still work during transition
-    await prefs.setString('device_id', deviceId);
+    await prefs.setString(_key('linked_device_id'), deviceId);
+    await prefs.setString('linked_device_id', deviceId); // legacy key
 
-    // Sync to Supabase patients table so device persists across reinstalls
     try {
       final email = _currentEmail();
       if (email != null) {
@@ -260,19 +257,16 @@ class ProfileService {
   }
 
   /// Read the linked device ID — per-user scoped, falls back to legacy key,
-  /// then falls back to Supabase (handles fresh installs on same account).
+  /// then falls back to Supabase on a fresh install.
   static Future<String?> getLinkedDevice() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // 1. Try per-user scoped key first
-    final scoped = prefs.getString(_key('device_id'));
+    final scoped = prefs.getString(_key('linked_device_id'));
     if (scoped != null && scoped.isNotEmpty) return scoped;
 
-    // 2. Fallback to legacy unscoped key
-    final legacy = prefs.getString('device_id');
+    final legacy = prefs.getString('linked_device_id');
     if (legacy != null && legacy.isNotEmpty) return legacy;
 
-    // 3. Fallback to Supabase (e.g. fresh install / new device same account)
     try {
       final email = _currentEmail();
       if (email != null) {
@@ -284,9 +278,8 @@ class ProfileService {
         if (row != null && row['device_id'] != null) {
           final id = row['device_id'] as String;
           if (id.isNotEmpty) {
-            // Cache locally so next read is instant
-            await prefs.setString(_key('device_id'), id);
-            await prefs.setString('device_id', id);
+            await prefs.setString(_key('linked_device_id'), id);
+            await prefs.setString('linked_device_id', id);
             return id;
           }
         }
@@ -298,13 +291,12 @@ class ProfileService {
     return null;
   }
 
-  /// Remove the linked device ID from local storage and Supabase (used on disconnect).
+  /// Remove the linked device ID from local storage and Supabase.
   static Future<void> clearLinkedDevice() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_key('device_id'));
-    await prefs.remove('device_id'); // also clear legacy unscoped key
+    await prefs.remove(_key('linked_device_id'));
+    await prefs.remove('linked_device_id');
 
-    // Clear from Supabase
     try {
       final email = _currentEmail();
       if (email != null) {

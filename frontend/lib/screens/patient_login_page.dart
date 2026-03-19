@@ -115,7 +115,7 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
         }
       }
 
-      // Step 2: Call Spring Boot login to get and store the backend JWT token.
+      // Step 2: Call Spring Boot login to get and store the backend JWT.
       // This token is needed later when linking a device via /auth/link-device.
       try {
         final loginUrl = Uri.parse('${ApiConfig.baseUrl}/auth/login');

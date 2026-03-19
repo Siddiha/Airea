@@ -141,7 +141,7 @@ class AuthService {
   /// Clear session from SharedPreferences (called on logout)
   Future<void> _clearSession() async {
     final prefs = await SharedPreferences.getInstance();
-    // Clear the per-user scoped linked_device_id key before removing the email
+    // Clear per-user scoped device key before removing the email
     final email = prefs.getString(_userEmailKey);
     if (email != null) {
       await prefs.remove('linked_device_id_$email');

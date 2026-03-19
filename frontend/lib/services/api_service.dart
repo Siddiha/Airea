@@ -316,8 +316,6 @@ class ApiService {
   }
 
   /// Link a device to the currently logged-in patient in the Spring Boot backend.
-  /// [token] is the Spring Boot JWT stored in SharedPreferences as 'backend_jwt_token'.
-  /// Returns {'success': true} or {'success': false, 'message': '...'}.
   Future<Map<String, dynamic>> linkDeviceToPatient(
       String deviceId, String token) async {
     try {
@@ -341,7 +339,6 @@ class ApiService {
       }
     } catch (e) {
       print('Error linking device to backend: $e');
-      // Non-fatal — Supabase will still be updated by ProfileService
       return {'success': false, 'message': 'Backend unreachable'};
     }
   }

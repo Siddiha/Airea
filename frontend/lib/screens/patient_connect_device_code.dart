@@ -132,8 +132,8 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                         // Step 3: Check Supabase — is this device already
                         // linked to a DIFFERENT patient?
                         try {
-                          final currentEmail = Supabase
-                              .instance.client.auth.currentUser?.email;
+                          final currentEmail =
+                              Supabase.instance.client.auth.currentUser?.email;
                           if (currentEmail != null) {
                             final existing = await Supabase.instance.client
                                 .from('patients')
@@ -152,11 +152,10 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                           }
                         } catch (e) {
                           debugPrint('Supabase device-check error: $e');
-                          // Non-fatal — backend JWT check below will catch it
                         }
 
                         // Step 4: Link device in the Spring Boot backend (JWT check).
-                        // This enforces one-patient-per-device on the server side.
+                        // This enforces one-patient-per-device on the server side too.
                         final prefs = await SharedPreferences.getInstance();
                         final token = prefs.getString('backend_jwt_token') ?? '';
                         if (token.isNotEmpty) {
@@ -164,8 +163,6 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                               await _apiService.linkDeviceToPatient(input, token);
                           if (!linkResult['success']) {
                             final msg = linkResult['message'] as String? ?? '';
-                            // Only block if the backend explicitly says it is taken
-                            // by another patient. Treat other errors as non-fatal.
                             if (msg.toLowerCase().contains('another patient')) {
                               setState(() {
                                 _codeError =
@@ -174,8 +171,6 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                               });
                               return;
                             }
-                            // For other backend errors (network, etc.) continue
-                            // so Supabase is still updated below.
                             debugPrint('Backend link-device non-fatal: $msg');
                           }
                         }
