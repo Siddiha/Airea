@@ -139,6 +139,13 @@ public class AuthService {
     }
 
     public void linkDevice(String email, String deviceId) {
+        // Ensure the device is not already linked to a DIFFERENT patient
+        patientRepository.findByDeviceId(deviceId).ifPresent(existing -> {
+            if (!existing.getEmail().equalsIgnoreCase(email)) {
+                throw new RuntimeException("Device is already linked to another patient");
+            }
+        });
+
         Patient patient = getPatientByEmail(email);
         patient.setDeviceId(deviceId);
         patientRepository.save(patient);

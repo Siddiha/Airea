@@ -141,11 +141,18 @@ class AuthService {
   /// Clear session from SharedPreferences (called on logout)
   Future<void> _clearSession() async {
     final prefs = await SharedPreferences.getInstance();
+    // Clear the per-user scoped linked_device_id key before removing the email
+    final email = prefs.getString(_userEmailKey);
+    if (email != null) {
+      await prefs.remove('linked_device_id_$email');
+    }
+
     await prefs.remove(_userIdKey);
     await prefs.remove(_userEmailKey);
     await prefs.remove(_userTypeKey);
     await prefs.remove(_loginTimeKey);
-    await prefs.remove('linked_device_id');
+    await prefs.remove('linked_device_id'); // legacy unscoped key
+    await prefs.remove('backend_jwt_token');
     await prefs.remove('user_full_name');
     await prefs.remove('patient_code');
 

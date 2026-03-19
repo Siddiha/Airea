@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/app_theme.dart';
 import 'patient_device_connected.dart';
 import 'patient_device_guidance.dart';
@@ -107,7 +110,7 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                       });
 
                       try {
-                        // Verify the device exists in the backend
+                        // Step 1: Verify the device exists in the backend
                         final device = await _apiService.getDevice(input);
                         if (device == null) {
                           setState(() {
@@ -117,7 +120,67 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                           return;
                         }
 
-                        // Validate locally and save to SharedPreferences + Supabase
+                        // Step 2: Check the device is active
+                        if (!device.isActive) {
+                          setState(() {
+                            _codeError = 'This device is inactive and cannot be connected.';
+                            _isLoading = false;
+                          });
+                          return;
+                        }
+
+                        // Step 3: Check Supabase — is this device already
+                        // linked to a DIFFERENT patient?
+                        try {
+                          final currentEmail = Supabase
+                              .instance.client.auth.currentUser?.email;
+                          if (currentEmail != null) {
+                            final existing = await Supabase.instance.client
+                                .from('patients')
+                                .select('email')
+                                .eq('device_id', input)
+                                .neq('email', currentEmail)
+                                .maybeSingle();
+                            if (existing != null) {
+                              setState(() {
+                                _codeError =
+                                    'This device is already connected to another patient.';
+                                _isLoading = false;
+                              });
+                              return;
+                            }
+                          }
+                        } catch (e) {
+                          debugPrint('Supabase device-check error: $e');
+                          // Non-fatal — backend JWT check below will catch it
+                        }
+
+                        // Step 4: Link device in the Spring Boot backend (JWT check).
+                        // This enforces one-patient-per-device on the server side.
+                        final prefs = await SharedPreferences.getInstance();
+                        final token = prefs.getString('backend_jwt_token') ?? '';
+                        if (token.isNotEmpty) {
+                          final linkResult =
+                              await _apiService.linkDeviceToPatient(input, token);
+                          if (!linkResult['success']) {
+                            final msg = linkResult['message'] as String? ?? '';
+                            // Only block if the backend explicitly says it is taken
+                            // by another patient. Treat other errors as non-fatal.
+                            if (msg.toLowerCase().contains('another patient')) {
+                              setState(() {
+                                _codeError =
+                                    'This device is already connected to another patient.';
+                                _isLoading = false;
+                              });
+                              return;
+                            }
+                            // For other backend errors (network, etc.) continue
+                            // so Supabase is still updated below.
+                            debugPrint('Backend link-device non-fatal: $msg');
+                          }
+                        }
+
+                        // Step 5: Pair locally and sync to Supabase
                         _deviceLogic.pairDevice(input);
                         await ProfileService.saveLinkedDevice(input);
 

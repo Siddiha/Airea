@@ -85,6 +85,17 @@ class _PatientAccountCreatedState extends State<PatientAccountCreated> {
               }),
             ).timeout(const Duration(seconds: 10));
             print('Spring Boot register response: ${resp.statusCode} ${resp.body}');
+            // Store the backend JWT so device linking works immediately after sign-up
+            if (resp.statusCode == 201) {
+              try {
+                final regData = jsonDecode(resp.body);
+                final token = regData['token'];
+                if (token != null) {
+                  final prefs2 = await SharedPreferences.getInstance();
+                  await prefs2.setString('backend_jwt_token', token as String);
+                }
+              } catch (_) {}
+            }
           } catch (e) {
             print('Spring Boot register failed: $e');
           }
