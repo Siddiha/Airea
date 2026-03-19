@@ -21,7 +21,7 @@ public class VitalsEvent {
     private float rr;
 
     @Column(name = "rr_estimated")
-    private boolean rrEstimated;
+    private Boolean rrEstimated;
 
     @Column(name = "leads_off")
     private boolean leadsOff;
@@ -33,6 +33,9 @@ public class VitalsEvent {
     protected void onCreate() {
         if (createdAt == null) {
             createdAt = LocalDateTime.now(ZoneId.of("Asia/Colombo"));
+        }
+        if (rrEstimated == null) {
+            rrEstimated = false;
         }
     }
 
@@ -78,10 +81,10 @@ public class VitalsEvent {
     }
 
     public boolean isRrEstimated() {
-        return rrEstimated;
+        return Boolean.TRUE.equals(rrEstimated);
     }
 
-    public void setRrEstimated(boolean rrEstimated) {
+    public void setRrEstimated(Boolean rrEstimated) {
         this.rrEstimated = rrEstimated;
     }
 
