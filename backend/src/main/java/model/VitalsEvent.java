@@ -20,6 +20,9 @@ public class VitalsEvent {
     private float bpm;
     private float rr;
 
+    @Column(name = "rr_estimated")
+    private boolean rrEstimated;
+
     @Column(name = "leads_off")
     private boolean leadsOff;
 
@@ -72,6 +75,14 @@ public class VitalsEvent {
 
     public void setRr(float rr) {
         this.rr = rr;
+    }
+
+    public boolean isRrEstimated() {
+        return rrEstimated;
+    }
+
+    public void setRrEstimated(boolean rrEstimated) {
+        this.rrEstimated = rrEstimated;
     }
 
     public boolean isLeadsOff() {

@@ -39,6 +39,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
   double respiratoryRate = 0.0;
   String respiratoryRateStatus = "No device connected";
+  bool rrEstimated = false;
 
   int coughCount = 0;
   String coughStatus = "No device connected";
@@ -79,7 +80,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               row['full_name'] != null &&
               (row['full_name'] as String).isNotEmpty) {
             savedName = row['full_name'] as String;
-            await prefs.setString('user_full_name', savedName!);
+            await prefs.setString('user_full_name', savedName);
           }
         }
       } catch (_) {
@@ -102,6 +103,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           leadsAreOff = false;
           respiratoryRate = 0.0;
           respiratoryRateStatus = "No device connected";
+          rrEstimated = false;
           coughCount = 0;
           coughStatus = "No device connected";
         }
@@ -159,6 +161,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           heartRate = vitals.bpm;
           leadsAreOff = vitals.leadsOff;
           respiratoryRate = vitals.respiratoryRate;
+          rrEstimated = vitals.rrEstimated;
 
           // Medical Logic for Statuses
           temperatureStatus = _getTemperatureStatus(temperature);
@@ -544,8 +547,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text("Respiratory Rate",
-                  style:
-                      TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
               const SizedBox(height: 4),
               Text(
                 (respiratoryRate == 0.0 || leadsAreOff)
@@ -564,11 +566,22 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     fontWeight: FontWeight.w600,
                     color: _getStatusColor(respiratoryRateStatus)),
               ),
+              if (!leadsAreOff && respiratoryRate > 0.0 && rrEstimated) ...[
+                const SizedBox(height: 2),
+                Text(
+                  "Estimated",
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade600),
+                ),
+              ],
             ],
           ),
           Icon(Icons.air_rounded,
               size: 48,
-              color: _getStatusColor(respiratoryRateStatus).withValues(alpha: 0.7)),
+              color: _getStatusColor(respiratoryRateStatus)
+                  .withValues(alpha: 0.7)),
         ],
       ),
     );
@@ -745,8 +758,6 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       ),
     );
   }
-
-
 }
 
 // Updated ECG Painter to draw a flatline if leads are disconnected
