@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; 
-import 'dart:convert'; 
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/app_theme.dart';
 import 'patient_pending_message.dart';
 import 'patient_guidance_to_connect_with_doctor.dart';
@@ -28,18 +29,6 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
   Future<void> _handleConnect() async {
     final String doctorCodeInput = _idController.text.trim();
 
-    // Get the actual patient code from SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    final String? currentPatientCode = prefs.getString('patient_code');
-
-    if (currentPatientCode == null || currentPatientCode.isEmpty) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Patient code not found. Please check your profile first.")),
-      );
-      return;
-    }
-
     if (doctorCodeInput.isEmpty) {
       setState(() => _idError = 'Please enter a Doctor Code');
       return;
@@ -52,6 +41,41 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
     }
 
     setState(() => _idError = null);
+
+    // Get the patient code from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    String? currentPatientCode = prefs.getString('patient_code');
+
+    // If not cached locally, fetch it from the backend on-the-fly
+    if (currentPatientCode == null || currentPatientCode.isEmpty) {
+      final email = Supabase.instance.client.auth.currentUser?.email;
+      if (email != null) {
+        try {
+          final codeUrl = Uri.parse(
+              '${ApiConfig.baseUrl}/auth/patient/code?email=${Uri.encodeComponent(email)}');
+          final resp =
+              await http.get(codeUrl).timeout(const Duration(seconds: 10));
+          if (resp.statusCode == 200) {
+            final data = jsonDecode(resp.body);
+            final fetched = data['code'] as String?;
+            if (fetched != null && fetched.isNotEmpty) {
+              currentPatientCode = fetched;
+              await prefs.setString('patient_code', fetched);
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (currentPatientCode == null || currentPatientCode.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Could not retrieve your patient code. Please log out and log in again.')),
+      );
+      return;
+    }
 
     final url = Uri.parse('${ApiConfig.baseUrl}/connections/add-by-code');
 
