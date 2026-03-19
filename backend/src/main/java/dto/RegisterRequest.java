@@ -1,5 +1,6 @@
 package dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class RegisterRequest {
 
     @NotBlank(message = "Email is required")
@@ -30,7 +32,11 @@ public class RegisterRequest {
 
     private String phoneNumber;
 
-    private String allergies;
+    private Object allergies;
 
-    private String emergencyContact;
+    private Object emergencyContact;
+
+    private Object medicalDetails;
+
+    private Object medicalReportPaths;
 }
