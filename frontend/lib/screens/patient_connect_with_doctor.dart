@@ -42,19 +42,31 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
 
     setState(() => _idError = null);
 
+<<<<<<< Updated upstream
     // Get the patient code from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     String? currentPatientCode = prefs.getString('patient_code');
 
     // If not cached locally, fetch it from the backend on-the-fly
+=======
+    // Get patient code from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    String? currentPatientCode = prefs.getString('patient_code');
+
+    // If not cached, fetch from backend on-the-fly
+>>>>>>> Stashed changes
     if (currentPatientCode == null || currentPatientCode.isEmpty) {
       final email = Supabase.instance.client.auth.currentUser?.email;
       if (email != null) {
         try {
           final codeUrl = Uri.parse(
               '${ApiConfig.baseUrl}/auth/patient/code?email=${Uri.encodeComponent(email)}');
+<<<<<<< Updated upstream
           final resp =
               await http.get(codeUrl).timeout(const Duration(seconds: 10));
+=======
+          final resp = await http.get(codeUrl).timeout(const Duration(seconds: 10));
+>>>>>>> Stashed changes
           if (resp.statusCode == 200) {
             final data = jsonDecode(resp.body);
             final fetched = data['code'] as String?;
@@ -70,9 +82,13 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
     if (currentPatientCode == null || currentPatientCode.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
+<<<<<<< Updated upstream
         const SnackBar(
             content: Text(
                 'Could not retrieve your patient code. Please log out and log in again.')),
+=======
+        const SnackBar(content: Text('Could not retrieve your patient code. Please log out and log in again.')),
+>>>>>>> Stashed changes
       );
       return;
     }

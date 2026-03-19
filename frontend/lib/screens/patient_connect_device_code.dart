@@ -45,7 +45,6 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
               children: [
                 const Spacer(flex: 2),
 
-                // 1. Title Text
                 const Text(
                   'Please enter unique\ncode ID provided for\nthe wearable device',
                   textAlign: TextAlign.center,
@@ -59,7 +58,6 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
 
                 const SizedBox(height: 30),
 
-                // 2. Input Field
                 TextField(
                   controller: _codeController,
                   textAlign: TextAlign.left,
@@ -92,7 +90,6 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
 
                 const SizedBox(height: 30),
 
-                // 3. Confirm Button
                 SizedBox(
                   width: 220,
                   child: ElevatedButton(
@@ -110,7 +107,11 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                       });
 
                       try {
+<<<<<<< Updated upstream
                         // Step 1: Verify the device exists in the backend
+=======
+                        // Step 1: Verify device exists in backend
+>>>>>>> Stashed changes
                         final device = await _apiService.getDevice(input);
                         if (device == null) {
                           setState(() {
@@ -120,7 +121,11 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                           return;
                         }
 
+<<<<<<< Updated upstream
                         // Step 2: Check the device is active
+=======
+                        // Step 2: Check device is active
+>>>>>>> Stashed changes
                         if (!device.isActive) {
                           setState(() {
                             _codeError = 'This device is inactive and cannot be connected.';
@@ -154,8 +159,12 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                           debugPrint('Supabase device-check error: $e');
                         }
 
+<<<<<<< Updated upstream
                         // Step 4: Link device in the Spring Boot backend (JWT check).
                         // This enforces one-patient-per-device on the server side too.
+=======
+                        // Step 4: Link in Spring Boot backend (JWT check)
+>>>>>>> Stashed changes
                         final prefs = await SharedPreferences.getInstance();
                         final token = prefs.getString('backend_jwt_token') ?? '';
                         if (token.isNotEmpty) {
@@ -175,7 +184,11 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
                           }
                         }
 
+<<<<<<< Updated upstream
                         // Step 5: Pair locally and sync to Supabase
+=======
+                        // Step 5: Save locally and sync to Supabase
+>>>>>>> Stashed changes
                         _deviceLogic.pairDevice(input);
                         await ProfileService.saveLinkedDevice(input);
 
@@ -215,7 +228,6 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
 
                 const Spacer(flex: 2),
 
-                // 4. Bottom Info Text
                 const Text(
                   'Get unique code from the\nuser manual provided with\nthe wearable device',
                   textAlign: TextAlign.center,
@@ -229,7 +241,6 @@ class _PatientConnectDeviceCodeState extends State<PatientConnectDeviceCode> {
 
                 const SizedBox(height: 20),
 
-                // 5. Guidance Button
                 SizedBox(
                   width: 220,
                   child: ElevatedButton(
