@@ -8,8 +8,7 @@ import 'patient_pending_message.dart';
 import 'patient_guidance_to_connect_with_doctor.dart';
 import 'patient_homeScreen.dart';
 import '../config/api_config.dart';
-import 'patient_summary_overview.dart';
-import 'patient_connect_device_option.dart';
+import '../widgets/bottom_nav_bar.dart';
 
 class PatientConnectWithDoctor extends StatefulWidget {
   const PatientConnectWithDoctor({super.key});
@@ -20,8 +19,6 @@ class PatientConnectWithDoctor extends StatefulWidget {
 }
 
 class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
-  int _selectedIndex = 0;
-
   // 1. Add the controller to capture the Doctor's ID
   final TextEditingController _idController = TextEditingController();
   String? _idError;
@@ -106,39 +103,6 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Error: Could not connect. Is the server running?")),
       );
-    }
-  }
-
-  void _onBottomNavTapped(int index) {
-    if (index == 0) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
-        (route) => false,
-      );
-    } 
-    else if (index == 1) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const PatientConnectDeviceOption(),
-      ),
-    );
-  } 
-     else if (index == 2) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PatientSummaryOverview(),
-      ),
-    );
-  } 
-    
-    
-    else {
-      setState(() {
-        _selectedIndex = index;
-      });
     }
   }
 
@@ -239,18 +203,7 @@ class _PatientConnectWithDoctorState extends State<PatientConnectWithDoctor> {
         ),
       ),
 
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onBottomNavTapped,
-        selectedItemColor: Colors.teal,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.wifi), label: 'Device'),
-          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Trends & summary'),
-        ],
-      ),
+      bottomNavigationBar: const PatientBottomNav(currentIndex: 0),
     );
   }
 }

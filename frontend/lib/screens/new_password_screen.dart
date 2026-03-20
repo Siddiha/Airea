@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../services/auth_service.dart';
+import 'role_selection_page.dart';
 
 class NewPasswordScreen extends StatefulWidget {
   const NewPasswordScreen({super.key});
@@ -50,8 +51,11 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
     setState(() => _isLoading = false);
 
     if (result['success']) {
-      // Success! Go back to Login Screen (clear history)
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      // Success! Go back to Role Selection (clear history)
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const RoleSelectionPage()),
+        (route) => false,
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Password reset successful! Please login.')),

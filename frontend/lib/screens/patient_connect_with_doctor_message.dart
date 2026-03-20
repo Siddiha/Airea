@@ -1,19 +1,41 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'patient_homeScreen.dart';
 
-class PatientConnectWithDoctorMessage extends StatelessWidget {
+class PatientConnectWithDoctorMessage extends StatefulWidget {
   const PatientConnectWithDoctorMessage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    Future.delayed(const Duration(seconds: 3), () {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-            builder: (_) => const PatientHomeScreen()),
-        (route) => false,
-      );
+  State<PatientConnectWithDoctorMessage> createState() =>
+      _PatientConnectWithDoctorMessageState();
+}
+
+class _PatientConnectWithDoctorMessageState
+    extends State<PatientConnectWithDoctorMessage> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
+          (route) => false,
+        );
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
         child: Column(
