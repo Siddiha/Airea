@@ -1,6 +1,7 @@
 import 'package:airea_cough_monitor/config/app_theme.dart';
 import 'package:flutter/material.dart';
 import '../services/doctor_patient_service.dart';
+import '../widgets/bottom_nav_bar.dart';
 import 'patient_homeScreen.dart';
 
 class DoctorDetails extends StatelessWidget {
@@ -23,7 +24,7 @@ class DoctorDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Doctor's details")),
-      bottomNavigationBar: _bottomNav(context, 0),
+      bottomNavigationBar: const PatientBottomNav(currentIndex: 0),
       body: Center(
         child:SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -133,34 +134,4 @@ class DoctorDetails extends StatelessWidget {
     );
   }
 
-  BottomNavigationBar _bottomNav(BuildContext context, int index) {
-    return BottomNavigationBar(
-      currentIndex: index,
-      selectedItemColor: AppTheme.primaryTeal,
-      unselectedItemColor: Colors.grey,
-      onTap: (i) {
-        if (i == 0) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const PatientHomeScreen()),
-            (route) => false,
-          );
-        }
-      },
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.wifi),
-          label: 'Device',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.list_alt),
-          label: 'Trends & summary',
-        ),
-      ],
-    );
-  }
 }
