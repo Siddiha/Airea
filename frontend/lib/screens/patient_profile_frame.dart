@@ -53,7 +53,8 @@ class PatientProfileFrame extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => EditMedicalInfo(existingMedical: details),
+                          builder: (context) =>
+                              EditMedicalInfo(existingMedical: details),
                         ),
                       );
                     },
@@ -68,11 +69,13 @@ class PatientProfileFrame extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () async {
-                      final contact = await ProfileService.loadEmergencyContact();
+                      final contact =
+                          await ProfileService.loadEmergencyContact();
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => EditEmergencyInfo(existingContact: contact),
+                          builder: (context) =>
+                              EditEmergencyInfo(existingContact: contact),
                         ),
                       );
                     },
@@ -83,7 +86,8 @@ class PatientProfileFrame extends StatelessWidget {
               ),
               _buildMenuButton(
                   context, 'View medical reports', const ViewReportsScreen()),
-              _buildMenuButton(context, 'View allergic conditions', const ViewAllergiesScreen()),
+              _buildMenuButton(context, 'View allergic conditions',
+                  const ViewAllergiesScreen()),
 
               // 2. Add the Connect Device button here
               _buildMenuButton(
@@ -105,12 +109,15 @@ class PatientProfileFrame extends StatelessWidget {
                           try {
                             final url = Uri.parse(
                                 '${ApiConfig.baseUrl}/auth/patient/code?email=${Uri.encodeComponent(user.email!)}');
-                            final resp = await http.get(url).timeout(const Duration(seconds: 10));
+                            final resp = await http
+                                .get(url)
+                                .timeout(const Duration(seconds: 10));
                             if (resp.statusCode == 200) {
                               final data = jsonDecode(resp.body);
                               if (data['code'] != null) {
                                 patientCode = data['code'];
-                                await prefs.setString('patient_code', patientCode!);
+                                await prefs.setString(
+                                    'patient_code', patientCode!);
                               }
                             }
                           } catch (e) {
@@ -122,10 +129,13 @@ class PatientProfileFrame extends StatelessWidget {
                         showDialog(
                           context: context,
                           builder: (_) => AlertDialog(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20)),
                             title: const Text('Your Patient ID'),
                             content: Text(
-                              patientCode != null ? 'Your ID is $patientCode' : 'ID not found. Please re-login.',
+                              patientCode != null
+                                  ? 'Your ID is $patientCode'
+                                  : 'ID not found. Please re-login.',
                               style: const TextStyle(fontSize: 18),
                             ),
                             actions: [
