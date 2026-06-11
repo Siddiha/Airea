@@ -78,7 +78,8 @@ class _SplashScreenState extends State<SplashScreen> {
           try {
             final codeUrl = Uri.parse(
                 '${ApiConfig.baseUrl}/auth/patient/code?email=${Uri.encodeComponent(email)}');
-            final resp = await http.get(codeUrl).timeout(const Duration(seconds: 10));
+            final resp =
+                await http.get(codeUrl).timeout(const Duration(seconds: 10));
             if (resp.statusCode == 200) {
               final data = jsonDecode(resp.body);
               if (data['code'] != null) {
@@ -119,7 +120,9 @@ class _SplashScreenState extends State<SplashScreen> {
           .select('full_name')
           .eq('email', email)
           .maybeSingle();
-      if (resp != null && resp['full_name'] != null && (resp['full_name'] as String).isNotEmpty) {
+      if (resp != null &&
+          resp['full_name'] != null &&
+          (resp['full_name'] as String).isNotEmpty) {
         await prefs.setString('user_full_name', resp['full_name']);
       }
     } catch (e) {

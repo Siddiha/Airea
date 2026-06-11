@@ -87,15 +87,17 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
       final savedFullName = prefs.getString('user_full_name') ?? '';
       try {
         final registerUrl = Uri.parse('${ApiConfig.baseUrl}/auth/register');
-        await http.post(
-          registerUrl,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'email': email,
-            'password': password,
-            'fullName': savedFullName,
-          }),
-        ).timeout(const Duration(seconds: 10));
+        await http
+            .post(
+              registerUrl,
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'email': email,
+                'password': password,
+                'fullName': savedFullName,
+              }),
+            )
+            .timeout(const Duration(seconds: 10));
       } catch (_) {
         // Ignore - patient may already exist or backend unavailable
       }
@@ -104,12 +106,10 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
       // call above was rejected (email already registered)
       if (savedFullName.isNotEmpty) {
         try {
-          await Supabase.instance.client
-              .from('patients')
-              .upsert(
-                {'email': email, 'full_name': savedFullName},
-                onConflict: 'email',
-              );
+          await Supabase.instance.client.from('patients').upsert(
+            {'email': email, 'full_name': savedFullName},
+            onConflict: 'email',
+          );
         } catch (_) {
           // Non-fatal — name sync will retry on next login
         }
@@ -119,11 +119,13 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
       // This token is needed later when linking a device via /auth/link-device.
       try {
         final loginUrl = Uri.parse('${ApiConfig.baseUrl}/auth/login');
-        final loginResp = await http.post(
-          loginUrl,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'email': email, 'password': password}),
-        ).timeout(const Duration(seconds: 10));
+        final loginResp = await http
+            .post(
+              loginUrl,
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({'email': email, 'password': password}),
+            )
+            .timeout(const Duration(seconds: 10));
         if (loginResp.statusCode == 200) {
           final loginData = jsonDecode(loginResp.body);
           final token = loginData['token'];
@@ -156,10 +158,13 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
           .maybeSingle();
       if (nameResp != null) {
         final prefs = await SharedPreferences.getInstance();
-        if (nameResp['patient_code'] != null && (prefs.getString('patient_code') == null || prefs.getString('patient_code')!.isEmpty)) {
+        if (nameResp['patient_code'] != null &&
+            (prefs.getString('patient_code') == null ||
+                prefs.getString('patient_code')!.isEmpty)) {
           await prefs.setString('patient_code', nameResp['patient_code']);
         }
-        if (nameResp['full_name'] != null && (nameResp['full_name'] as String).isNotEmpty) {
+        if (nameResp['full_name'] != null &&
+            (nameResp['full_name'] as String).isNotEmpty) {
           await prefs.setString('user_full_name', nameResp['full_name']);
         }
       }
@@ -215,7 +220,8 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
                       borderRadius: BorderRadius.circular(30),
                       borderSide: BorderSide.none,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 18),
                     errorText: _emailError,
                   ),
                   keyboardType: TextInputType.emailAddress,
@@ -240,7 +246,8 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
                       borderRadius: BorderRadius.circular(30),
                       borderSide: BorderSide.none,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 18),
                     errorText: _passwordError,
                   ),
                 ),
@@ -255,7 +262,8 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const ForgotPasswordScreen(userType: 'PATIENT'),
+                          builder: (context) =>
+                              const ForgotPasswordScreen(userType: 'PATIENT'),
                         ),
                       );
                     },
@@ -312,7 +320,8 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const PatientCreateAccount()),
+                              builder: (context) =>
+                                  const PatientCreateAccount()),
                         );
                       },
                       child: const Text(
